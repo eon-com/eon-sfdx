@@ -1,7 +1,7 @@
 {
   "name": "@eon-com/eon-sfdx",
   "description": "Salesforce DX (SFDX) commands to support salesforce developments & deployments",
-  "version": "0.0.1-beta.3",
+  "version": "0.0.1-beta.4",
   "author": "Constantin Schlusche, Ronny Rokitta",
   "bugs": {
     "url": "https://github.com/eon-com/eon-sfdx/issues"
