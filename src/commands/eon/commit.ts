@@ -148,8 +148,7 @@ export default class Commit extends SfdxCommand {
     // ask, if dependencies should be updated
     const dependencyPrompt = await new Confirm({
       name: 'updateDependencyConfirm',
-      message: 'Update dependencies to latest? (Always recommended)',
-      inital: 'y',
+      message: 'Update dependencies of changed package to latest versions?',
     })
       .run()
       .catch(console.error);
@@ -267,8 +266,8 @@ Following Details will be committed:
     await fs.writeFile(projectJson.getPath(), JSON.stringify(json, null, 2));
 
     // commit changes
-    // await git.add([...readmes, projectJson.getPath()]);
-    //await git.commit(commitMsg);
+    await git.add([...readmes, projectJson.getPath()]);
+    await git.commit(commitMsg);
     return {};
   }
 }
