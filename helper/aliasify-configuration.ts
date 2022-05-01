@@ -1,0 +1,82 @@
+import { SfdxError, SfdxProject, SfdxProjectJson } from '@salesforce/core';
+import { environmentConfigFile, PluginSettings, stringProperties } from './types';
+import * as fspromise from 'fs/promises';
+import path from 'path';
+import * as YAML from 'yaml';
+import EONLogger, { COLOR_ERROR, COLOR_INFO, COLOR_KEY_MESSAGE, COLOR_TRACE } from '../eon/EONLogger';
+import getSecretAWS from '../connectors/aws-secrets-manager-conn';
+
+/**
+ * Retrieve configuration file and returns dynamic value if setting: or secret: is used as an indicator inside a command flag
+ * @param settingname The raw value passed in e.g. as a flag to a command
+ * @param alias The tag used to differentiate between versions of configuration
+ * @param project the sfdxProject from salesforce/core
+ * @returns Dynamic value from configuration file or secret manager
+ */
+export default async function getSettingValue(
+  settingname: string,
+  alias: string,
+  project: SfdxProject
+): Promise<string> {
+  let settingKey: string = '';
+  if (!settingname.includes('settings:')) {
+    return settingname;
+  } else {
+    settingKey = settingname.replace('settings:', '');
+  }
+
+  // get sfdx project.json
+  const projectJson: SfdxProjectJson = await project.retrieveSfdxProjectJson();
+  const settings: PluginSettings = projectJson.getContents()?.plugins['eon-sfdx'] as PluginSettings;
+  const configFilePath: string = path.join(
+    path.dirname(projectJson.getPath()),
+    settings.environmentConfigurationFilePath
+  );
+
+  let parsedFile: environmentConfigFile;
+  if (settings?.environmentConfigurationFilePath) {
+    await fspromise
+      .stat(configFilePath)
+      .catch((error) =>
+        EONLogger.log(COLOR_ERROR('The configuration file defined in sfdx-project.json does not exist.'))
+      );
+    const raw = await fspromise.readFile(configFilePath, 'utf8');
+    try {
+      parsedFile = YAML.parse(raw) as environmentConfigFile;
+    } catch (e) {
+      EONLogger.log(COLOR_ERROR('The configuration file is not valid. Please check the syntax in the file.'));
+    }
+  } else {
+    EONLogger.log(COLOR_ERROR('no configuration file was defined in sfdx-project.json.'));
+  }
+  let targetOrgSettings: stringProperties;
+  let aliasChecked = 'default';
+  if (alias in parsedFile.settings) {
+    aliasChecked = alias;
+  } else {
+    EONLogger.log(COLOR_TRACE(`Alias ${alias} not found. Using default value instead.`));
+  }
+
+  targetOrgSettings = parsedFile.settings[aliasChecked];
+  let result: string;
+  if (settingKey in targetOrgSettings) {
+    EONLogger.log(
+      COLOR_KEY_MESSAGE('Property found:') +
+        COLOR_INFO(
+          ` Using property ${settingKey} for alias ${aliasChecked} from configuration file ${settings.environmentConfigurationFilePath} ...`
+        )
+    );
+    result = targetOrgSettings[settingKey];
+    if (targetOrgSettings[settingKey].includes('secret:')) {
+      result = await getSecretAWS(targetOrgSettings[settingKey], aliasChecked, project);
+    }
+  } else {
+    EONLogger.log(COLOR_ERROR(`Property ${settingKey} does not exist for alias ${aliasChecked} in configuration file`));
+    result = null;
+  }
+  if (result === null) {
+    throw new SfdxError(`${settingname} could not be resolved into a value.`);
+  } else {
+    return result;
+  }
+}

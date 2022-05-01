@@ -1,0 +1,11 @@
+{
+  "commandDescription": "deploy package source files by package name",
+  "packageFlagDescription": "Name of Package to be deployed",
+  "depFlagDescription": "set true to deploy dependencies",
+  "errorNoPckResults": "No package was found for '%s'.",
+  "errorDeployFailed": "Deployment failed: '%s'",
+  "examples": [
+    "sfdx eon:deploy:package --packagename api-gateway --includedependencies",
+    "sfdx eon:deploy:package --packagename core-datamodel"
+  ]
+}
