@@ -1,4 +1,4 @@
-import { PackageDir } from '@salesforce/core';
+import { PackageDir, NamedPackageDir } from '@salesforce/core';
 import { MetadataInfo } from 'jsforce';
 
 export enum ComponentStatus {
@@ -162,6 +162,11 @@ export interface PackageTree {
   dependency?: PackageTree[];
 }
 
+export interface PackageInfo {
+  message?: string;
+  path?: string;
+}
+
 export interface Status {
   hasError?: boolean;
   message?: string;
@@ -174,3 +179,70 @@ export interface DeployError {
   Status?: string;
   Message?: string;
 }
+
+export interface ApexClass {
+  Id?: string;
+  Name?: string;
+  Body?: string;
+}
+
+export interface ApexTestQueueItem {
+  attributes: [Object];
+  Id?: string;
+  ApexClass?: ApexClass;
+  ApexClassId?: string;
+  Status?: string;
+  ExtendedStatus?: string;
+  ParentJobId?: string;
+  TestRunResultId?: string;
+}
+
+export interface ApexCodeCoverageAggregate {
+  attributes: [Object];
+  ApexClassOrTrigger?: ApexClassOrTrigger;
+  NumLinesCovered?: number;
+  NumLinesUncovered?: number;
+}
+
+export interface ApexTestResult {
+  attributes: [Object];
+  ApexClass?: ApexClass;
+  Outcome?: string;
+  MethodName?: string;
+  Message?: string;
+}
+
+export interface ApexTestQueueResult {
+  QueuedList: string[];
+  CompletedList: string[];
+  FailedList: string[];
+  ProcessingList: string[];
+  OtherList: string[];
+}
+
+export interface NamedPackageDirLarge extends NamedPackageDir {
+  ignoreOnStage?: string[];
+}
+
+export interface CustomRecordResult {
+  id?: string;
+  success?: boolean;
+  errors?: string[];
+  warnings?: string[];
+  infos?: string[];
+}
+
+export interface RecordIds {
+  attributes: [Object];
+  Id?: string;
+}
+
+export interface ApexClassOrTrigger {
+  Name?: string;
+}
+
+export interface ApexTestclassCheck {
+  Id?: string
+  isTest?: boolean
+} 
+
