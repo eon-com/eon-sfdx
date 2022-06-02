@@ -53,7 +53,7 @@ export default class Metadata extends SfdxCommand {
     }),
   };
 
-  protected static requiresUsername = true;
+  protected static requiresUsername = false;
   protected static requiresProject = true;
 
   public async run(): Promise<void> {
