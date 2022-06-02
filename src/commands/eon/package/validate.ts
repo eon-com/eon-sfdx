@@ -5,22 +5,14 @@
  * For full license text, see LICENSE.txt file in the repo root or https://opensource.org/licenses/BSD-3-Clause
  */
 import * as os from 'os';
-import { flags,SfdxCommand } from '@salesforce/command';
+import { flags, SfdxCommand } from '@salesforce/command';
 import { Messages, SfdxError, SfdxProjectJson, Connection } from '@salesforce/core';
-import {
-    ComponentSet,
-    DeployMessage,
-    MetadataApiDeploy,
-    MetadataResolver
-  } from "@salesforce/source-deploy-retrieve";
-import { getDeployUrls } from "../../../utils/get-packages";  
-import {
-    DeployError,
-    PackageTree,
-  } from "../../../interfaces/package-interfaces";
+import { ComponentSet, DeployMessage, MetadataApiDeploy, MetadataResolver } from '@salesforce/source-deploy-retrieve';
+import { getDeployUrls } from '../../../utils/get-packages';
+import { DeployError, PackageTree } from '../../../interfaces/package-interfaces';
 import { AnyJson } from '@salesforce/ts-types';
 import simplegit, { DiffResult, SimpleGit } from 'simple-git';
-import { 
+import {
   ApexCodeCoverageAggregate,
   RecordIds,
   ApexClass,
@@ -30,13 +22,22 @@ import {
   ApexTestQueueResult,
   ApexTestResult,
   PackageInfo,
-  ApexTestclassCheck
- } from '../../../helper/types';
-import EONLogger, { COLOR_SUCCESS, COLOR_INFO, COLOR_KEY_MESSAGE,COLOR_HEADER,COLOR_NOTIFY, COLOR_WARNING, COLOR_ERROR } from '../../../eon/EONLogger';
+  ApexTestclassCheck,
+} from '../../../helper/types';
+import EONLogger, {
+  COLOR_SUCCESS,
+  COLOR_INFO,
+  COLOR_KEY_MESSAGE,
+  COLOR_HEADER,
+  COLOR_NOTIFY,
+  COLOR_WARNING,
+  COLOR_ERROR,
+} from '../../../eon/EONLogger';
 import path from 'path';
-import { Listr } from "listr2";
-import Table from "cli-table3";
+import { Listr } from 'listr2';
+import Table from 'cli-table3';
 import { UpsertResult, Record } from 'jsforce';
+import { LOGOBANNER } from '../../../eon/logo';
 // Initialize Messages with the current plugin directory
 Messages.importMessagesDirectory(__dirname);
 
@@ -55,11 +56,11 @@ export default class Validate extends SfdxCommand {
   protected static flagsConfig = {
     // Label For Named Credential as Required
     target: flags.string({
-        char: 't',
-        description: messages.getMessage('targetFlag'),
-        required: false,
-        default: 'main'
-      }),
+      char: 't',
+      description: messages.getMessage('targetFlag'),
+      required: false,
+      default: 'main',
+    }),
   };
 
   // Set this to true if your command requires a project workspace; 'requiresProject' is false by default
@@ -67,12 +68,11 @@ export default class Validate extends SfdxCommand {
   // Comment this out if your command does not require an org username
   protected static requiresUsername = true;
 
-  
-
   public async run(): Promise<AnyJson> {
-    EONLogger.log(COLOR_KEY_MESSAGE('Start E.ON sfdx package validation job'));  
+    EONLogger.log(COLOR_HEADER(LOGOBANNER));
+    EONLogger.log(COLOR_KEY_MESSAGE('Validating package(s)...'));
     await this.toggleParallelApexTesting();
-    EONLogger.log(COLOR_HEADER('Search for unlocked package changes')); 
+    EONLogger.log(COLOR_HEADER('Search for unlocked package changes'));
     // get sfdx project.json
     const projectJson: SfdxProjectJson = await this.project.retrieveSfdxProjectJson();
     // get all packages
@@ -82,87 +82,79 @@ export default class Validate extends SfdxCommand {
     const changes: DiffResult = await git.diffSummary(`${this.flags.target}...head`);
 
     let table = new Table({
-      head: [COLOR_NOTIFY("Package")],
+      head: [COLOR_NOTIFY('Package')],
     });
     const packageMap = new Map<string, NamedPackageDirLarge>();
     // check changed packages
     for (const pck of packageDirs) {
       if (
-      changes.files.some((change) =>
-      path
-        .join(path.dirname(projectJson.getPath()), path.normalize(change.file))
-        .includes(path.normalize(pck.fullPath))
-       )
-       ) {
-          //special checks for packages
-          if(pck.ignoreOnStage?.includes('validate')){
-          //only packages without ignore flags 
-            EONLogger.log(COLOR_WARNING(
-           `Found changes in package ${pck.package}.No validation because ignore on stage flag in sfdx-project.json`
-            ));
-            continue;
-          }  
+        changes.files.some((change) =>
+          path
+            .join(path.dirname(projectJson.getPath()), path.normalize(change.file))
+            .includes(path.normalize(pck.fullPath))
+        )
+      ) {
+        //special checks for packages
+        if (pck.ignoreOnStage?.includes('validate')) {
+          //only packages without ignore flags
+          EONLogger.log(
+            COLOR_WARNING(
+              `Found changes in package ${pck.package}. Skipping validation because ignoreOnStage flag in sfdx-project.json`
+            )
+          );
+          continue;
+        }
 
-          if(pck.package === 'force-app' || pck.package?.search('src') > -1){
-            EONLogger.log(COLOR_WARNING(
-              `No validation for this special source package: ${pck.package}`
-            ));
-            continue;
-          }
-          packageMap.set(pck.package,pck)
-          table.push([pck.package])
-       }
+        if (pck.package === 'force-app' || pck.package?.search('src') > -1) {
+          EONLogger.log(COLOR_WARNING(`No validation for this special source package: ${pck.package}`));
+          continue;
+        }
+        packageMap.set(pck.package, pck);
+        table.push([pck.package]);
+      }
     }
- 
-    if(packageMap.size === 0){
-      EONLogger.log(COLOR_NOTIFY(
-        `Found no unlocked packages with changes. Process finished without validation`
-      ));
+
+    if (packageMap.size === 0) {
+      EONLogger.log(COLOR_NOTIFY(`Found no unlocked packages with changes. Process finished without validation`));
       return {};
     }
-    EONLogger.log(COLOR_NOTIFY(
-      `Following packages with changes:`
-    ));
-    EONLogger.log(COLOR_INFO(
-      table.toString()
-    ));
+    EONLogger.log(COLOR_NOTIFY(`Following packages with changes:`));
+    EONLogger.log(COLOR_INFO(table.toString()));
 
-    //run validation tasks 
+    //run validation tasks
     for (const [key, value] of packageMap) {
-          //Start deploy process
-      await this.deployPackageWithDependency(key,value.path)
-     
-      await this.getApexClassesFromPaths(key,value.path)
+      //Start deploy process
+      await this.deployPackageWithDependency(key, value.path);
+
+      await this.getApexClassesFromPaths(key, value.path);
     }
     return {};
   }
 
-  private async deployPackageWithDependency(pck: string, path: string): Promise<void>  {
+  private async deployPackageWithDependency(pck: string, path: string): Promise<void> {
     EONLogger.log(COLOR_HEADER(`Start deploy process`));
     EONLogger.log(`${COLOR_NOTIFY('Package:')} ${COLOR_INFO(pck)}`);
     EONLogger.log(`${COLOR_NOTIFY('Path:')} ${COLOR_INFO(path)}`);
-    
+
     const packageSingleMap = new Map<string, PackageInfo>();
     // get packages
-    const projectJson: SfdxProjectJson =
-      await this.project.retrieveSfdxProjectJson();
-    
-      const packageDependencyTree: PackageTree = getDeployUrls(
-      projectJson,
-      pck
-      )
-      packageDependencyTree.dependency.forEach((dep) =>{
-        if (dep.path && !packageDeployMap.get(dep.packagename)) {
-        packageDeployMap.set(dep.packagename,`Deploy Dependency for Package: ${dep.packagename}`);
-        packageSingleMap.set(dep.packagename,{message: `Deploy Dependency for Package: ${dep.packagename}`,path: dep.path});
-        }
-      });
-      if(!packageDeployMap.get(pck)){
-      packageDeployMap.set(pck,`Deploy Package: ${pck}`);
-      packageSingleMap.set(pck,{message: `Deploy Package: ${pck}`,path: path});
+    const projectJson: SfdxProjectJson = await this.project.retrieveSfdxProjectJson();
+
+    const packageDependencyTree: PackageTree = getDeployUrls(projectJson, pck);
+    packageDependencyTree.dependency.forEach((dep) => {
+      if (dep.path && !packageDeployMap.get(dep.packagename)) {
+        packageDeployMap.set(dep.packagename, `Deploy Dependency for Package: ${dep.packagename}`);
+        packageSingleMap.set(dep.packagename, {
+          message: `Deploy Dependency for Package: ${dep.packagename}`,
+          path: dep.path,
+        });
       }
-    
-    
+    });
+    if (!packageDeployMap.get(pck)) {
+      packageDeployMap.set(pck, `Deploy Package: ${pck}`);
+      packageSingleMap.set(pck, { message: `Deploy Package: ${pck}`, path: path });
+    }
+
     if (packageSingleMap.size > 0) {
       const tasks = new Listr([]);
 
@@ -171,33 +163,27 @@ export default class Validate extends SfdxCommand {
           title: value.message,
           task: async (ctx, task) => {
             await this.deployPackageTreeNode(value.path);
-            task.title = COLOR_SUCCESS(`Package ${key} successfully deployed`)
+            task.title = COLOR_SUCCESS(`Package ${key} successfully deployed`);
           },
         });
-      };
-      
-     
+      }
+
       await tasks.run();
       // deploy dependencies
     } else {
       throw new SfdxError(
-       `Found no package tree information for package: ${pck} and path ${path}. Please check sfdx-project.json and deploy manually.`
+        `Found no package tree information for package: ${pck} and path ${path}. Please check sfdx-project.json and deploy manually.`
       );
     }
-
   }
 
   private async deployPackageTreeNode(path: string): Promise<void> {
-    
-    
-    const deploy: MetadataApiDeploy = await ComponentSet.fromSource(
-      path
-    ).deploy({
+    const deploy: MetadataApiDeploy = await ComponentSet.fromSource(path).deploy({
       usernameOrConnection: this.org.getConnection().getUsername(),
     });
     //this.ux.startSpinner(`deploying ${treeNode.packagename}`);
     // Attach a listener to check the deploy status on each poll
-    
+
     deploy.onUpdate((response) => {
       const { status } = response;
       this.ux.setSpinnerStatus(status);
@@ -206,13 +192,12 @@ export default class Validate extends SfdxCommand {
     // Wait for polling to finish and get the DeployResult object
     const res = await deploy.pollStatus();
     if (!res.response.success) {
-      const errorTable: string = await this.print(res.response.details.componentFailures)
-      console.log(errorTable); 
+      const errorTable: string = await this.print(res.response.details.componentFailures);
+      console.log(errorTable);
       throw new SfdxError(
         `Deployment failed. Please check error messages from table and fix this issues from path ${path}.`
       );
-    } 
-    
+    }
   }
 
   private async print(input: DeployMessage | DeployMessage[]): Promise<string> {
@@ -265,115 +250,117 @@ export default class Validate extends SfdxCommand {
     let apexCounter: number = 0;
 
     fetchTasks.add({
-        title: `Fetch ApexClasses from path: ${path}`,
-        task: async () => {
-          for (const component of resolver.getComponentsFromPath(path)) {
-            if(component.type.id === 'apexclass'){
-             apexCounter++; 
-             const apexCheckResult:ApexTestclassCheck = await this.checkIsTestClass(component.name);
-             if(apexCheckResult.isTest){
-              apexTestClassIdList.push(apexCheckResult.Id)
-              apexTestClassNameList.push(component.name)
-             } else {
-              apexClassIdList.push(apexCheckResult.Id)
-             }
+      title: `Fetch ApexClasses from path: ${path}`,
+      task: async () => {
+        for (const component of resolver.getComponentsFromPath(path)) {
+          if (component.type.id === 'apexclass') {
+            apexCounter++;
+            const apexCheckResult: ApexTestclassCheck = await this.checkIsTestClass(component.name);
+            if (apexCheckResult.isTest) {
+              apexTestClassIdList.push(apexCheckResult.Id);
+              apexTestClassNameList.push(component.name);
+            } else {
+              apexClassIdList.push(apexCheckResult.Id);
             }
-          } 
-        },
-      });
-    
+          }
+        }
+      },
+    });
+
     await fetchTasks.run();
-    if(apexCounter > 0 && apexTestClassNameList.length === 0){
+    if (apexCounter > 0 && apexTestClassNameList.length === 0) {
       throw new SfdxError(
         `Found apex class(es) for package ${pck} but no testclass(es). Please create a new testclass.`
       );
     }
     EONLogger.log(`${COLOR_NOTIFY('Package:')} ${COLOR_INFO(pck)}`);
-    EONLogger.log(`${COLOR_NOTIFY('Testclasses:')} ${COLOR_INFO(`${apexTestClassNameList.length > 0 ? apexTestClassNameList.join() : 'No Testclasses found.'}`)}`);
+    EONLogger.log(
+      `${COLOR_NOTIFY('Testclasses:')} ${COLOR_INFO(
+        `${apexTestClassNameList.length > 0 ? apexTestClassNameList.join() : 'No Testclasses found.'}`
+      )}`
+    );
     //insert Apex classes to test queue
-    insertTasks.add(
-      [
-        {
-          title: `Insert Apex Testclasses to Queue`,
-          skip: () => {
-            if (apexTestClassIdList.length === 0) {
-              return 'Skip insert, because no testclasses for this package';
-            }
-          },
-          task: async (ctx, task) => {
-            queueInsertResult = await this.addClassesToApexQueue(apexTestClassIdList);
-            task.title = 'Insert Apex Testclasses succesfully'
-         },
-        }
-      ]); 
+    insertTasks.add([
+      {
+        title: `Insert Apex Testclasses to Queue`,
+        skip: () => {
+          if (apexTestClassIdList.length === 0) {
+            return 'Skip insert, because no testclasses for this package';
+          }
+        },
+        task: async (ctx, task) => {
+          queueInsertResult = await this.addClassesToApexQueue(apexTestClassIdList);
+          task.title = 'Insert Apex Testclasses succesfully';
+        },
+      },
+    ]);
     await insertTasks.run();
 
-    if(Array.isArray(queueInsertResult) && queueInsertResult.length > 0){
+    if (Array.isArray(queueInsertResult) && queueInsertResult.length > 0) {
       for (const record of queueInsertResult) {
-        if(!record.success){
-          throw new SfdxError(
-            messages.getMessage("errorApexQueueInsert", [
-              record.errors.toString()
-            ])
-          );
+        if (!record.success) {
+          throw new SfdxError(messages.getMessage('errorApexQueueInsert', [record.errors.toString()]));
         }
         queueIdList.push(record.id);
       }
       //check test queue and wait for finish
-      testRunTask.add(
-        [
-          {
-            title: `Waiting For test run results`,
-            task: async (_, task) => {
-              const retry = task.isRetrying()
-              testRunResult = await this.checkTestRunStatus(queueIdList);
-              task.title = `All Tests: ${testRunResult.QueuedList.length + testRunResult.CompletedList.length + testRunResult.FailedList.length + testRunResult.ProcessingList.length + testRunResult.OtherList.length}. 
+      testRunTask.add([
+        {
+          title: `Waiting For test run results`,
+          task: async (_, task) => {
+            // @ts-ignore
+            const retry = task.isRetrying();
+
+            testRunResult = await this.checkTestRunStatus(queueIdList);
+            task.title = `All Tests: ${
+              testRunResult.QueuedList.length +
+              testRunResult.CompletedList.length +
+              testRunResult.FailedList.length +
+              testRunResult.ProcessingList.length +
+              testRunResult.OtherList.length
+            }. 
 Queued(${testRunResult.QueuedList.length}): ${testRunResult.QueuedList.join()}
 Completed(${testRunResult.CompletedList.length}): ${testRunResult.CompletedList.join()}
 Processing(${testRunResult.ProcessingList.length}): ${testRunResult.ProcessingList.join()}
 Failed(${testRunResult.FailedList.length}): ${testRunResult.FailedList.join()} 
 Others(${testRunResult.OtherList.length}): ${testRunResult.OtherList.join()}`;
-              await new Promise(resolve => setTimeout(resolve, 10000));
-              if(testRunResult.QueuedList.length > 0 || testRunResult.ProcessingList.length > 0){
-                throw new Error('Apex test run timeout after 5000 seconds')
-              }
-           },
-           retry: 50
-          }
-        ]);
+            await new Promise((resolve) => setTimeout(resolve, 10000));
+            if (testRunResult.QueuedList.length > 0 || testRunResult.ProcessingList.length > 0) {
+              throw new Error('Apex test run timeout after 5000 seconds');
+            }
+          },
+          retry: 50,
+        },
+      ]);
       await testRunTask.run();
-      //check testrun result only for errors 
-      if(testRunResult.FailedList.length > 0){
-        EONLogger.log(COLOR_ERROR(`This package contains testclass errors.`))
-        await this.checkTestResult()
-        throw new SfdxError(
-          `Please fix this issues and try again.`
-        );
+      //check testrun result only for errors
+      if (testRunResult.FailedList.length > 0) {
+        EONLogger.log(COLOR_ERROR(`This package contains testclass errors.`));
+        await this.checkTestResult();
+        throw new SfdxError(`Please fix this issues and try again.`);
       }
       //check Code Coverage
-      if(apexClassIdList.length > 0){
-      await this.checkCodeCoverage(apexClassIdList);
+      if (apexClassIdList.length > 0) {
+        await this.checkCodeCoverage(apexClassIdList);
       }
     }
   }
   //check if apex class is a testclass from code identifier @isTest
   private async checkIsTestClass(comp: string): Promise<ApexTestclassCheck> {
-    let result: ApexTestclassCheck = {Id: '', isTest: false};
+    let result: ApexTestclassCheck = { Id: '', isTest: false };
     const connection: Connection = this.org.getConnection();
     try {
-    const apexObj:ApexClass = await connection.singleRecordQuery('Select Id,Name,Body from ApexClass Where Name = \'' + comp + '\'')
-    if(apexObj && (apexObj.Body.search('@isTest') > -1 || apexObj.Body.search('@IsTest') > -1)){
-      result.isTest = true;
-    }
-    result.Id = apexObj.Id;
-    } catch(e) {
-      throw new SfdxError(
-        messages.getMessage("errorFoundNoApex", [
-          `Apex Class ${comp}`
-        ])
+      const apexObj: ApexClass = await connection.singleRecordQuery(
+        "Select Id,Name,Body from ApexClass Where Name = '" + comp + "'"
       );
+      if (apexObj && (apexObj.Body.search('@isTest') > -1 || apexObj.Body.search('@IsTest') > -1)) {
+        result.isTest = true;
+      }
+      result.Id = apexObj.Id;
+    } catch (e) {
+      throw new SfdxError(messages.getMessage('errorFoundNoApex', [`Apex Class ${comp}`]));
     }
-            
+
     return result;
   }
 
@@ -381,164 +368,167 @@ Others(${testRunResult.OtherList.length}): ${testRunResult.OtherList.join()}`;
   private async toggleParallelApexTesting() {
     try {
       EONLogger.log(COLOR_NOTIFY('Update Apex Metadata Settings in Scratch'));
-        const connection: Connection = this.org.getConnection();
-        let apexSettingMetadata = { fullName: 'ApexSettings', enableDisableParallelApexTesting: false };
-        let result: UpsertResult | UpsertResult[] = await connection.metadata.upsert('ApexSettings', apexSettingMetadata);
-        if ((result as UpsertResult).success) {
-            EONLogger.log(COLOR_INFO(
-              "Successfully updated apex testing setting"
-             ));
-        }
+      const connection: Connection = this.org.getConnection();
+      let apexSettingMetadata = { fullName: 'ApexSettings', enableDisableParallelApexTesting: false };
+      let result: UpsertResult | UpsertResult[] = await connection.metadata.upsert('ApexSettings', apexSettingMetadata);
+      if ((result as UpsertResult).success) {
+        EONLogger.log(COLOR_INFO('Successfully updated apex testing setting'));
+      }
     } catch (error) {
-        EONLogger.log(COLOR_INFO(
-          `Skipping toggling of enableDisableParallelApexTesting due to ${error}..`
-         ));
+      EONLogger.log(COLOR_INFO(`Skipping toggling of enableDisableParallelApexTesting due to ${error}..`));
     }
   }
 
   //Enable Synchronus Compile on Deploy
-  private async addClassesToApexQueue(apexTestClassIdList: string[]) :Promise<CustomRecordResult | CustomRecordResult[]> {
+  private async addClassesToApexQueue(
+    apexTestClassIdList: string[]
+  ): Promise<CustomRecordResult | CustomRecordResult[]> {
     const recordList: Record[] = [];
     let recordResult: CustomRecordResult[] | CustomRecordResult;
     const connection: Connection = this.org.getConnection();
-    let deleteIds:string[] = [];
+    let deleteIds: string[] = [];
     for (const classId of apexTestClassIdList) {
-      recordList.push({ ApexClassId: classId })
+      recordList.push({ ApexClassId: classId });
     }
     try {
-    //delete all entries from code coverage  
-    const responseCodeCoverage = await connection.tooling
-    .query<RecordIds>(`Select Id from ApexCodeCoverage`)
-    if(responseCodeCoverage?.records){
-      for (const record of responseCodeCoverage?.records) {
-        deleteIds.push(record.Id)
+      //delete all entries from code coverage
+      const responseCodeCoverage = await connection.tooling.query<RecordIds>(`Select Id from ApexCodeCoverage`);
+      if (responseCodeCoverage?.records) {
+        for (const record of responseCodeCoverage?.records) {
+          deleteIds.push(record.Id);
+        }
+        await connection.tooling.destroy('ApexCodeCoverage', deleteIds);
       }
-      await connection.tooling
-      .destroy('ApexCodeCoverage',deleteIds)
-    }
-    //delete all entries from code coverage aggregation
-    deleteIds = [];
-    const responseCodeAggregate = await connection.tooling
-    .query<RecordIds>(`Select Id from ApexCodeCoverageAggregate`)
-    if(responseCodeAggregate.records){
-      for (const record of responseCodeAggregate?.records) {
-        deleteIds.push(record.Id)
-      }
-      await connection.tooling
-      .destroy('ApexCodeCoverageAggregate',deleteIds)
-    }
-    //and now insert testclasses for new run
-    recordResult = await connection.tooling
-    .insert('ApexTestQueueItem',recordList)
-    } catch(e) {
-      console.log(e)
-      throw new SfdxError(
-        messages.getMessage("errorApexQueueInsert")
+      //delete all entries from code coverage aggregation
+      deleteIds = [];
+      const responseCodeAggregate = await connection.tooling.query<RecordIds>(
+        `Select Id from ApexCodeCoverageAggregate`
       );
+      if (responseCodeAggregate.records) {
+        for (const record of responseCodeAggregate?.records) {
+          deleteIds.push(record.Id);
+        }
+        await connection.tooling.destroy('ApexCodeCoverageAggregate', deleteIds);
+      }
+      //and now insert testclasses for new run
+      recordResult = await connection.tooling.insert('ApexTestQueueItem', recordList);
+    } catch (e) {
+      console.log(e);
+      throw new SfdxError(messages.getMessage('errorApexQueueInsert'));
     }
-    return recordResult
+    return recordResult;
   }
 
-  private async checkTestRunStatus(ids: string[]) :Promise<ApexTestQueueResult>{
+  private async checkTestRunStatus(ids: string[]): Promise<ApexTestQueueResult> {
     const connection: Connection = this.org.getConnection();
-    let queueResult: ApexTestQueueResult = {QueuedList: [],CompletedList: [],FailedList: [],ProcessingList: [],OtherList: []};
+    let queueResult: ApexTestQueueResult = {
+      QueuedList: [],
+      CompletedList: [],
+      FailedList: [],
+      ProcessingList: [],
+      OtherList: [],
+    };
     try {
-    const responseFromOrg = await connection.tooling
-       .query<ApexTestQueueItem>(`Select Id, ApexClassId,ApexClass.Name, Status, ExtendedStatus, ParentJobId, TestRunResultId from ApexTestQueueItem Where Id In ('${ids.join("','")}')`)
-    if(responseFromOrg.records){
-      for (const result of responseFromOrg.records){
-        if(result.Status === 'Queued'){
-          queueResult.QueuedList.push(result?.ApexClass?.Name);
-        } else if (result.Status === 'Completed'){
-          queueResult.CompletedList.push(result?.ApexClass?.Name);
-        } else if (result.Status === 'Failed'){
-          queueResult.FailedList.push(result?.ApexClass?.Name);
-        } else if (result.Status === 'Processing'){
-          queueResult.ProcessingList.push(result?.ApexClass?.Name);  
-        } else {
-          queueResult.OtherList.push(result?.ApexClass?.Name);
+      const responseFromOrg = await connection.tooling.query<ApexTestQueueItem>(
+        `Select Id, ApexClassId,ApexClass.Name, Status, ExtendedStatus, ParentJobId, TestRunResultId from ApexTestQueueItem Where Id In ('${ids.join(
+          "','"
+        )}')`
+      );
+      if (responseFromOrg.records) {
+        for (const result of responseFromOrg.records) {
+          if (result.Status === 'Queued') {
+            queueResult.QueuedList.push(result?.ApexClass?.Name);
+          } else if (result.Status === 'Completed') {
+            queueResult.CompletedList.push(result?.ApexClass?.Name);
+          } else if (result.Status === 'Failed') {
+            queueResult.FailedList.push(result?.ApexClass?.Name);
+          } else if (result.Status === 'Processing') {
+            queueResult.ProcessingList.push(result?.ApexClass?.Name);
+          } else {
+            queueResult.OtherList.push(result?.ApexClass?.Name);
+          }
         }
       }
-    }
-    } catch(e) {
-      console.log(e)
-      throw new SfdxError(
-        messages.getMessage("errorApexQueueSelect")
-      );
+    } catch (e) {
+      console.log(e);
+      throw new SfdxError(messages.getMessage('errorApexQueueSelect'));
     }
     return queueResult;
   }
 
-  private async checkCodeCoverage(ids: string[]) :Promise<void>{
+  private async checkCodeCoverage(ids: string[]): Promise<void> {
     const connection: Connection = this.org.getConnection();
     let table = new Table({
-      head: [COLOR_INFO("Apex Test Modul"),COLOR_INFO("NumLinesCovered"),COLOR_INFO("NumLinesUncovered"),COLOR_INFO("Coverage in Percent")],
+      head: [
+        COLOR_INFO('Apex Test Modul'),
+        COLOR_INFO('NumLinesCovered'),
+        COLOR_INFO('NumLinesUncovered'),
+        COLOR_INFO('Coverage in Percent'),
+      ],
     });
     let coveredCounter: number = 0;
     let uncoveredCounter: number = 0;
     let packageCoverage: number = 0;
-    try {    
-      const responseFromOrg = await connection.tooling
-         .query<ApexCodeCoverageAggregate>(`Select ApexClassOrTrigger.Name, NumLinesCovered, NumLinesUncovered from ApexCodeCoverageAggregate Where ApexClassOrTriggerId In ('${ids.join("','")}')`)
-      if(responseFromOrg.records){
-        for (const result of responseFromOrg.records){
-          table.push([result.ApexClassOrTrigger.Name,result.NumLinesCovered,result.NumLinesUncovered,result.NumLinesCovered > 0 ? Math.floor(result.NumLinesCovered / (result.NumLinesCovered + result.NumLinesUncovered) * 100) : 0])
+    try {
+      const responseFromOrg = await connection.tooling.query<ApexCodeCoverageAggregate>(
+        `Select ApexClassOrTrigger.Name, NumLinesCovered, NumLinesUncovered from ApexCodeCoverageAggregate Where ApexClassOrTriggerId In ('${ids.join(
+          "','"
+        )}')`
+      );
+      if (responseFromOrg.records) {
+        for (const result of responseFromOrg.records) {
+          table.push([
+            result.ApexClassOrTrigger.Name,
+            result.NumLinesCovered,
+            result.NumLinesUncovered,
+            result.NumLinesCovered > 0
+              ? Math.floor((result.NumLinesCovered / (result.NumLinesCovered + result.NumLinesUncovered)) * 100)
+              : 0,
+          ]);
           coveredCounter += result.NumLinesCovered;
           uncoveredCounter += result.NumLinesUncovered;
         }
       }
-     
-    } catch(e) {
-      console.log(e)
-      throw new SfdxError(
-        messages.getMessage("errorCodeCoverage")
-      );
+    } catch (e) {
+      console.log(e);
+      throw new SfdxError(messages.getMessage('errorCodeCoverage'));
     }
 
-    if(coveredCounter === 0){
-      throw new SfdxError(
-        `This package has no covered lines. Please check the testclasses.`
-      );
+    if (coveredCounter === 0) {
+      throw new SfdxError(`This package has no covered lines. Please check the testclasses.`);
     }
-    packageCoverage = Math.floor(coveredCounter / (coveredCounter + uncoveredCounter) * 100)
+    packageCoverage = Math.floor((coveredCounter / (coveredCounter + uncoveredCounter)) * 100);
 
-    EONLogger.log(COLOR_INFO(
-      "Check Code Coverage for Testclasses:"
-     ));
-    EONLogger.log(COLOR_INFO(
-      table.toString()
-     ));
-     if(packageCoverage < 75){
+    EONLogger.log(COLOR_INFO('Check Code Coverage for Testclasses:'));
+    EONLogger.log(COLOR_INFO(table.toString()));
+    if (packageCoverage < 75) {
       throw new SfdxError(
         `The package has an overall coverage of ${packageCoverage}%, which does not meet the required overall coverage of 75%. Please check the testclass coverage table and fix the test classes.`
       );
-     } else {
-      EONLogger.log(COLOR_SUCCESS(
-        `Great. This package has a code coverage from ${packageCoverage}%.`
-      ));
-     }
+    } else {
+      EONLogger.log(COLOR_SUCCESS(`Great. This package has a code coverage from ${packageCoverage}%.`));
+    }
   }
 
-  private async checkTestResult() :Promise<void>{
+  private async checkTestResult(): Promise<void> {
     const connection: Connection = this.org.getConnection();
-    try {    
-      const responseFromOrg = await connection.tooling
-      .query<ApexTestResult>(`Select ApexClass.Name, Outcome, MethodName, Message from ApexTestResult Where Outcome = 'Fail'`)
-     if(responseFromOrg.records){
-        for (const result of responseFromOrg.records){
-         let table = new Table({
-         head: [COLOR_ERROR("ApexClass Name"),COLOR_ERROR("Methodname")],
-         });
-         table.push([result.ApexClass.Name,result.MethodName])
-         console.log(table.toString())
-         EONLogger.log(COLOR_ERROR(`ErrorMessage:`));
-         EONLogger.log(COLOR_INFO(`${result.Message}`));
-       }
-     }
-    } catch(e) {
-      throw new SfdxError(
-        messages.getMessage("errorCodeCoverage")
+    try {
+      const responseFromOrg = await connection.tooling.query<ApexTestResult>(
+        `Select ApexClass.Name, Outcome, MethodName, Message from ApexTestResult Where Outcome = 'Fail'`
       );
+      if (responseFromOrg.records) {
+        for (const result of responseFromOrg.records) {
+          let table = new Table({
+            head: [COLOR_ERROR('ApexClass Name'), COLOR_ERROR('Methodname')],
+          });
+          table.push([result.ApexClass.Name, result.MethodName]);
+          console.log(table.toString());
+          EONLogger.log(COLOR_ERROR(`ErrorMessage:`));
+          EONLogger.log(COLOR_INFO(`${result.Message}`));
+        }
+      }
+    } catch (e) {
+      throw new SfdxError(messages.getMessage('errorCodeCoverage'));
     }
   }
 }
