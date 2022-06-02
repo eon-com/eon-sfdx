@@ -58,6 +58,8 @@ export default async function getSettingValue(
   }
 
   targetOrgSettings = parsedFile.settings[aliasChecked];
+  const targetOrgSettingsDefault = parsedFile.settings['default'];
+
   let result: string;
   if (settingKey in targetOrgSettings) {
     EONLogger.log(
@@ -70,8 +72,23 @@ export default async function getSettingValue(
     if (targetOrgSettings[settingKey].includes('secret:')) {
       result = await getSecretAWS(targetOrgSettings[settingKey], aliasChecked, project);
     }
+  } else if (settingKey in targetOrgSettingsDefault) {
+    EONLogger.log(
+      COLOR_KEY_MESSAGE('Default property found:') +
+        COLOR_INFO(
+          ` Using property ${settingKey} for alias default from configuration file ${settings.environmentConfigurationFilePath} ...`
+        )
+    );
+    result = targetOrgSettings[settingKey];
+    if (targetOrgSettings[settingKey].includes('secret:')) {
+      result = await getSecretAWS(targetOrgSettings[settingKey], aliasChecked, project);
+    }
   } else {
-    EONLogger.log(COLOR_ERROR(`Property ${settingKey} does not exist for alias ${aliasChecked} in configuration file`));
+    EONLogger.log(
+      COLOR_ERROR(
+        `Property ${settingKey} does not exist neither for alias ${aliasChecked} nor in default in configuration file`
+      )
+    );
     result = null;
   }
   if (result === null) {
