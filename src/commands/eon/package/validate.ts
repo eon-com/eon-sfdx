@@ -86,7 +86,6 @@ export default class Validate extends SfdxCommand {
     const sourcebranch = this.flags.source || 'HEAD';
     await git.fetch();
     const changes: DiffResult = await git.diffSummary([`${this.flags.target}...${sourcebranch}`]);
-    console.log(changes);
     let table = new Table({
       head: [COLOR_NOTIFY('Package')],
     });
