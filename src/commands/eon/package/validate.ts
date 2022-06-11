@@ -59,7 +59,11 @@ export default class Validate extends SfdxCommand {
       char: 't',
       description: messages.getMessage('targetFlag'),
       required: false,
-      default: 'main',
+    }),
+    source: flags.string({
+      char: 's',
+      description: messages.getMessage('sourceFlag'),
+      required: false,
     }),
   };
 
@@ -79,8 +83,10 @@ export default class Validate extends SfdxCommand {
     let packageDirs: NamedPackageDirLarge[] = projectJson.getUniquePackageDirectories();
     // get all diffs from current to target branch
     let git: SimpleGit = simplegit(path.dirname(projectJson.getPath()));
-    const changes: DiffResult = await git.diffSummary(`${this.flags.target}...head`);
-
+    const sourcebranch = this.flags.source || 'HEAD';
+    await git.fetch();
+    const changes: DiffResult = await git.diffSummary([`${this.flags.target}...${sourcebranch}`]);
+    console.log(changes);
     let table = new Table({
       head: [COLOR_NOTIFY('Package')],
     });

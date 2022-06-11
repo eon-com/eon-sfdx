@@ -1,10 +1,11 @@
 {
-    "commandDescription": "Validation Job to check package changes on scratch",
-    "targetFlag": "Flag for target branch",
-    "examples": ["sfdx eon:validate", "sfdx  eon:validate"],
-    "errorDeployment": "Process finsihed with Exit Code 1.",
-    "errorFoundNoApex": "Query Apex from Org failed: %s",
-    "errorApexQueueInsert": "Testclass cannot inserted to TestQueue.See error messages",
-    "errorApexQueueSelect": "Select on Object ApexTestQueueItem not possible",
-    "errorCodeCoverage": "No Apex Test Coverage found"
-  }
+  "commandDescription": "Validation Job to check package changes on scratch",
+  "sourceFlag": "Flag for source branch",
+  "targetFlag": "Flag for target branch",
+  "examples": ["sfdx eon:validate", "sfdx  eon:validate"],
+  "errorDeployment": "Process finsihed with Exit Code 1.",
+  "errorFoundNoApex": "Query Apex from Org failed: %s",
+  "errorApexQueueInsert": "Testclass cannot inserted to TestQueue.See error messages",
+  "errorApexQueueSelect": "Select on Object ApexTestQueueItem not possible",
+  "errorCodeCoverage": "No Apex Test Coverage found"
+}
