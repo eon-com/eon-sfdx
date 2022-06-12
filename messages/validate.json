@@ -2,6 +2,7 @@
   "commandDescription": "Validation Job to check package changes on scratch",
   "sourceFlag": "Flag for source branch",
   "targetFlag": "Flag for target branch",
+  "scriptFlag": "Flag to run pre/post deployment scripts",
   "examples": ["sfdx eon:validate", "sfdx  eon:validate"],
   "errorDeployment": "Process finsihed with Exit Code 1.",
   "errorFoundNoApex": "Query Apex from Org failed: %s",

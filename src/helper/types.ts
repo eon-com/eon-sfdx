@@ -222,6 +222,8 @@ export interface ApexTestQueueResult {
 
 export interface NamedPackageDirLarge extends NamedPackageDir {
   ignoreOnStage?: string[];
+  postDeploymentScript?: string;
+  preDeploymentScript?: string;
 }
 
 export interface CustomRecordResult {
