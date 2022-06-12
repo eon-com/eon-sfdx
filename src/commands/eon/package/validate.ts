@@ -139,13 +139,13 @@ export default class Validate extends SfdxCommand {
     for (const [key, value] of packageMap) {
       //Start deploy process
       //execute preDeployment Scripts
-      if(value.preDeploymentScript && this.flags.deploymentscripts){
-        await this.runDeploymentSteps(path.join(path.dirname(projectJson.getPath()),value.preDeploymentScript),'preDeployment',key)
+      if (value.preDeploymentScript && this.flags.deploymentscripts) {
+        await this.runDeploymentSteps(value.preDeploymentScript, 'preDeployment', key);
       }
       await this.deployPackageWithDependency(key, value.path);
       //execute postDeployment Scripts
-      if(value.postDeploymentScript && this.flags.deploymentscripts){
-        await this.runDeploymentSteps(path.join(path.dirname(projectJson.getPath()),value.postDeploymentScript),'postDeployment',key)
+      if (value.postDeploymentScript && this.flags.deploymentscripts) {
+        await this.runDeploymentSteps(value.postDeploymentScript, 'postDeployment', key);
       }
       await this.getApexClassesFromPaths(key, value.path);
     }
@@ -372,7 +372,8 @@ Others(${testRunResult.OtherList.length}): ${testRunResult.OtherList.join()}`;
     const connection: Connection = this.org.getConnection();
     try {
       const apexObj: ApexClass = await connection.singleRecordQuery(
-        "Select Id,Name,Body from ApexClass Where Name = '" + comp + "'",{tooling: true}
+        "Select Id,Name,Body from ApexClass Where Name = '" + comp + " LIMIT 1'",
+        { tooling: true }
       );
       if (apexObj && (apexObj.Body.search('@isTest') > -1 || apexObj.Body.search('@IsTest') > -1)) {
         result.isTest = true;
@@ -553,17 +554,20 @@ Others(${testRunResult.OtherList.length}): ${testRunResult.OtherList.join()}`;
     }
   }
 
-  private async runDeploymentSteps(scriptPath: string, scriptStep: string, scriptVariable1: string){
+  private async runDeploymentSteps(scriptPath: string, scriptStep: string, scriptVariable1: string) {
     EONLogger.log(COLOR_HEADER(`Execute deployment script`));
     EONLogger.log(`${COLOR_NOTIFY('Path:')} ${COLOR_INFO(scriptPath)}`);
     try {
-      const scriptDir = path.join(scriptPath,scriptStep)
-      const cmdPrefix = process.platform !== 'win32' ? 'sh -e' : 'cmd.exe /c'
-      const { stdout, stderr } = await exec(`${cmdPrefix} ${path.normalize(scriptDir)} ${scriptVariable1} ${this.org.getConnection().getUsername()}`,{timeout: 0,encoding: 'utf-8',maxBuffer: 5242880});
-      if(stderr){
-        EONLogger.log(COLOR_ERROR(`${scriptStep} Command Error: ${stderr}`));
+      const scriptDir = scriptPath;
+      const cmdPrefix = process.platform !== 'win32' ? 'sh ' : 'cmd.exe /c';
+      const { stdout, stderr } = await exec(
+        `${cmdPrefix} ${path.normalize(scriptDir)} ${scriptVariable1} ${this.org.getConnection().getUsername()}`,
+        { timeout: 0, encoding: 'utf-8', maxBuffer: 5242880 }
+      );
+      if (stderr) {
+        throw new SfdxError(COLOR_ERROR(`${scriptStep} Command Error: ${stderr}`));
       }
-      if(stdout){
+      if (stdout) {
         EONLogger.log(COLOR_INFO(`${scriptStep} Command Info: ${stdout}`));
       }
     } catch (e) {
