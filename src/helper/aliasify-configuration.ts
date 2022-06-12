@@ -32,7 +32,6 @@ export default async function getSettingValue(
     path.dirname(projectJson.getPath()),
     settings.environmentConfigurationFilePath
   );
-
   let parsedFile: environmentConfigFile;
   if (settings?.environmentConfigurationFilePath) {
     await fspromise
@@ -50,13 +49,13 @@ export default async function getSettingValue(
     EONLogger.log(COLOR_ERROR('no configuration file was defined in sfdx-project.json.'));
   }
   let targetOrgSettings: stringProperties;
+
   let aliasChecked = 'default';
   if (alias in parsedFile.settings) {
     aliasChecked = alias;
   } else {
     EONLogger.log(COLOR_TRACE(`Alias ${alias} not found. Using default value instead.`));
   }
-
   targetOrgSettings = parsedFile.settings[aliasChecked];
   const targetOrgSettingsDefault = parsedFile.settings['default'];
 
@@ -79,8 +78,8 @@ export default async function getSettingValue(
           ` Using property ${settingKey} for alias default from configuration file ${settings.environmentConfigurationFilePath} ...`
         )
     );
-    result = targetOrgSettings[settingKey];
-    if (targetOrgSettings[settingKey].includes('secret:')) {
+    result = targetOrgSettingsDefault[settingKey];
+    if (targetOrgSettingsDefault[settingKey].includes('secret:')) {
       result = await getSecretAWS(targetOrgSettings[settingKey], aliasChecked, project);
     }
   } else {
