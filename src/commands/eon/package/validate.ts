@@ -12,6 +12,8 @@ import { getDeployUrls } from '../../../utils/get-packages';
 import { DeployError, PackageTree } from '../../../interfaces/package-interfaces';
 import { AnyJson } from '@salesforce/ts-types';
 import simplegit, { DiffResult, SimpleGit } from 'simple-git';
+const util = require('util');
+const exec = util.promisify(require('child_process').exec);
 import {
   ApexCodeCoverageAggregate,
   RecordIds,
@@ -65,6 +67,12 @@ export default class Validate extends SfdxCommand {
       description: messages.getMessage('sourceFlag'),
       required: false,
     }),
+    deploymentscripts: flags.boolean({
+      char: 'd',
+      description: messages.getMessage('scriptFlag'),
+      default: false,
+      required: false,
+    }),
   };
 
   // Set this to true if your command requires a project workspace; 'requiresProject' is false by default
@@ -79,6 +87,7 @@ export default class Validate extends SfdxCommand {
     EONLogger.log(COLOR_HEADER('Search for unlocked package changes'));
     // get sfdx project.json
     const projectJson: SfdxProjectJson = await this.project.retrieveSfdxProjectJson();
+
     // get all packages
     let packageDirs: NamedPackageDirLarge[] = projectJson.getUniquePackageDirectories();
     // get all diffs from current to target branch
@@ -129,8 +138,15 @@ export default class Validate extends SfdxCommand {
     //run validation tasks
     for (const [key, value] of packageMap) {
       //Start deploy process
+      //execute preDeployment Scripts
+      if(value.preDeploymentScript && this.flags.deploymentscripts){
+        await this.runDeploymentSteps(path.join(path.dirname(projectJson.getPath()),value.preDeploymentScript),'preDeployment',key)
+      }
       await this.deployPackageWithDependency(key, value.path);
-
+      //execute postDeployment Scripts
+      if(value.postDeploymentScript && this.flags.deploymentscripts){
+        await this.runDeploymentSteps(path.join(path.dirname(projectJson.getPath()),value.postDeploymentScript),'postDeployment',key)
+      }
       await this.getApexClassesFromPaths(key, value.path);
     }
     return {};
@@ -356,14 +372,14 @@ Others(${testRunResult.OtherList.length}): ${testRunResult.OtherList.join()}`;
     const connection: Connection = this.org.getConnection();
     try {
       const apexObj: ApexClass = await connection.singleRecordQuery(
-        "Select Id,Name,Body from ApexClass Where Name = '" + comp + "'"
+        "Select Id,Name,Body from ApexClass Where Name = '" + comp + "'",{tooling: true}
       );
       if (apexObj && (apexObj.Body.search('@isTest') > -1 || apexObj.Body.search('@IsTest') > -1)) {
         result.isTest = true;
       }
       result.Id = apexObj.Id;
     } catch (e) {
-      throw new SfdxError(messages.getMessage('errorFoundNoApex', [`Apex Class ${comp}`]));
+      throw new SfdxError(`Apex Query Error for Comp: ${comp} with detail error: ${e}`);
     }
 
     return result;
@@ -534,6 +550,24 @@ Others(${testRunResult.OtherList.length}): ${testRunResult.OtherList.join()}`;
       }
     } catch (e) {
       throw new SfdxError(messages.getMessage('errorCodeCoverage'));
+    }
+  }
+
+  private async runDeploymentSteps(scriptPath: string, scriptStep: string, scriptVariable1: string){
+    EONLogger.log(COLOR_HEADER(`Execute deployment script`));
+    EONLogger.log(`${COLOR_NOTIFY('Path:')} ${COLOR_INFO(scriptPath)}`);
+    try {
+      const scriptDir = path.join(scriptPath,scriptStep)
+      const cmdPrefix = process.platform !== 'win32' ? 'sh -e' : 'cmd.exe /c'
+      const { stdout, stderr } = await exec(`${cmdPrefix} ${path.normalize(scriptDir)} ${scriptVariable1} ${this.org.getConnection().getUsername()}`,{timeout: 0,encoding: 'utf-8',maxBuffer: 5242880});
+      if(stderr){
+        EONLogger.log(COLOR_ERROR(`${scriptStep} Command Error: ${stderr}`));
+      }
+      if(stdout){
+        EONLogger.log(COLOR_INFO(`${scriptStep} Command Info: ${stdout}`));
+      }
+    } catch (e) {
+      EONLogger.log(COLOR_ERROR(`${scriptStep} Command Error: ${e}`));
     }
   }
 }
