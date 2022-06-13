@@ -435,7 +435,7 @@ Others(${testRunResult.OtherList.length}): ${testRunResult.OtherList.join()}`));
         for (const record of responseCodeQueue?.records) {
           deleteIds.push(record.Id);
         }
-       await connection.destroy<RecordResult>('ApexTestQueueItem', deleteIds);
+       await connection.destroy<CustomRecordResult>('ApexTestQueueItem', deleteIds);
       }
       //and now insert testclasses for new run
       recordResult = await connection.tooling.insert('ApexTestQueueItem', recordList);
