@@ -37,7 +37,6 @@ import EONLogger, {
   COLOR_TRACE
 } from '../../../eon/EONLogger';
 import path from 'path';
-import { Listr } from 'listr2';
 import Table from 'cli-table3';
 import { UpsertResult, Record } from 'jsforce';
 import { LOGOBANNER } from '../../../eon/logo';
@@ -145,7 +144,7 @@ export default class Validate extends SfdxCommand {
         await this.runDeploymentSteps(value.preDeploymentScript, 'preDeployment', key);
       }
       //Deploy Package
-      //await this.deployPackageWithDependency(key, value.path);
+      await this.deployPackageWithDependency(key, value.path);
       //execute postDeployment Scripts
       if (value.postDeploymentScript && this.flags.deploymentscripts) {
         EONLogger.log(COLOR_INFO(`☝ Found post deployment script for package ${key}`));
