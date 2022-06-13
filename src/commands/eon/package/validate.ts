@@ -372,7 +372,7 @@ Others(${testRunResult.OtherList.length}): ${testRunResult.OtherList.join()}`;
     const connection: Connection = this.org.getConnection();
     try {
       const apexObj: ApexClass = await connection.singleRecordQuery(
-        "Select Id,Name,Body from ApexClass Where Name = '" + comp + " LIMIT 1'",
+        "Select Id,Name,Body from ApexClass Where Name = '" + comp + "' LIMIT 1",
         { tooling: true }
       );
       if (apexObj && (apexObj.Body.search('@isTest') > -1 || apexObj.Body.search('@IsTest') > -1)) {
