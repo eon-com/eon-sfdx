@@ -426,6 +426,17 @@ Others(${testRunResult.OtherList.length}): ${testRunResult.OtherList.join()}`));
         }
         await connection.tooling.destroy('ApexCodeCoverageAggregate', deleteIds);
       }
+      //delete all entries from apex queue
+      deleteIds = [];
+      const responseCodeQueue = await connection.tooling.query<RecordIds>(
+        `Select Id from ApexTestQueueItem`
+      );
+      if (responseCodeQueue.records) {
+        for (const record of responseCodeQueue?.records) {
+          deleteIds.push(record.Id);
+        }
+       await connection.destroy<RecordResult>('ApexTestQueueItem', deleteIds);
+      }
       //and now insert testclasses for new run
       recordResult = await connection.tooling.insert('ApexTestQueueItem', recordList);
     } catch (e) {
