@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.1.2-beta.12](https://github.com/eon-com/eon-sfdx/compare/v1.1.2-beta.11...v1.1.2-beta.12) (2022-06-14)
+
+
+### Bug Fixes
+
+* minor issues in validate job resolved ([1e3fe63](https://github.com/eon-com/eon-sfdx/commit/1e3fe6380e270dbf0b8c663f8774f8df86de0b59))
+
 ### [1.1.2-beta.11](https://github.com/eon-com/eon-sfdx/compare/v1.1.2-beta.10...v1.1.2-beta.11) (2022-06-13)
 
 ### [1.1.2-beta.9](https://github.com/eon-com/eon-sfdx/compare/v1.1.2-beta.8...v1.1.2-beta.9) (2022-06-12)
