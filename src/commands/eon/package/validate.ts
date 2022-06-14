@@ -343,8 +343,8 @@ Others(${testRunResult.OtherList.length}): ${testRunResult.OtherList.join()}`));
 
          await new Promise((resolve) => setTimeout(resolve, 10000));
          _i++
-         if(_i > 50){
-          throw new Error('Apex test run timeout after 5000 seconds');
+         if(_i > 100){
+          throw new Error('Apex test run timeout after 10000 seconds');
          }
       } while (testRunResult.QueuedList.length > 0 || testRunResult.ProcessingList.length > 0)
      
