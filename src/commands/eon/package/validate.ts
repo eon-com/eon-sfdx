@@ -34,9 +34,9 @@ import EONLogger, {
   COLOR_NOTIFY,
   COLOR_WARNING,
   COLOR_ERROR,
+  COLOR_TRACE,
 } from '../../../eon/EONLogger';
 import path from 'path';
-import { Listr } from 'listr2';
 import Table from 'cli-table3';
 import { UpsertResult, Record } from 'jsforce';
 import { LOGOBANNER } from '../../../eon/logo';
@@ -113,14 +113,14 @@ export default class Validate extends SfdxCommand {
           //only packages without ignore flags
           EONLogger.log(
             COLOR_WARNING(
-              `Found changes in package ${pck.package}. Skipping validation because ignoreOnStage flag in sfdx-project.json`
+              `Found changes in package ${pck.package}. 👆 Skipping validation because ignoreOnStage flag in sfdx-project.json`
             )
           );
           continue;
         }
 
         if (pck.package === 'force-app' || pck.package?.search('src') > -1) {
-          EONLogger.log(COLOR_WARNING(`No validation for this special source package: ${pck.package}`));
+          EONLogger.log(COLOR_WARNING(`👆 No validation for this special source package: ${pck.package}`));
           continue;
         }
         packageMap.set(pck.package, pck);
@@ -129,10 +129,10 @@ export default class Validate extends SfdxCommand {
     }
 
     if (packageMap.size === 0) {
-      EONLogger.log(COLOR_NOTIFY(`Found no unlocked packages with changes. Process finished without validation`));
+      EONLogger.log(COLOR_NOTIFY(`✔ Found no unlocked packages with changes. Process finished without validation`));
       return {};
     }
-    EONLogger.log(COLOR_NOTIFY(`Following packages with changes:`));
+    EONLogger.log(COLOR_NOTIFY(`👉 Following packages with changes:`));
     EONLogger.log(COLOR_INFO(table.toString()));
 
     //run validation tasks
@@ -140,22 +140,27 @@ export default class Validate extends SfdxCommand {
       //Start deploy process
       //execute preDeployment Scripts
       if (value.preDeploymentScript && this.flags.deploymentscripts) {
+        EONLogger.log(COLOR_INFO(`☝ Found pre deployment script for package ${key}`));
         await this.runDeploymentSteps(value.preDeploymentScript, 'preDeployment', key);
       }
+      //Deploy Package
       await this.deployPackageWithDependency(key, value.path);
       //execute postDeployment Scripts
       if (value.postDeploymentScript && this.flags.deploymentscripts) {
+        EONLogger.log(COLOR_INFO(`☝ Found post deployment script for package ${key}`));
         await this.runDeploymentSteps(value.postDeploymentScript, 'postDeployment', key);
       }
+      //Run Tests
       await this.getApexClassesFromPaths(key, value.path);
     }
+    EONLogger.log(COLOR_HEADER(`Yippiee. 🤙 Validation finsihed without errors. Great 🤜🤛`));
     return {};
   }
 
   private async deployPackageWithDependency(pck: string, path: string): Promise<void> {
-    EONLogger.log(COLOR_HEADER(`Start deploy process`));
-    EONLogger.log(`${COLOR_NOTIFY('Package:')} ${COLOR_INFO(pck)}`);
-    EONLogger.log(`${COLOR_NOTIFY('Path:')} ${COLOR_INFO(path)}`);
+    let pckList: string[] = [];
+    let depList: string[] = [];
+    EONLogger.log(COLOR_HEADER(`💪 Start deploy process`));
 
     const packageSingleMap = new Map<string, PackageInfo>();
     // get packages
@@ -164,32 +169,38 @@ export default class Validate extends SfdxCommand {
     const packageDependencyTree: PackageTree = getDeployUrls(projectJson, pck);
     packageDependencyTree.dependency.forEach((dep) => {
       if (dep.path && !packageDeployMap.get(dep.packagename)) {
-        packageDeployMap.set(dep.packagename, `Deploy Dependency for Package: ${dep.packagename}`);
+        packageDeployMap.set(dep.packagename, `Dependency`);
         packageSingleMap.set(dep.packagename, {
-          message: `Deploy Dependency for Package: ${dep.packagename}`,
+          message: `Dependency`,
           path: dep.path,
         });
       }
     });
     if (!packageDeployMap.get(pck)) {
-      packageDeployMap.set(pck, `Deploy Package: ${pck}`);
-      packageSingleMap.set(pck, { message: `Deploy Package: ${pck}`, path: path });
+      packageDeployMap.set(pck, `Package`);
+      packageSingleMap.set(pck, { message: `Package`, path: path });
     }
 
     if (packageSingleMap.size > 0) {
-      const tasks = new Listr([]);
-
       for (const [key, value] of packageSingleMap) {
-        tasks.add({
-          title: value.message,
-          task: async (ctx, task) => {
-            await this.deployPackageTreeNode(value.path);
-            task.title = COLOR_SUCCESS(`Package ${key} successfully deployed`);
-          },
-        });
+        if (value.message === 'Package') {
+          pckList.push(key);
+        } else {
+          depList.push(key);
+        }
+      }
+      if (pckList.length > 0) {
+        EONLogger.log(`${COLOR_NOTIFY('Package:')} ${COLOR_INFO(pckList.join())}`);
+      }
+      if (pckList.length > 0) {
+        EONLogger.log(`${COLOR_NOTIFY('Dependencies:')} ${COLOR_INFO(depList.join())}`);
+      }
+      for (const [key, value] of packageSingleMap) {
+        EONLogger.log(COLOR_INFO(`👉 Start deployment for package ${key}`));
+        await this.deployPackageTreeNode(key, value.path);
       }
 
-      await tasks.run();
+      //await tasks.run();
       // deploy dependencies
     } else {
       throw new SfdxError(
@@ -198,16 +209,22 @@ export default class Validate extends SfdxCommand {
     }
   }
 
-  private async deployPackageTreeNode(path: string): Promise<void> {
+  private async deployPackageTreeNode(pck: string, path: string): Promise<void> {
     const deploy: MetadataApiDeploy = await ComponentSet.fromSource(path).deploy({
       usernameOrConnection: this.org.getConnection().getUsername(),
     });
-    //this.ux.startSpinner(`deploying ${treeNode.packagename}`);
     // Attach a listener to check the deploy status on each poll
-
+    let counter = 0;
     deploy.onUpdate((response) => {
-      const { status } = response;
-      this.ux.setSpinnerStatus(status);
+      if (counter === 5) {
+        const { status, numberComponentsDeployed, numberComponentsTotal } = response;
+        const progress = `${numberComponentsDeployed}/${numberComponentsTotal}`;
+        const message = `⌛ Deploy Package: ${pck} Status: ${status} Progress: ${progress}`;
+        EONLogger.log(COLOR_TRACE(message));
+        counter = 0;
+      } else {
+        counter++;
+      }
     });
 
     // Wait for polling to finish and get the DeployResult object
@@ -218,6 +235,8 @@ export default class Validate extends SfdxCommand {
       throw new SfdxError(
         `Deployment failed. Please check error messages from table and fix this issues from path ${path}.`
       );
+    } else {
+      EONLogger.log(COLOR_INFO(`✔ Deployment for Package ${pck} successfully 👌`));
     }
   }
 
@@ -257,38 +276,32 @@ export default class Validate extends SfdxCommand {
   }
 
   private async getApexClassesFromPaths(pck: string, path: string): Promise<void> {
-    EONLogger.log(COLOR_HEADER(`Start Apex tests for package ${pck}.`));
+    EONLogger.log(COLOR_HEADER(`💪 Start Apex tests for package ${pck}.`));
     const apexTestClassIdList: string[] = [];
     const apexClassIdList: string[] = [];
     const apexTestClassNameList: string[] = [];
     const resolver: MetadataResolver = new MetadataResolver();
-    const fetchTasks = new Listr([]);
-    const insertTasks = new Listr([]);
-    const testRunTask = new Listr([]);
     let queueInsertResult: CustomRecordResult | CustomRecordResult[];
     let queueIdList: string[] = [];
     let testRunResult: ApexTestQueueResult;
     let apexCounter: number = 0;
 
-    fetchTasks.add({
-      title: `Fetch ApexClasses from path: ${path}`,
-      task: async () => {
-        for (const component of resolver.getComponentsFromPath(path)) {
-          if (component.type.id === 'apexclass') {
-            apexCounter++;
-            const apexCheckResult: ApexTestclassCheck = await this.checkIsTestClass(component.name);
-            if (apexCheckResult.isTest) {
-              apexTestClassIdList.push(apexCheckResult.Id);
-              apexTestClassNameList.push(component.name);
-            } else {
-              apexClassIdList.push(apexCheckResult.Id);
-            }
-          }
+    EONLogger.log(COLOR_TRACE(`Fetch Apex Classes from path: ${path}`));
+    for (const component of resolver.getComponentsFromPath(path)) {
+      if (component.type.id === 'apexclass') {
+        apexCounter++;
+        EONLogger.log(COLOR_TRACE(`Found Apex Class: ${component.name}`));
+        const apexCheckResult: ApexTestclassCheck = await this.checkIsTestClass(component.name);
+        if (apexCheckResult.isTest) {
+          apexTestClassIdList.push(apexCheckResult.Id);
+          apexTestClassNameList.push(component.name);
+          EONLogger.log(COLOR_TRACE(`Found Test Class: ${component.name}`));
+        } else {
+          apexClassIdList.push(apexCheckResult.Id);
         }
-      },
-    });
+      }
+    }
 
-    await fetchTasks.run();
     if (apexCounter > 0 && apexTestClassNameList.length === 0) {
       throw new SfdxError(
         `Found apex class(es) for package ${pck} but no testclass(es). Please create a new testclass.`
@@ -301,21 +314,11 @@ export default class Validate extends SfdxCommand {
       )}`
     );
     //insert Apex classes to test queue
-    insertTasks.add([
-      {
-        title: `Insert Apex Testclasses to Queue`,
-        skip: () => {
-          if (apexTestClassIdList.length === 0) {
-            return 'Skip insert, because no testclasses for this package';
-          }
-        },
-        task: async (ctx, task) => {
-          queueInsertResult = await this.addClassesToApexQueue(apexTestClassIdList);
-          task.title = 'Insert Apex Testclasses succesfully';
-        },
-      },
-    ]);
-    await insertTasks.run();
+    if (apexTestClassIdList.length > 0) {
+      EONLogger.log(COLOR_TRACE(`Insert Apex Testclasses for package ${pck} to Queue`));
+      queueInsertResult = await this.addClassesToApexQueue(apexTestClassIdList);
+      EONLogger.log(COLOR_TRACE(`nsert Apex Testclasses succesfully`));
+    }
 
     if (Array.isArray(queueInsertResult) && queueInsertResult.length > 0) {
       for (const record of queueInsertResult) {
@@ -325,35 +328,33 @@ export default class Validate extends SfdxCommand {
         queueIdList.push(record.id);
       }
       //check test queue and wait for finish
-      testRunTask.add([
-        {
-          title: `Waiting For test run results`,
-          task: async (_, task) => {
-            // @ts-ignore
-            const retry = task.isRetrying();
+      EONLogger.log(COLOR_INFO(`⌛ Waiting For test run results`));
+      let _i: number = 2;
+      do {
+        testRunResult = await this.checkTestRunStatus(queueIdList);
 
-            testRunResult = await this.checkTestRunStatus(queueIdList);
-            task.title = `All Tests: ${
-              testRunResult.QueuedList.length +
-              testRunResult.CompletedList.length +
-              testRunResult.FailedList.length +
-              testRunResult.ProcessingList.length +
-              testRunResult.OtherList.length
-            }. 
+        EONLogger.log(
+          COLOR_TRACE(`All Tests: ${
+            testRunResult.QueuedList.length +
+            testRunResult.CompletedList.length +
+            testRunResult.FailedList.length +
+            testRunResult.ProcessingList.length +
+            testRunResult.OtherList.length
+          }. 
 Queued(${testRunResult.QueuedList.length}): ${testRunResult.QueuedList.join()}
 Completed(${testRunResult.CompletedList.length}): ${testRunResult.CompletedList.join()}
 Processing(${testRunResult.ProcessingList.length}): ${testRunResult.ProcessingList.join()}
 Failed(${testRunResult.FailedList.length}): ${testRunResult.FailedList.join()} 
-Others(${testRunResult.OtherList.length}): ${testRunResult.OtherList.join()}`;
-            await new Promise((resolve) => setTimeout(resolve, 10000));
-            if (testRunResult.QueuedList.length > 0 || testRunResult.ProcessingList.length > 0) {
-              throw new Error('Apex test run timeout after 5000 seconds');
-            }
-          },
-          retry: 50,
-        },
-      ]);
-      await testRunTask.run();
+Others(${testRunResult.OtherList.length}): ${testRunResult.OtherList.join()}`)
+        );
+
+        await new Promise((resolve) => setTimeout(resolve, 10000));
+        _i++;
+        if (_i > 100) {
+          throw new Error('Apex test run timeout after 10000 seconds');
+        }
+      } while (testRunResult.QueuedList.length > 0 || testRunResult.ProcessingList.length > 0);
+
       //check testrun result only for errors
       if (testRunResult.FailedList.length > 0) {
         EONLogger.log(COLOR_ERROR(`This package contains testclass errors.`));
@@ -431,6 +432,15 @@ Others(${testRunResult.OtherList.length}): ${testRunResult.OtherList.join()}`;
           deleteIds.push(record.Id);
         }
         await connection.tooling.destroy('ApexCodeCoverageAggregate', deleteIds);
+      }
+      //delete all entries from apex queue
+      deleteIds = [];
+      const responseCodeQueue = await connection.tooling.query<RecordIds>(`Select Id from ApexTestQueueItem`);
+      if (responseCodeQueue.records) {
+        for (const record of responseCodeQueue?.records) {
+          deleteIds.push(record.Id);
+        }
+        await connection.destroy<CustomRecordResult>('ApexTestQueueItem', deleteIds);
       }
       //and now insert testclasses for new run
       recordResult = await connection.tooling.insert('ApexTestQueueItem', recordList);
@@ -528,7 +538,7 @@ Others(${testRunResult.OtherList.length}): ${testRunResult.OtherList.join()}`;
         `The package has an overall coverage of ${packageCoverage}%, which does not meet the required overall coverage of 75%. Please check the testclass coverage table and fix the test classes.`
       );
     } else {
-      EONLogger.log(COLOR_SUCCESS(`Great. This package has a code coverage from ${packageCoverage}%.`));
+      EONLogger.log(COLOR_SUCCESS(`👏 Great. This package has a code coverage from ${packageCoverage}%. 😊`));
     }
   }
 
@@ -558,14 +568,13 @@ Others(${testRunResult.OtherList.length}): ${testRunResult.OtherList.join()}`;
     EONLogger.log(COLOR_HEADER(`Execute deployment script`));
     EONLogger.log(`${COLOR_NOTIFY('Path:')} ${COLOR_INFO(scriptPath)}`);
     try {
-      const scriptDir = scriptPath;
-      const cmdPrefix = process.platform !== 'win32' ? 'sh ' : 'cmd.exe /c';
+      const cmdPrefix = process.platform !== 'win32' ? 'sh -e' : 'cmd.exe /c';
       const { stdout, stderr } = await exec(
-        `${cmdPrefix} ${path.normalize(scriptDir)} ${scriptVariable1} ${this.org.getConnection().getUsername()}`,
+        `${cmdPrefix} ${path.normalize(scriptPath)} ${scriptVariable1} ${this.org.getConnection().getUsername()}`,
         { timeout: 0, encoding: 'utf-8', maxBuffer: 5242880 }
       );
       if (stderr) {
-        throw new SfdxError(COLOR_ERROR(`${scriptStep} Command Error: ${stderr}`));
+        EONLogger.log(COLOR_ERROR(`${scriptStep} Command Error: ${stderr}`));
       }
       if (stdout) {
         EONLogger.log(COLOR_INFO(`${scriptStep} Command Info: ${stdout}`));
