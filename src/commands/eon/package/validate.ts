@@ -564,7 +564,7 @@ Others(${testRunResult.OtherList.length}): ${testRunResult.OtherList.join()}`));
     EONLogger.log(`${COLOR_NOTIFY('Path:')} ${COLOR_INFO(scriptPath)}`);
     try {
       const scriptDir = scriptPath;
-      const cmdPrefix = process.platform !== 'win32' ? 'sh ' : 'cmd.exe /c';
+      const cmdPrefix = process.platform !== 'win32' ? 'sh -e' : 'cmd.exe /c';
       const { stdout, stderr } = await exec(
         `${cmdPrefix} ${path.normalize(scriptDir)} ${scriptVariable1} ${this.org.getConnection().getUsername()}`,
         { timeout: 0, encoding: 'utf-8', maxBuffer: 5242880 }
