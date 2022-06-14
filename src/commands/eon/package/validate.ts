@@ -140,12 +140,12 @@ export default class Validate extends SfdxCommand {
       //Start deploy process
       //execute preDeployment Scripts
       if(value.preDeploymentScript && this.flags.deploymentscripts){
-        await this.runDeploymentSteps(path.join(path.dirname(projectJson.getPath()),value.preDeploymentScript),'preDeployment',key)
+        await this.runDeploymentSteps(path.join(path.dirname(projectJson.getPath()),path.dirname(value.preDeploymentScript)),'preDeployment',key)
       }
       await this.deployPackageWithDependency(key, value.path);
       //execute postDeployment Scripts
       if(value.postDeploymentScript && this.flags.deploymentscripts){
-        await this.runDeploymentSteps(path.join(path.dirname(projectJson.getPath()),value.postDeploymentScript),'postDeployment',key)
+        await this.runDeploymentSteps(path.join(path.dirname(projectJson.getPath()),path.dirname(value.postDeploymentScript)),'postDeployment',key)
       }
       await this.getApexClassesFromPaths(key, value.path);
     }
