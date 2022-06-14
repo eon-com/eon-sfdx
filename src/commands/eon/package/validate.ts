@@ -141,14 +141,14 @@ export default class Validate extends SfdxCommand {
       //execute preDeployment Scripts
       if (value.preDeploymentScript && this.flags.deploymentscripts) {
         EONLogger.log(COLOR_INFO(`☝ Found pre deployment script for package ${key}`));
-        await this.runDeploymentSteps(value.preDeploymentScript, 'preDeployment', key);
+        await this.runDeploymentSteps(path.join(path.dirname(projectJson.getPath()),path.dirname(value.preDeploymentScript)),'preDeployment',key)
       }
       //Deploy Package
       await this.deployPackageWithDependency(key, value.path);
       //execute postDeployment Scripts
       if (value.postDeploymentScript && this.flags.deploymentscripts) {
         EONLogger.log(COLOR_INFO(`☝ Found post deployment script for package ${key}`));
-        await this.runDeploymentSteps(value.postDeploymentScript, 'postDeployment', key);
+        await this.runDeploymentSteps(path.join(path.dirname(projectJson.getPath()),path.dirname(value.postDeploymentScript)),'postDeployment',key)
       }
       //Run Tests
       await this.getApexClassesFromPaths(key, value.path);
@@ -559,20 +559,17 @@ Others(${testRunResult.OtherList.length}): ${testRunResult.OtherList.join()}`));
     }
   }
 
-  private async runDeploymentSteps(scriptPath: string, scriptStep: string, scriptVariable1: string) {
+  private async runDeploymentSteps(scriptPath: string, scriptStep: string, scriptVariable1: string){
     EONLogger.log(COLOR_HEADER(`Execute deployment script`));
     EONLogger.log(`${COLOR_NOTIFY('Path:')} ${COLOR_INFO(scriptPath)}`);
     try {
-      const scriptDir = scriptPath;
-      const cmdPrefix = process.platform !== 'win32' ? 'sh -e' : 'cmd.exe /c';
-      const { stdout, stderr } = await exec(
-        `${cmdPrefix} ${path.normalize(scriptDir)} ${scriptVariable1} ${this.org.getConnection().getUsername()}`,
-        { timeout: 0, encoding: 'utf-8', maxBuffer: 5242880 }
-      );
-      if (stderr) {
-        throw new SfdxError(COLOR_ERROR(`${scriptStep} Command Error: ${stderr}`));
+      const scriptDir = path.join(scriptPath,scriptStep)
+      const cmdPrefix = process.platform !== 'win32' ? 'sh -e' : 'cmd.exe /c'
+      const { stdout, stderr } = await exec(`${cmdPrefix} ${path.normalize(scriptDir)} ${scriptVariable1} ${this.org.getConnection().getUsername()}`,{timeout: 0,encoding: 'utf-8',maxBuffer: 5242880});
+      if(stderr){
+        EONLogger.log(COLOR_ERROR(`${scriptStep} Command Error: ${stderr}`));
       }
-      if (stdout) {
+      if(stdout){
         EONLogger.log(COLOR_INFO(`${scriptStep} Command Info: ${stdout}`));
       }
     } catch (e) {
