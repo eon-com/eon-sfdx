@@ -81,6 +81,7 @@ export default class Validate extends SfdxCommand {
   protected static requiresUsername = true;
 
   public async run(): Promise<AnyJson> {
+    
     EONLogger.log(COLOR_HEADER(LOGOBANNER));
     EONLogger.log(COLOR_KEY_MESSAGE('Validating package(s)...'));
     await this.toggleParallelApexTesting();
@@ -144,7 +145,7 @@ export default class Validate extends SfdxCommand {
         await this.runDeploymentSteps(value.preDeploymentScript, 'preDeployment', key);
       }
       //Deploy Package
-      await this.deployPackageWithDependency(key, value.path);
+      //await this.deployPackageWithDependency(key, value.path);
       //execute postDeployment Scripts
       if (value.postDeploymentScript && this.flags.deploymentscripts) {
         EONLogger.log(COLOR_INFO(`☝ Found post deployment script for package ${key}`));
@@ -281,7 +282,6 @@ export default class Validate extends SfdxCommand {
     const apexClassIdList: string[] = [];
     const apexTestClassNameList: string[] = [];
     const resolver: MetadataResolver = new MetadataResolver();
-    let queueInsertResult: CustomRecordResult | CustomRecordResult[];
     let queueIdList: string[] = [];
     let testRunResult: ApexTestQueueResult;
     let apexCounter: number = 0;
@@ -316,17 +316,11 @@ export default class Validate extends SfdxCommand {
     //insert Apex classes to test queue
     if (apexTestClassIdList.length > 0) {
       EONLogger.log(COLOR_TRACE(`Insert Apex Testclasses for package ${pck} to Queue`));
-      queueInsertResult = await this.addClassesToApexQueue(apexTestClassIdList);
-      EONLogger.log(COLOR_TRACE(`nsert Apex Testclasses succesfully`));
+      queueIdList = await this.addClassesToApexQueue(apexTestClassIdList);
+      EONLogger.log(COLOR_TRACE(`Insert Apex Testclasses succesfully`));
     }
 
-    if (Array.isArray(queueInsertResult) && queueInsertResult.length > 0) {
-      for (const record of queueInsertResult) {
-        if (!record.success) {
-          throw new SfdxError(messages.getMessage('errorApexQueueInsert', [record.errors.toString()]));
-        }
-        queueIdList.push(record.id);
-      }
+   
       //check test queue and wait for finish
       EONLogger.log(COLOR_INFO(`⌛ Waiting For test run results`));
       let _i: number = 2;
@@ -365,7 +359,7 @@ Others(${testRunResult.OtherList.length}): ${testRunResult.OtherList.join()}`)
       if (apexClassIdList.length > 0) {
         await this.checkCodeCoverage(apexClassIdList);
       }
-    }
+    
   }
   //check if apex class is a testclass from code identifier @isTest
   private async checkIsTestClass(comp: string): Promise<ApexTestclassCheck> {
@@ -405,14 +399,11 @@ Others(${testRunResult.OtherList.length}): ${testRunResult.OtherList.join()}`)
   //Enable Synchronus Compile on Deploy
   private async addClassesToApexQueue(
     apexTestClassIdList: string[]
-  ): Promise<CustomRecordResult | CustomRecordResult[]> {
-    const recordList: Record[] = [];
-    let recordResult: CustomRecordResult[] | CustomRecordResult;
+  ): Promise<string[]> {
+    let recordResult: string[] = [];
     const connection: Connection = this.org.getConnection();
     let deleteIds: string[] = [];
-    for (const classId of apexTestClassIdList) {
-      recordList.push({ ApexClassId: classId });
-    }
+   
     try {
       //delete all entries from code coverage
       const responseCodeCoverage = await connection.tooling.query<RecordIds>(`Select Id from ApexCodeCoverage`);
@@ -433,20 +424,22 @@ Others(${testRunResult.OtherList.length}): ${testRunResult.OtherList.join()}`)
         }
         await connection.tooling.destroy('ApexCodeCoverageAggregate', deleteIds);
       }
-      //delete all entries from apex queue
-      deleteIds = [];
-      const responseCodeQueue = await connection.tooling.query<RecordIds>(`Select Id from ApexTestQueueItem`);
-      if (responseCodeQueue.records) {
-        for (const record of responseCodeQueue?.records) {
-          deleteIds.push(record.Id);
-        }
-        await connection.destroy<CustomRecordResult>('ApexTestQueueItem', deleteIds);
-      }
-      //and now insert testclasses for new run
-      recordResult = await connection.tooling.insert('ApexTestQueueItem', recordList);
     } catch (e) {
-      console.log(e);
-      throw new SfdxError(messages.getMessage('errorApexQueueInsert'));
+      throw new SfdxError(`Deletion from Coverage Results not possible.`);   
+    }
+    
+    try {
+      EONLogger.log(COLOR_TRACE(`Create Post Request for url: ${connection._baseUrl()}/tooling/runTestsAsynchronous/`));
+      EONLogger.log(COLOR_TRACE(`Insert Apex Classes to queue: ${apexTestClassIdList.join()}`));
+      const queueResponse = await connection.requestPost(`${connection._baseUrl()}/tooling/runTestsAsynchronous/`,{"classids": apexTestClassIdList.join()})
+      const jobId: string = queueResponse ? Object.values(queueResponse).join('') : '';
+      if(jobId){
+      recordResult.push(jobId)
+      } else {
+        throw new SfdxError(`Post Request to Queue runs on error`);
+      }
+    } catch (e) {
+      throw new SfdxError(`Insert to queue runs on error`);
     }
     return recordResult;
   }
@@ -462,7 +455,7 @@ Others(${testRunResult.OtherList.length}): ${testRunResult.OtherList.join()}`)
     };
     try {
       const responseFromOrg = await connection.tooling.query<ApexTestQueueItem>(
-        `Select Id, ApexClassId,ApexClass.Name, Status, ExtendedStatus, ParentJobId, TestRunResultId from ApexTestQueueItem Where Id In ('${ids.join(
+        `Select Id, ApexClassId,ApexClass.Name, Status, ExtendedStatus, ParentJobId, TestRunResultId from ApexTestQueueItem Where ParentJobId In ('${ids.join(
           "','"
         )}')`
       );
