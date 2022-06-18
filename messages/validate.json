@@ -3,6 +3,7 @@
   "sourceFlag": "Flag for source branch",
   "targetFlag": "Flag for target branch",
   "scriptFlag": "Flag to run pre/post deployment scripts",
+  "packageFlag": "Validate one selected package",
   "examples": ["sfdx eon:validate", "sfdx  eon:validate"],
   "errorDeployment": "Process finsihed with Exit Code 1.",
   "errorFoundNoApex": "Query Apex from Org failed: %s",

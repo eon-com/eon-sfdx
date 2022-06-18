@@ -72,6 +72,12 @@ export default class Validate extends SfdxCommand {
       default: false,
       required: false,
     }),
+    package: flags.string({
+      char: 'p',
+      description: messages.getMessage('packageFlag'),
+      default: '',
+      required: false,
+    }),
   };
 
   // Set this to true if your command requires a project workspace; 'requiresProject' is false by default
@@ -100,6 +106,13 @@ export default class Validate extends SfdxCommand {
     const packageMap = new Map<string, NamedPackageDirLarge>();
     // check changed packages
     for (const pck of packageDirs) {
+      if(this.flags.package){
+        if(pck.package === this.flags.package){
+          packageMap.set(pck.package, pck);
+          table.push([pck.package]);
+        }
+        continue;
+      }
       if (
         changes.files.some((change) =>
           path
@@ -131,7 +144,8 @@ export default class Validate extends SfdxCommand {
       EONLogger.log(COLOR_NOTIFY(`✔ Found no unlocked packages with changes. Process finished without validation`));
       return {};
     }
-    EONLogger.log(COLOR_NOTIFY(`👉 Following packages with changes:`));
+    const packageMessage = this.flags.package ? `👉 Validate selected package:` : `👉 Following packages with changes:`
+    EONLogger.log(COLOR_NOTIFY(packageMessage));
     EONLogger.log(COLOR_INFO(table.toString()));
 
     //run validation tasks
@@ -347,11 +361,8 @@ Others(${testRunResult.OtherList.length}): ${testRunResult.OtherList.join()}`)
     } while (testRunResult.QueuedList.length > 0 || testRunResult.ProcessingList.length > 0);
 
     //check testrun result only for errors
-    if (testRunResult.FailedList.length > 0) {
-      EONLogger.log(COLOR_ERROR(`This package contains testclass errors.`));
       await this.checkTestResult();
-      throw new SfdxError(`Please fix this issues and try again.`);
-    }
+ 
     //check Code Coverage
     if (apexClassIdList.length > 0) {
       await this.checkCodeCoverage(apexClassIdList);
@@ -417,6 +428,17 @@ Others(${testRunResult.OtherList.length}): ${testRunResult.OtherList.join()}`)
           deleteIds.push(record.Id);
         }
         await connection.tooling.destroy('ApexCodeCoverageAggregate', deleteIds);
+      }
+      deleteIds = [];
+      //delete all entries from test result
+      const responseCodeTestResult = await connection.tooling.query<RecordIds>(
+        `Select Id from ApexTestResult`
+      );
+      if (responseCodeTestResult.records) {
+        for (const record of responseCodeTestResult?.records) {
+          deleteIds.push(record.Id);
+        }
+        await connection.tooling.destroy('ApexTestResult', deleteIds);
       }
     } catch (e) {
       throw new SfdxError(`Deletion from Coverage Results not possible.`);
@@ -537,7 +559,7 @@ Others(${testRunResult.OtherList.length}): ${testRunResult.OtherList.join()}`)
       const responseFromOrg = await connection.tooling.query<ApexTestResult>(
         `Select ApexClass.Name, Outcome, MethodName, Message from ApexTestResult Where Outcome = 'Fail'`
       );
-      if (responseFromOrg.records) {
+      if (responseFromOrg.records.length > 0) {
         for (const result of responseFromOrg.records) {
           let table = new Table({
             head: [COLOR_ERROR('ApexClass Name'), COLOR_ERROR('Methodname')],
@@ -547,6 +569,8 @@ Others(${testRunResult.OtherList.length}): ${testRunResult.OtherList.join()}`)
           EONLogger.log(COLOR_ERROR(`ErrorMessage:`));
           EONLogger.log(COLOR_INFO(`${result.Message}`));
         }
+        EONLogger.log(COLOR_ERROR(`This package contains testclass errors.`));
+        throw new SfdxError(`Please fix this issues and try again.`);
       }
     } catch (e) {
       throw new SfdxError(messages.getMessage('errorCodeCoverage'));
