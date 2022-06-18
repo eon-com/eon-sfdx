@@ -1,0 +1,4 @@
+{
+  "commandDescription": "Returns the type of the target org",
+  "examples": ["sfdx eon:org:type"]
+}
