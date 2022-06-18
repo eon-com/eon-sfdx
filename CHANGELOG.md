@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.1.2-beta.13](https://github.com/eon-com/eon-sfdx/compare/v1.1.2-beta.12...v1.1.2-beta.13) (2022-06-18)
+
+
+### Bug Fixes
+
+* activate deploy job after test scenarios ([acca086](https://github.com/eon-com/eon-sfdx/commit/acca0865fe1b21d7607ee3d62f05aa3648a702ad))
+* insert apex classes to queue per tooling api post request ([b9a8be2](https://github.com/eon-com/eon-sfdx/commit/b9a8be2b6ad1d71bcf69a0d9f58503e6d6a80fc2))
+* remove managed apex classes from selection ([7b7e47d](https://github.com/eon-com/eon-sfdx/commit/7b7e47de001396b710ad833e98c22d61f9e64c5b))
+
 ### [1.1.2-beta.12](https://github.com/eon-com/eon-sfdx/compare/v1.1.2-beta.11...v1.1.2-beta.12) (2022-06-14)
 
 

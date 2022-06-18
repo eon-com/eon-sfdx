@@ -19,7 +19,6 @@ import {
   RecordIds,
   ApexClass,
   NamedPackageDirLarge,
-  CustomRecordResult,
   ApexTestQueueItem,
   ApexTestQueueResult,
   ApexTestResult,
@@ -38,7 +37,7 @@ import EONLogger, {
 } from '../../../eon/EONLogger';
 import path from 'path';
 import Table from 'cli-table3';
-import { UpsertResult, Record } from 'jsforce';
+import { UpsertResult } from 'jsforce';
 import { LOGOBANNER } from '../../../eon/logo';
 // Initialize Messages with the current plugin directory
 Messages.importMessagesDirectory(__dirname);
