@@ -153,7 +153,19 @@ export interface environmentConfigSettings {
 export interface stringProperties {
   [x: string]: string;
 }
-
+export interface featureSettingsConfigFile {
+  settings?: featureSettings;
+  documentation?: stringProperties;
+}
+export interface featureSettings {
+  [x: string]: featureSetting;
+}
+export interface featureSetting {
+  [x: string]: featureSettingField;
+}
+export interface featureSettingField {
+  [x: string]: boolean;
+}
 export interface PackageTree {
   packagename?: string;
   version?: string;
@@ -244,7 +256,6 @@ export interface ApexClassOrTrigger {
 }
 
 export interface ApexTestclassCheck {
-  Id?: string
-  isTest?: boolean
-} 
-
+  Id?: string;
+  isTest?: boolean;
+}
