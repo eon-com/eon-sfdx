@@ -106,8 +106,8 @@ export default class Validate extends SfdxCommand {
     const packageMap = new Map<string, NamedPackageDirLarge>();
     // check changed packages
     for (const pck of packageDirs) {
-      if(this.flags.package){
-        if(pck.package === this.flags.package){
+      if (this.flags.package) {
+        if (pck.package === this.flags.package) {
           packageMap.set(pck.package, pck);
           table.push([pck.package]);
         }
@@ -144,7 +144,7 @@ export default class Validate extends SfdxCommand {
       EONLogger.log(COLOR_NOTIFY(`✔ Found no unlocked packages with changes. Process finished without validation`));
       return {};
     }
-    const packageMessage = this.flags.package ? `👉 Validate selected package:` : `👉 Following packages with changes:`
+    const packageMessage = this.flags.package ? `👉 Validate selected package:` : `👉 Following packages with changes:`;
     EONLogger.log(COLOR_NOTIFY(packageMessage));
     EONLogger.log(COLOR_INFO(table.toString()));
 
@@ -298,16 +298,13 @@ export default class Validate extends SfdxCommand {
     let testRunResult: ApexTestQueueResult;
     let apexCounter: number = 0;
 
-    EONLogger.log(COLOR_TRACE(`Fetch Apex Classes from path: ${path}`));
     for (const component of resolver.getComponentsFromPath(path)) {
       if (component.type.id === 'apexclass') {
         apexCounter++;
-        EONLogger.log(COLOR_TRACE(`Found Apex Class: ${component.name}`));
         const apexCheckResult: ApexTestclassCheck = await this.checkIsTestClass(component.name);
         if (apexCheckResult.isTest) {
           apexTestClassIdList.push(apexCheckResult.Id);
           apexTestClassNameList.push(component.name);
-          EONLogger.log(COLOR_TRACE(`Found Test Class: ${component.name}`));
         } else {
           apexClassIdList.push(apexCheckResult.Id);
         }
@@ -327,32 +324,24 @@ export default class Validate extends SfdxCommand {
     );
     //insert Apex classes to test queue
     if (apexTestClassIdList.length > 0) {
-      EONLogger.log(COLOR_TRACE(`Insert Apex Testclasses for package ${pck} to Queue`));
       queueIdList = await this.addClassesToApexQueue(apexTestClassIdList);
-      EONLogger.log(COLOR_TRACE(`Insert Apex Testclasses succesfully`));
     }
 
     //check test queue and wait for finish
     EONLogger.log(COLOR_INFO(`⌛ Waiting For test run results`));
     let _i: number = 2;
+
+    const cliProgress = require('cli-progress');
+    const bar1 = new cliProgress.SingleBar(
+      {
+        format: COLOR_HEADER('[{bar}]') + ' {percentage}% | {value}/{total} completed',
+      },
+      cliProgress.Presets.shades_classic
+    );
+    bar1.start(apexTestClassIdList.length, 0);
     do {
       testRunResult = await this.checkTestRunStatus(queueIdList);
-
-      EONLogger.log(
-        COLOR_TRACE(`All Tests: ${
-          testRunResult.QueuedList.length +
-          testRunResult.CompletedList.length +
-          testRunResult.FailedList.length +
-          testRunResult.ProcessingList.length +
-          testRunResult.OtherList.length
-        }. 
-Queued(${testRunResult.QueuedList.length}): ${testRunResult.QueuedList.join()}
-Completed(${testRunResult.CompletedList.length}): ${testRunResult.CompletedList.join()}
-Processing(${testRunResult.ProcessingList.length}): ${testRunResult.ProcessingList.join()}
-Failed(${testRunResult.FailedList.length}): ${testRunResult.FailedList.join()} 
-Others(${testRunResult.OtherList.length}): ${testRunResult.OtherList.join()}`)
-      );
-
+      bar1.update(testRunResult.CompletedList.length + testRunResult.FailedList.length);
       await new Promise((resolve) => setTimeout(resolve, 10000));
       _i++;
       if (_i > 100) {
@@ -360,9 +349,10 @@ Others(${testRunResult.OtherList.length}): ${testRunResult.OtherList.join()}`)
       }
     } while (testRunResult.QueuedList.length > 0 || testRunResult.ProcessingList.length > 0);
 
+    bar1.stop();
     //check testrun result only for errors
-      await this.checkTestResult();
- 
+    await this.checkTestResult();
+
     //check Code Coverage
     if (apexClassIdList.length > 0) {
       await this.checkCodeCoverage(apexClassIdList);
@@ -431,9 +421,7 @@ Others(${testRunResult.OtherList.length}): ${testRunResult.OtherList.join()}`)
       }
       deleteIds = [];
       //delete all entries from test result
-      const responseCodeTestResult = await connection.tooling.query<RecordIds>(
-        `Select Id from ApexTestResult`
-      );
+      const responseCodeTestResult = await connection.tooling.query<RecordIds>(`Select Id from ApexTestResult`);
       if (responseCodeTestResult.records) {
         for (const record of responseCodeTestResult?.records) {
           deleteIds.push(record.Id);
@@ -445,8 +433,6 @@ Others(${testRunResult.OtherList.length}): ${testRunResult.OtherList.join()}`)
     }
 
     try {
-      EONLogger.log(COLOR_TRACE(`Create Post Request for url: ${connection._baseUrl()}/tooling/runTestsAsynchronous/`));
-      EONLogger.log(COLOR_TRACE(`Insert Apex Classes to queue: ${apexTestClassIdList.join()}`));
       const queueResponse = await connection.requestPost(`${connection._baseUrl()}/tooling/runTestsAsynchronous/`, {
         classids: apexTestClassIdList.join(),
       });
