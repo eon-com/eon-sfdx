@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.2.0-beta.0](https://github.com/eon-com/eon-sfdx/compare/v1.1.2-beta.12...v1.2.0-beta.0) (2022-06-19)
+
+
+### Features
+
+* add new command for mass update features from setting.yml ([19b84fc](https://github.com/eon-com/eon-sfdx/commit/19b84fcb384890e8e08b6dff7aca79501d3fcef4))
+* new org:getype command returning type or org as stdout ([c60ad23](https://github.com/eon-com/eon-sfdx/commit/c60ad23a256afdcaf71faca8bf508d0d005d1605))
+
+
+### Bug Fixes
+
+* activate deploy job after test scenarios ([acca086](https://github.com/eon-com/eon-sfdx/commit/acca0865fe1b21d7607ee3d62f05aa3648a702ad))
+* display apex testclass errors and new flag for package validation ([59f54dd](https://github.com/eon-com/eon-sfdx/commit/59f54ddf97aecfcb64aec58e0304f6338a8035ff))
+* insert apex classes to queue per tooling api post request ([b9a8be2](https://github.com/eon-com/eon-sfdx/commit/b9a8be2b6ad1d71bcf69a0d9f58503e6d6a80fc2))
+* remove managed apex classes from selection ([7b7e47d](https://github.com/eon-com/eon-sfdx/commit/7b7e47de001396b710ad833e98c22d61f9e64c5b))
+* update validate output for test classes ([79b0498](https://github.com/eon-com/eon-sfdx/commit/79b04985695be217756ae2e0dde46c948d91669a))
+
 ### [1.1.2-beta.13](https://github.com/eon-com/eon-sfdx/compare/v1.1.2-beta.12...v1.1.2-beta.13) (2022-06-18)
 
 
