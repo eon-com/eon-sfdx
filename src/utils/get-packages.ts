@@ -1,10 +1,11 @@
-import { NamedPackageDir, SfdxProjectJson } from '@salesforce/core';
+import { SfdxProjectJson } from '@salesforce/core';
 import { PackageTree } from '../interfaces/package-interfaces';
+import { NamedPackageDirLarge } from '../helper/types';
 
 export function getDeployUrls(projectJson: SfdxProjectJson, packagename: string): PackageTree {
-  const packageDirs: NamedPackageDir[] = projectJson.getUniquePackageDirectories();
+  const packageDirs: NamedPackageDirLarge[] = projectJson.getUniquePackageDirectories();
   let packageTree: PackageTree;
-  const currentPackage: NamedPackageDir = packageDirs.find((pck) => pck.package === packagename);
+  const currentPackage: NamedPackageDirLarge = packageDirs.find((pck) => pck.package === packagename);
 
   if (currentPackage) {
     packageTree = {
@@ -12,6 +13,8 @@ export function getDeployUrls(projectJson: SfdxProjectJson, packagename: string)
       path: currentPackage.fullPath,
       managed: false,
       dependency: [],
+      postDeploymentScript: currentPackage.postDeploymentScript ?? '',
+      preDeploymentScript: currentPackage.preDeploymentScript ?? ''
     };
 
     if (currentPackage.dependencies) {

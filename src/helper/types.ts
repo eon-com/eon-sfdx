@@ -177,6 +177,8 @@ export interface PackageTree {
 export interface PackageInfo {
   message?: string;
   path?: string;
+  postDeploymentScript?: string;
+  preDeploymentScript?: string;
 }
 
 export interface Status {

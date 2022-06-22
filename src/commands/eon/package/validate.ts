@@ -186,12 +186,19 @@ export default class Validate extends SfdxCommand {
         packageSingleMap.set(dep.packagename, {
           message: `Dependency`,
           path: dep.path,
+          postDeploymentScript: dep.postDeploymentScript,
+          preDeploymentScript: dep.preDeploymentScript
         });
       }
     });
     if (!packageDeployMap.get(pck)) {
       packageDeployMap.set(pck, `Package`);
-      packageSingleMap.set(pck, { message: `Package`, path: path });
+      packageSingleMap.set(pck, { 
+        message: `Package`, 
+        path: path,
+        postDeploymentScript: '',
+        preDeploymentScript: ''
+      });
     }
 
     if (packageSingleMap.size > 0) {
@@ -210,7 +217,17 @@ export default class Validate extends SfdxCommand {
       }
       for (const [key, value] of packageSingleMap) {
         EONLogger.log(COLOR_INFO(`👉 Start deployment for package ${key}`));
+        //execute pre deployment script for dependency
+        if (value.preDeploymentScript && this.flags.deploymentscripts) {
+          EONLogger.log(COLOR_INFO(`☝ Found pre deployment script for dependency package ${key}`));
+          await this.runDeploymentSteps(value.preDeploymentScript, 'preDeployment', key);
+        }
         await this.deployPackageTreeNode(key, value.path);
+        //execute post deployment script for dependency
+        if (value.postDeploymentScript && this.flags.deploymentscripts) {
+          EONLogger.log(COLOR_INFO(`☝ Found post deployment script for dependency package ${key}`));
+          await this.runDeploymentSteps(value.postDeploymentScript, 'postDeployment', key);
+        }
       }
 
       //await tasks.run();

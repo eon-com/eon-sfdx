@@ -3,6 +3,8 @@ export interface PackageTree {
     path?: string;
     managed?: boolean;
     dependency?: PackageTree[];
+    postDeploymentScript?: string;
+    preDeploymentScript?: string;
   }
   
   export interface Status {
