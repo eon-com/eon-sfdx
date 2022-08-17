@@ -261,3 +261,16 @@ export interface ApexTestclassCheck {
   Id?: string;
   isTest?: boolean;
 }
+
+export interface SourcePackageComps {
+  comps?: string[];
+  apexClassNames?: string[];
+  apexTestclassNames?: string[];
+}
+
+export interface CodeCoverageWarnings {
+  id: string;
+  message: string;
+  name?: string;
+  namespace: {}
+}

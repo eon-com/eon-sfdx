@@ -6,12 +6,13 @@
  */
 import * as os from 'os';
 import { flags, SfdxCommand } from '@salesforce/command';
-import { Messages, SfdxError, SfdxProjectJson, Connection } from '@salesforce/core';
-import { ComponentSet, DeployMessage, MetadataApiDeploy, MetadataResolver } from '@salesforce/source-deploy-retrieve';
+import { Messages, SfdxError, SfdxProjectJson, Connection, Aliases } from '@salesforce/core';
+import { ComponentSet, MetadataApiDeploy, MetadataResolver, DeployDetails } from '@salesforce/source-deploy-retrieve';
 import { getDeployUrls } from '../../../utils/get-packages';
-import { DeployError, PackageTree } from '../../../interfaces/package-interfaces';
+import { DeployError, PackageTree, } from '../../../interfaces/package-interfaces';
 import { AnyJson } from '@salesforce/ts-types';
 import simplegit, { DiffResult, SimpleGit } from 'simple-git';
+import fs from 'fs';
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 import {
@@ -24,6 +25,8 @@ import {
   ApexTestResult,
   PackageInfo,
   ApexTestclassCheck,
+  SourcePackageComps,
+  CodeCoverageWarnings
 } from '../../../helper/types';
 import EONLogger, {
   COLOR_SUCCESS,
@@ -78,6 +81,12 @@ export default class Validate extends SfdxCommand {
       default: '',
       required: false,
     }),
+    alias: flags.string({
+      char: 'a',
+      description: messages.getMessage('aliasFlag'),
+      default: '',
+      required: false,
+    }),
   };
 
   // Set this to true if your command requires a project workspace; 'requiresProject' is false by default
@@ -111,7 +120,6 @@ export default class Validate extends SfdxCommand {
           packageMap.set(pck.package, pck);
           table.push([pck.package]);
         }
-        continue;
       }
       if (
         changes.files.some((change) =>
@@ -131,10 +139,11 @@ export default class Validate extends SfdxCommand {
           continue;
         }
 
-        if (pck.package === 'force-app' || pck.package?.search('src') > -1) {
+        if (pck.package === 'force-app') {
           EONLogger.log(COLOR_WARNING(`👆 No validation for this special source package: ${pck.package}`));
           continue;
         }
+
         packageMap.set(pck.package, pck);
         table.push([pck.package]);
       }
@@ -156,7 +165,12 @@ export default class Validate extends SfdxCommand {
         EONLogger.log(COLOR_INFO(`☝ Found pre deployment script for package ${key}`));
         await this.runDeploymentSteps(value.preDeploymentScript, 'preDeployment', key);
       }
-      //Deploy Package
+      //Deploy Source Package
+      if (key.search('src') > -1) {
+        await this.validateSourcePackage(path.normalize(value.path), key);
+        continue;
+      }
+      //Deploy Source Package
       await this.deployPackageWithDependency(key, value.path);
       //execute postDeployment Scripts
       if (value.postDeploymentScript && this.flags.deploymentscripts) {
@@ -234,7 +248,8 @@ export default class Validate extends SfdxCommand {
       // deploy dependencies
     } else {
       throw new SfdxError(
-        `Found no package tree information for package: ${pck} and path ${path}. Please check sfdx-project.json and deploy manually.`
+        `Found no package tree information for package: ${pck} and path ${path}. Please check the order for this package and his dependecies in the sfdx-project.json. 
+First the dependecies packages. And then this package.`
       );
     }
   }
@@ -260,25 +275,23 @@ export default class Validate extends SfdxCommand {
     // Wait for polling to finish and get the DeployResult object
     const res = await deploy.pollStatus();
     if (!res.response.success) {
-      const errorTable: string = await this.print(res.response.details.componentFailures);
-      console.log(errorTable);
-      throw new SfdxError(
-        `Deployment failed. Please check error messages from table and fix this issues from path ${path}.`
-      );
+      await this.print(res.response.details);
     } else {
       EONLogger.log(COLOR_INFO(`✔ Deployment for Package ${pck} successfully 👌`));
     }
   }
 
-  private async print(input: DeployMessage | DeployMessage[]): Promise<string> {
+  private async print(input: DeployDetails): Promise<void> {
     var table = new Table({
       head: ['Component Name', 'Error Message'],
       colWidths: [60, 60], // Requires fixed column widths
       wordWrap: true,
     });
+    //print deployment errors
+    if(input.componentFailures){
     let result: DeployError[] = [];
-    if (Array.isArray(input)) {
-      result = input.map((a) => {
+    if (Array.isArray(input.componentFailures)) {
+      result = input.componentFailures.map((a) => {
         const res: DeployError = {
           Name: a.fullName,
           Type: a.componentType,
@@ -289,10 +302,10 @@ export default class Validate extends SfdxCommand {
       });
     } else {
       const res: DeployError = {
-        Name: input.fullName,
-        Type: input.componentType,
-        Status: input.problemType,
-        Message: input.problem,
+        Name: input.componentFailures.fullName,
+        Type: input.componentFailures.componentType,
+        Status: input.componentFailures.problemType,
+        Message: input.componentFailures.problem,
       };
       result = [...result, res];
     }
@@ -301,8 +314,44 @@ export default class Validate extends SfdxCommand {
       obj[r.Name] = r.Message;
       table.push(obj);
     });
-
-    return table.toString();
+    console.log(table.toString());
+    throw new SfdxError(
+      `Deployment failed. Please check error messages from table and fix this issues from package.`
+    );
+    // print test run errors
+    } else if(input.runTestResult && input.runTestResult.failures){
+      let tableTest = new Table({
+        head: ['Apex Class', 'Message', 'Stack Trace'],
+        colWidths: [60, 60, 60], // Requires fixed column widths
+        wordWrap: true,
+      });
+      if (Array.isArray(input.runTestResult.failures)) {
+        input.runTestResult.failures.forEach(a => {
+          tableTest.push([a.name,a.message,a.stackTrace])
+        })
+      } else {
+        tableTest.push([input.runTestResult.failures.name,input.runTestResult.failures.message,input.runTestResult.failures.stackTrace])
+      }
+      console.log(tableTest.toString());
+      throw new SfdxError(
+      `Testrun failed. Please check the testclass errors from table and fix this issues from package.`
+      );
+    // print code coverage errors
+    } else if(input.runTestResult && input.runTestResult.codeCoverageWarnings){
+      if (Array.isArray(input.runTestResult.codeCoverageWarnings)) {
+        const coverageList:CodeCoverageWarnings[] = input.runTestResult.codeCoverageWarnings;
+        coverageList.forEach(a => {
+          table.push([a.name,a.message])
+        })
+      } else {
+        const coverageList:CodeCoverageWarnings = input.runTestResult.codeCoverageWarnings;
+          table.push([coverageList.name,coverageList.message])
+      }
+      console.log(table.toString());
+      throw new SfdxError(
+      `Testcoverage failed. Please check the coverage from table and fix this issues from package.`
+      );
+    }
   }
 
   private async getApexClassesFromPaths(pck: string, path: string): Promise<void> {
@@ -361,8 +410,8 @@ export default class Validate extends SfdxCommand {
       bar1.update(testRunResult.CompletedList.length + testRunResult.FailedList.length);
       await new Promise((resolve) => setTimeout(resolve, 10000));
       _i++;
-      if (_i > 100) {
-        throw new Error('Apex test run timeout after 10000 seconds');
+      if (_i > 180) {
+        throw new Error('Apex test run timeout after 30 minutes');
       }
     } while (testRunResult.QueuedList.length > 0 || testRunResult.ProcessingList.length > 0);
 
@@ -566,6 +615,7 @@ export default class Validate extends SfdxCommand {
         for (const result of responseFromOrg.records) {
           let table = new Table({
             head: [COLOR_ERROR('ApexClass Name'), COLOR_ERROR('Methodname')],
+            wordWrap: true,
           });
           table.push([result.ApexClass.Name, result.MethodName]);
           console.log(table.toString());
@@ -598,5 +648,98 @@ export default class Validate extends SfdxCommand {
     } catch (e) {
       EONLogger.log(COLOR_ERROR(`${scriptStep} Command Error: ${e}`));
     }
+  }
+
+  private async validateSourcePackage(path: string, pck: string) {
+    EONLogger.log(COLOR_HEADER(`💪 Start Deployment and Tests for source package.`));
+    let username = this.org.getConnection().getUsername()
+    if(this.flags.alias){
+    username = await Aliases.fetch(this.flags.alias);
+    }
+    const sourceComps = await this.getApexClassesForSource(path);
+    const testLevel = sourceComps.apexClassNames.length > 0 ? 'RunSpecifiedTests' : 'NoTestRun';
+    EONLogger.log(COLOR_HEADER(`Validate source package: ${pck}`));
+    EONLogger.log(`${COLOR_NOTIFY('Path:')} ${COLOR_INFO(path)}`);
+    EONLogger.log(`${COLOR_NOTIFY('Metadata Size:')} ${COLOR_INFO(sourceComps.comps.length)}`);
+    EONLogger.log(`${COLOR_NOTIFY('TestLevel:')} ${COLOR_INFO(testLevel)}`);
+    EONLogger.log(`${COLOR_NOTIFY('Username:')} ${COLOR_INFO(username)}`);
+    EONLogger.log(`${COLOR_NOTIFY('ApexClasses:')} ${sourceComps.apexClassNames.length > 0 ? COLOR_INFO(sourceComps.apexClassNames.join()) : COLOR_INFO('no Apex Classes in source package')}`);
+    EONLogger.log(`${COLOR_NOTIFY('ApexTestClasses:')} ${sourceComps.apexTestclassNames.length > 0 ? COLOR_INFO(sourceComps.apexTestclassNames.join()) : COLOR_INFO('no Apex Test Classes in source package')}`); 
+
+    if (sourceComps.apexClassNames.length > 0 && sourceComps.apexTestclassNames.length === 0) {
+      throw new SfdxError(
+        `Found apex class(es) for package ${pck} but no testclass(es). Please create a new testclass.`
+      );
+    }
+    
+    const deploy: MetadataApiDeploy = await ComponentSet.fromSource(path).deploy({
+      usernameOrConnection: username,
+      apiOptions: {checkOnly: true, testLevel: testLevel, runTests: ['CommunicationHistoryTest']}
+    });
+    // Attach a listener to check the deploy status on each poll
+    let counter = 0;
+    deploy.onUpdate((response) => {
+      if (counter === 5) {
+        const { status, numberComponentsDeployed, numberComponentsTotal, numberTestsTotal, numberTestsCompleted, stateDetail } = response;
+        const progress = `${numberComponentsDeployed}/${numberComponentsTotal}`;
+        const testProgress = `${numberTestsCompleted}/${numberTestsTotal}`;
+        let message = ''
+        if(numberComponentsDeployed < sourceComps.comps.length){
+           message = `⌛ Deploy Package: ${pck} Status: ${status} Progress: ${progress}`;
+        } else if(numberComponentsDeployed === numberComponentsTotal && numberTestsTotal > 0){
+           message = `⌛ Test Package: ${pck} Status: ${status} Progress: ${testProgress} ${stateDetail ?? ''}`;
+        } else if(numberTestsTotal === 0 && sourceComps.apexTestclassNames.length > 0){
+           message = `⌛ Waiting for testclass execution`;
+        }
+        EONLogger.log(COLOR_TRACE(message));
+        counter = 0;
+      } else {
+        counter++;
+      }
+    });
+
+    // Wait for polling to finish and get the DeployResult object
+    const res = await deploy.pollStatus();
+      if (!res.response.success) {
+        await this.print(res.response.details);
+      } else {
+        EONLogger.log(COLOR_INFO(`✔ Deployment and tests for source package ${pck} successfully 👌`));
+      }
+  }
+
+  private async getApexClassesForSource(path: string): Promise<SourcePackageComps> {
+    const sourcePckComps: SourcePackageComps = {comps: [],apexClassNames: [], apexTestclassNames: []};
+    const resolver: MetadataResolver = new MetadataResolver();
+
+    for (const component of resolver.getComponentsFromPath(path)) {
+      sourcePckComps.comps.push(component.name)
+      if (component.type.id === 'apexclass') {
+        const apexCheckResult: ApexTestclassCheck = await this.checkIsSourceTestClass(component.content);
+        if (apexCheckResult.isTest) {
+          sourcePckComps.apexTestclassNames.push(component.name);
+        } else {
+          sourcePckComps.apexClassNames.push(component.name);
+        }
+      }
+    }
+
+   
+    return sourcePckComps;
+  }
+
+  //check if apex class is a testclass from code identifier @isTest
+  private async checkIsSourceTestClass(comp: string): Promise<ApexTestclassCheck> {
+    let checkResult: ApexTestclassCheck = {isTest: false}
+    try {
+      const data = await fs.promises.readFile(comp, 'utf8')
+      if (data.search('@isTest') > -1 || data.search('@IsTest') > -1) {
+        checkResult.isTest = true;
+      }
+    }
+    catch(err) {
+      EONLogger.log(COLOR_TRACE(err));
+      return checkResult;
+    }
+    return checkResult;
   }
 }
