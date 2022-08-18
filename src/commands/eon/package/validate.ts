@@ -107,6 +107,7 @@ export default class Validate extends SfdxCommand {
     // get all diffs from current to target branch
     let git: SimpleGit = simplegit(path.dirname(projectJson.getPath()));
     const sourcebranch = this.flags.source || 'HEAD';
+    let includeForceApp = false;
     await git.fetch();
     const changes: DiffResult = await git.diffSummary([`${this.flags.target}...${sourcebranch}`]);
     let table = new Table({
@@ -141,6 +142,7 @@ export default class Validate extends SfdxCommand {
 
         if (pck.package === 'force-app') {
           EONLogger.log(COLOR_WARNING(`👆 No validation for this special source package: ${pck.package}`));
+          includeForceApp = true;
           continue;
         }
 
@@ -156,6 +158,13 @@ export default class Validate extends SfdxCommand {
     const packageMessage = this.flags.package ? `👉 Validate selected package:` : `👉 Following packages with changes:`;
     EONLogger.log(COLOR_NOTIFY(packageMessage));
     EONLogger.log(COLOR_INFO(table.toString()));
+
+    if(packageMap.size === 0 && includeForceApp){
+      throw new SfdxError(
+        `Validation failed. This merge request contains only data from the force-app folder. This folder is not part of the deployment. 
+Please put your changes in a (new) unlocked package or a (new) source package. THX`
+      );
+    }
 
     //run validation tasks
     for (const [key, value] of packageMap) {
