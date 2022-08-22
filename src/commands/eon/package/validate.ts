@@ -6,13 +6,12 @@
  */
 import * as os from 'os';
 import { flags, SfdxCommand } from '@salesforce/command';
-import { Messages, SfdxError, SfdxProjectJson, Connection, Aliases } from '@salesforce/core';
+import { Messages, SfdxError, SfdxProjectJson, Connection } from '@salesforce/core';
 import { ComponentSet, MetadataApiDeploy, MetadataResolver, DeployDetails } from '@salesforce/source-deploy-retrieve';
 import { getDeployUrls } from '../../../utils/get-packages';
 import { DeployError, PackageTree, } from '../../../interfaces/package-interfaces';
 import { AnyJson } from '@salesforce/ts-types';
 import simplegit, { DiffResult, SimpleGit } from 'simple-git';
-import fs from 'fs';
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 import {
@@ -25,7 +24,6 @@ import {
   ApexTestResult,
   PackageInfo,
   ApexTestclassCheck,
-  SourcePackageComps,
   CodeCoverageWarnings
 } from '../../../helper/types';
 import EONLogger, {
@@ -81,9 +79,9 @@ export default class Validate extends SfdxCommand {
       default: '',
       required: false,
     }),
-    alias: flags.string({
-      char: 'a',
-      description: messages.getMessage('aliasFlag'),
+    pooltag: flags.string({
+      char: 'g',
+      description: messages.getMessage('poolFlag'),
       default: '',
       required: false,
     }),
@@ -120,6 +118,7 @@ export default class Validate extends SfdxCommand {
         if (pck.package === this.flags.package) {
           packageMap.set(pck.package, pck);
           table.push([pck.package]);
+          continue;
         }
       }
       if (
@@ -146,6 +145,11 @@ export default class Validate extends SfdxCommand {
           continue;
         }
 
+        if (pck.package.search('src') > -1) {
+          EONLogger.log(COLOR_WARNING(`👆 No validation for source packages: ${pck.package}`));
+          continue;
+        }
+
         packageMap.set(pck.package, pck);
         table.push([pck.package]);
       }
@@ -165,7 +169,15 @@ export default class Validate extends SfdxCommand {
 Please put your changes in a (new) unlocked package or a (new) source package. THX`
       );
     }
-
+    //fetch scratch org
+    if(this.flags.pooltag){
+      if(!this.flags.targetdevhubusername){
+        throw new SfdxError(
+          `Please set a target devhub username flag when the pool tag is set. 👆`
+        );
+      }
+      await this.fetchScratchOrg(this.flags.pooltag,this.flags.targetdevhubusername)
+    }
     //run validation tasks
     for (const [key, value] of packageMap) {
       //Start deploy process
@@ -174,12 +186,7 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
         EONLogger.log(COLOR_INFO(`☝ Found pre deployment script for package ${key}`));
         await this.runDeploymentSteps(value.preDeploymentScript, 'preDeployment', key);
       }
-      //Deploy Source Package
-      if (key.search('src') > -1) {
-        await this.validateSourcePackage(path.normalize(value.path), key);
-        continue;
-      }
-      //Deploy Source Package
+      //Deploy Unlocked Package
       await this.deployPackageWithDependency(key, value.path);
       //execute postDeployment Scripts
       if (value.postDeploymentScript && this.flags.deploymentscripts) {
@@ -659,96 +666,22 @@ First the dependecies packages. And then this package.`
     }
   }
 
-  private async validateSourcePackage(path: string, pck: string) {
-    EONLogger.log(COLOR_HEADER(`💪 Start Deployment and Tests for source package.`));
-    let username = this.org.getConnection().getUsername()
-    if(this.flags.alias){
-    username = await Aliases.fetch(this.flags.alias);
-    }
-    const sourceComps = await this.getApexClassesForSource(path);
-    const testLevel = sourceComps.apexClassNames.length > 0 ? 'RunSpecifiedTests' : 'NoTestRun';
-    EONLogger.log(COLOR_HEADER(`Validate source package: ${pck}`));
-    EONLogger.log(`${COLOR_NOTIFY('Path:')} ${COLOR_INFO(path)}`);
-    EONLogger.log(`${COLOR_NOTIFY('Metadata Size:')} ${COLOR_INFO(sourceComps.comps.length)}`);
-    EONLogger.log(`${COLOR_NOTIFY('TestLevel:')} ${COLOR_INFO(testLevel)}`);
-    EONLogger.log(`${COLOR_NOTIFY('Username:')} ${COLOR_INFO(username)}`);
-    EONLogger.log(`${COLOR_NOTIFY('ApexClasses:')} ${sourceComps.apexClassNames.length > 0 ? COLOR_INFO(sourceComps.apexClassNames.join()) : COLOR_INFO('no Apex Classes in source package')}`);
-    EONLogger.log(`${COLOR_NOTIFY('ApexTestClasses:')} ${sourceComps.apexTestclassNames.length > 0 ? COLOR_INFO(sourceComps.apexTestclassNames.join()) : COLOR_INFO('no Apex Test Classes in source package')}`); 
-
-    if (sourceComps.apexClassNames.length > 0 && sourceComps.apexTestclassNames.length === 0) {
-      throw new SfdxError(
-        `Found apex class(es) for package ${pck} but no testclass(es). Please create a new testclass.`
-      );
-    }
-    
-    const deploy: MetadataApiDeploy = await ComponentSet.fromSource(path).deploy({
-      usernameOrConnection: username,
-      apiOptions: {checkOnly: true, testLevel: testLevel, runTests: ['CommunicationHistoryTest']}
-    });
-    // Attach a listener to check the deploy status on each poll
-    let counter = 0;
-    deploy.onUpdate((response) => {
-      if (counter === 5) {
-        const { status, numberComponentsDeployed, numberComponentsTotal, numberTestsTotal, numberTestsCompleted, stateDetail } = response;
-        const progress = `${numberComponentsDeployed}/${numberComponentsTotal}`;
-        const testProgress = `${numberTestsCompleted}/${numberTestsTotal}`;
-        let message = ''
-        if(numberComponentsDeployed < sourceComps.comps.length){
-           message = `⌛ Deploy Package: ${pck} Status: ${status} Progress: ${progress}`;
-        } else if(numberComponentsDeployed === numberComponentsTotal && numberTestsTotal > 0){
-           message = `⌛ Test Package: ${pck} Status: ${status} Progress: ${testProgress} ${stateDetail ?? ''}`;
-        } else if(numberTestsTotal === 0 && sourceComps.apexTestclassNames.length > 0){
-           message = `⌛ Waiting for testclass execution`;
-        }
-        EONLogger.log(COLOR_TRACE(message));
-        counter = 0;
-      } else {
-        counter++;
-      }
-    });
-
-    // Wait for polling to finish and get the DeployResult object
-    const res = await deploy.pollStatus();
-      if (!res.response.success) {
-        await this.print(res.response.details);
-      } else {
-        EONLogger.log(COLOR_INFO(`✔ Deployment and tests for source package ${pck} successfully 👌`));
-      }
-  }
-
-  private async getApexClassesForSource(path: string): Promise<SourcePackageComps> {
-    const sourcePckComps: SourcePackageComps = {comps: [],apexClassNames: [], apexTestclassNames: []};
-    const resolver: MetadataResolver = new MetadataResolver();
-
-    for (const component of resolver.getComponentsFromPath(path)) {
-      sourcePckComps.comps.push(component.name)
-      if (component.type.id === 'apexclass') {
-        const apexCheckResult: ApexTestclassCheck = await this.checkIsSourceTestClass(component.content);
-        if (apexCheckResult.isTest) {
-          sourcePckComps.apexTestclassNames.push(component.name);
-        } else {
-          sourcePckComps.apexClassNames.push(component.name);
-        }
-      }
-    }
-
-   
-    return sourcePckComps;
-  }
-
-  //check if apex class is a testclass from code identifier @isTest
-  private async checkIsSourceTestClass(comp: string): Promise<ApexTestclassCheck> {
-    let checkResult: ApexTestclassCheck = {isTest: false}
+  private async fetchScratchOrg(poolTag: string, devHubUser: string ) {
+    EONLogger.log(COLOR_HEADER(`Fetch a scratch org from pool ⛏`));
+    EONLogger.log(`${COLOR_NOTIFY('Run command:')} ${COLOR_INFO(`sfdx sfpowerscripts:pool:fetch -d --tag ${poolTag} --targetdevhubusername ${devHubUser}`)}`);
     try {
-      const data = await fs.promises.readFile(comp, 'utf8')
-      if (data.search('@isTest') > -1 || data.search('@IsTest') > -1) {
-        checkResult.isTest = true;
+      const { stdout, stderr } = await exec(
+        `sfdx sfpowerscripts:pool:fetch -d --tag ${poolTag} --targetdevhubusername ${devHubUser}`,
+        { timeout: 0, encoding: 'utf-8', maxBuffer: 5242880 }
+      );
+      if (stderr) {
+        throw new SfdxError(`Problems to fetch a scratch org from pool. Error: ${stderr}`);
       }
+      if (stdout) {
+        EONLogger.log(COLOR_INFO(`💪 Scratch org succesfully claimed`));
+      }
+    } catch (e) {
+      throw new SfdxError(`Problems to fetch a scratch org from pool. Error: ${e}`);
     }
-    catch(err) {
-      EONLogger.log(COLOR_TRACE(err));
-      return checkResult;
-    }
-    return checkResult;
   }
 }
