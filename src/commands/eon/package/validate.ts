@@ -85,6 +85,12 @@ export default class Validate extends SfdxCommand {
       default: '',
       required: false,
     }),
+    devhubalias: flags.string({
+      char: 'a',
+      description: messages.getMessage('devAliasFlag'),
+      default: '',
+      required: false,
+    }),
   };
 
   // Set this to true if your command requires a project workspace; 'requiresProject' is false by default
@@ -171,12 +177,12 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
     }
     //fetch scratch org
     if(this.flags.pooltag){
-      if(!this.flags.targetdevhubusername){
+      if(!this.flags.devhubalias){
         throw new SfdxError(
           `Please set a target devhub username flag when the pool tag is set. 👆`
         );
       }
-      await this.fetchScratchOrg(this.flags.pooltag,this.flags.targetdevhubusername)
+      await this.fetchScratchOrg(this.flags.pooltag,this.flags.devhubalias)
     }
     //run validation tasks
     for (const [key, value] of packageMap) {
