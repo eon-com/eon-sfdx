@@ -120,6 +120,7 @@ export default class Validate extends SfdxCommand {
     const packageMap = new Map<string, NamedPackageDirLarge>();
     // check changed packages
     for (const pck of packageDirs) {
+      let packageCheck = false;  
       if (this.flags.package) {
         if (pck.package === this.flags.package) {
           packageMap.set(pck.package, pck);
@@ -127,13 +128,31 @@ export default class Validate extends SfdxCommand {
           continue;
         }
       }
-      if (
-        changes.files.some((change) =>
-          path
-            .join(path.dirname(projectJson.getPath()), path.normalize(change.file))
-            .includes(path.normalize(pck.fullPath))
-        )
-      ) {
+      packageCheck = changes.files.some((change) => {
+        if(path
+          .join(path.dirname(projectJson.getPath()), path.normalize(change.file))
+          .includes(path.normalize(pck.fullPath))){
+            return true;
+        }
+        //check for metadata move between packages
+        if(change.file.search('=>') > -1){
+            let pathString = change.file.replace('{','')
+            pathString = pathString.replace('}','')
+            let packageOldChange = pathString.slice(0,36)
+            let packageNewChange = pathString.slice(39)
+            if(path
+                .join(path.dirname(projectJson.getPath()), path.normalize(packageOldChange))
+                .includes(path.normalize(pck.fullPath))){
+                  return true;
+            }
+            if(path
+                .join(path.dirname(projectJson.getPath()), path.normalize(packageNewChange))
+                .includes(path.normalize(pck.fullPath))){
+                  return true;
+            }
+        }
+      })
+      if (packageCheck){
         //special checks for packages
         if (pck.ignoreOnStage?.includes('validate')) {
           //only packages without ignore flags
