@@ -9,7 +9,7 @@ import { flags, SfdxCommand } from '@salesforce/command';
 import { Messages, SfdxError, SfdxProjectJson, Connection } from '@salesforce/core';
 import { ComponentSet, MetadataApiDeploy, MetadataResolver, DeployDetails } from '@salesforce/source-deploy-retrieve';
 import { getDeployUrls } from '../../../utils/get-packages';
-import { DeployError, PackageTree, } from '../../../interfaces/package-interfaces';
+import { DeployError, PackageTree } from '../../../interfaces/package-interfaces';
 import { AnyJson } from '@salesforce/ts-types';
 import simplegit, { DiffResult, SimpleGit } from 'simple-git';
 const util = require('util');
@@ -24,7 +24,7 @@ import {
   ApexTestResult,
   PackageInfo,
   ApexTestclassCheck,
-  CodeCoverageWarnings
+  CodeCoverageWarnings,
 } from '../../../helper/types';
 import EONLogger, {
   COLOR_SUCCESS,
@@ -163,20 +163,19 @@ export default class Validate extends SfdxCommand {
     EONLogger.log(COLOR_NOTIFY(packageMessage));
     EONLogger.log(COLOR_INFO(table.toString()));
 
-    if(packageMap.size === 0 && includeForceApp){
+    if (packageMap.size === 0 && includeForceApp) {
       throw new SfdxError(
         `Validation failed. This merge request contains only data from the force-app folder. This folder is not part of the deployment. 
 Please put your changes in a (new) unlocked package or a (new) source package. THX`
       );
     }
     //fetch scratch org
-    if(this.flags.pooltag){
-      if(!this.flags.targetdevhubusername){
-        throw new SfdxError(
-          `Please set a target devhub username flag when the pool tag is set. 👆`
-        );
+    if (this.flags.pooltag) {
+      if (!this.flags.targetdevhubusername) {
+        console.log(this.flags);
+        throw new SfdxError(`Please set a target devhub username flag when the pool tag is set. 👆`);
       }
-      await this.fetchScratchOrg(this.flags.pooltag,this.flags.targetdevhubusername)
+      await this.fetchScratchOrg(this.flags.pooltag, this.flags.targetdevhubusername);
     }
     //run validation tasks
     for (const [key, value] of packageMap) {
@@ -217,17 +216,17 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
           message: `Dependency`,
           path: dep.path,
           postDeploymentScript: dep.postDeploymentScript,
-          preDeploymentScript: dep.preDeploymentScript
+          preDeploymentScript: dep.preDeploymentScript,
         });
       }
     });
     if (!packageDeployMap.get(pck)) {
       packageDeployMap.set(pck, `Package`);
-      packageSingleMap.set(pck, { 
-        message: `Package`, 
+      packageSingleMap.set(pck, {
+        message: `Package`,
         path: path,
         postDeploymentScript: '',
-        preDeploymentScript: ''
+        preDeploymentScript: '',
       });
     }
 
@@ -304,68 +303,72 @@ First the dependecies packages. And then this package.`
       wordWrap: true,
     });
     //print deployment errors
-    if(input.componentFailures){
-    let result: DeployError[] = [];
-    if (Array.isArray(input.componentFailures)) {
-      result = input.componentFailures.map((a) => {
+    if (input.componentFailures) {
+      let result: DeployError[] = [];
+      if (Array.isArray(input.componentFailures)) {
+        result = input.componentFailures.map((a) => {
+          const res: DeployError = {
+            Name: a.fullName,
+            Type: a.componentType,
+            Status: a.problemType,
+            Message: a.problem,
+          };
+          return res;
+        });
+      } else {
         const res: DeployError = {
-          Name: a.fullName,
-          Type: a.componentType,
-          Status: a.problemType,
-          Message: a.problem,
+          Name: input.componentFailures.fullName,
+          Type: input.componentFailures.componentType,
+          Status: input.componentFailures.problemType,
+          Message: input.componentFailures.problem,
         };
-        return res;
+        result = [...result, res];
+      }
+      result.forEach((r) => {
+        let obj = {};
+        obj[r.Name] = r.Message;
+        table.push(obj);
       });
-    } else {
-      const res: DeployError = {
-        Name: input.componentFailures.fullName,
-        Type: input.componentFailures.componentType,
-        Status: input.componentFailures.problemType,
-        Message: input.componentFailures.problem,
-      };
-      result = [...result, res];
-    }
-    result.forEach((r) => {
-      let obj = {};
-      obj[r.Name] = r.Message;
-      table.push(obj);
-    });
-    console.log(table.toString());
-    throw new SfdxError(
-      `Deployment failed. Please check error messages from table and fix this issues from package.`
-    );
-    // print test run errors
-    } else if(input.runTestResult && input.runTestResult.failures){
+      console.log(table.toString());
+      throw new SfdxError(
+        `Deployment failed. Please check error messages from table and fix this issues from package.`
+      );
+      // print test run errors
+    } else if (input.runTestResult && input.runTestResult.failures) {
       let tableTest = new Table({
         head: ['Apex Class', 'Message', 'Stack Trace'],
         colWidths: [60, 60, 60], // Requires fixed column widths
         wordWrap: true,
       });
       if (Array.isArray(input.runTestResult.failures)) {
-        input.runTestResult.failures.forEach(a => {
-          tableTest.push([a.name,a.message,a.stackTrace])
-        })
+        input.runTestResult.failures.forEach((a) => {
+          tableTest.push([a.name, a.message, a.stackTrace]);
+        });
       } else {
-        tableTest.push([input.runTestResult.failures.name,input.runTestResult.failures.message,input.runTestResult.failures.stackTrace])
+        tableTest.push([
+          input.runTestResult.failures.name,
+          input.runTestResult.failures.message,
+          input.runTestResult.failures.stackTrace,
+        ]);
       }
       console.log(tableTest.toString());
       throw new SfdxError(
-      `Testrun failed. Please check the testclass errors from table and fix this issues from package.`
+        `Testrun failed. Please check the testclass errors from table and fix this issues from package.`
       );
-    // print code coverage errors
-    } else if(input.runTestResult && input.runTestResult.codeCoverageWarnings){
+      // print code coverage errors
+    } else if (input.runTestResult && input.runTestResult.codeCoverageWarnings) {
       if (Array.isArray(input.runTestResult.codeCoverageWarnings)) {
-        const coverageList:CodeCoverageWarnings[] = input.runTestResult.codeCoverageWarnings;
-        coverageList.forEach(a => {
-          table.push([a.name,a.message])
-        })
+        const coverageList: CodeCoverageWarnings[] = input.runTestResult.codeCoverageWarnings;
+        coverageList.forEach((a) => {
+          table.push([a.name, a.message]);
+        });
       } else {
-        const coverageList:CodeCoverageWarnings = input.runTestResult.codeCoverageWarnings;
-          table.push([coverageList.name,coverageList.message])
+        const coverageList: CodeCoverageWarnings = input.runTestResult.codeCoverageWarnings;
+        table.push([coverageList.name, coverageList.message]);
       }
       console.log(table.toString());
       throw new SfdxError(
-      `Testcoverage failed. Please check the coverage from table and fix this issues from package.`
+        `Testcoverage failed. Please check the coverage from table and fix this issues from package.`
       );
     }
   }
@@ -666,9 +669,13 @@ First the dependecies packages. And then this package.`
     }
   }
 
-  private async fetchScratchOrg(poolTag: string, devHubUser: string ) {
+  private async fetchScratchOrg(poolTag: string, devHubUser: string) {
     EONLogger.log(COLOR_HEADER(`Fetch a scratch org from pool ⛏`));
-    EONLogger.log(`${COLOR_NOTIFY('Run command:')} ${COLOR_INFO(`sfdx sfpowerscripts:pool:fetch -d --tag ${poolTag} --targetdevhubusername ${devHubUser}`)}`);
+    EONLogger.log(
+      `${COLOR_NOTIFY('Run command:')} ${COLOR_INFO(
+        `sfdx sfpowerscripts:pool:fetch -d --tag ${poolTag} --targetdevhubusername ${devHubUser}`
+      )}`
+    );
     try {
       const { stdout, stderr } = await exec(
         `sfdx sfpowerscripts:pool:fetch -d --tag ${poolTag} --targetdevhubusername ${devHubUser}`,
