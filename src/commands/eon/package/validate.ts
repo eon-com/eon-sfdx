@@ -16,7 +16,6 @@ const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 import {
   ApexCodeCoverageAggregate,
-  RecordIds,
   ApexClass,
   NamedPackageDirLarge,
   ApexTestQueueItem,
@@ -38,7 +37,7 @@ import EONLogger, {
 } from '../../../eon/EONLogger';
 import path from 'path';
 import Table from 'cli-table3';
-import { UpsertResult } from 'jsforce';
+import { UpsertResult, QueryResult } from 'jsforce';
 import { LOGOBANNER } from '../../../eon/logo';
 // Initialize Messages with the current plugin directory
 Messages.importMessagesDirectory(__dirname);
@@ -247,7 +246,6 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
         preDeploymentScript: packageDependencyTree.preDeploymentScript
       });
     }
-    console.log(packageSingleMap)
     if (packageSingleMap.size > 0) {
       for (const [key, value] of packageSingleMap) {
         if (value.message === 'Package') {
@@ -430,17 +428,9 @@ First the dependecies packages. And then this package.`
     EONLogger.log(COLOR_INFO(`⌛ Waiting For test run results`));
     let _i: number = 2;
 
-    const cliProgress = require('cli-progress');
-    const bar1 = new cliProgress.SingleBar(
-      {
-        format: COLOR_HEADER('[{bar}]') + ' {percentage}% | {value}/{total} completed',
-      },
-      cliProgress.Presets.shades_classic
-    );
-    bar1.start(apexTestClassIdList.length, 0);
     do {
       testRunResult = await this.checkTestRunStatus(queueIdList);
-      bar1.update(testRunResult.CompletedList.length + testRunResult.FailedList.length);
+      EONLogger.log(COLOR_TRACE(`Test Processing: ${testRunResult.ProcessingList.length}, Test Completed: ${testRunResult.CompletedList.length},Test Failed: ${testRunResult.FailedList.length} , Test Queued: ${testRunResult.QueuedList.length}`));
       await new Promise((resolve) => setTimeout(resolve, 10000));
       _i++;
       if (_i > 180) {
@@ -448,9 +438,8 @@ First the dependecies packages. And then this package.`
       }
     } while (testRunResult.QueuedList.length > 0 || testRunResult.ProcessingList.length > 0);
 
-    bar1.stop();
     //check testrun result only for errors
-    await this.checkTestResult();
+    await this.checkTestResult(apexTestClassIdList);
 
     //check Code Coverage
     if (apexClassIdList.length > 0) {
@@ -496,41 +485,6 @@ First the dependecies packages. And then this package.`
   private async addClassesToApexQueue(apexTestClassIdList: string[]): Promise<string[]> {
     let recordResult: string[] = [];
     const connection: Connection = this.org.getConnection();
-    let deleteIds: string[] = [];
-
-    try {
-      //delete all entries from code coverage
-      const responseCodeCoverage = await connection.tooling.query<RecordIds>(`Select Id from ApexCodeCoverage`);
-      if (responseCodeCoverage?.records) {
-        for (const record of responseCodeCoverage?.records) {
-          deleteIds.push(record.Id);
-        }
-        await connection.tooling.destroy('ApexCodeCoverage', deleteIds);
-      }
-      //delete all entries from code coverage aggregation
-      deleteIds = [];
-      const responseCodeAggregate = await connection.tooling.query<RecordIds>(
-        `Select Id from ApexCodeCoverageAggregate`
-      );
-      if (responseCodeAggregate.records) {
-        for (const record of responseCodeAggregate?.records) {
-          deleteIds.push(record.Id);
-        }
-        await connection.tooling.destroy('ApexCodeCoverageAggregate', deleteIds);
-      }
-      deleteIds = [];
-      //delete all entries from test result
-      const responseCodeTestResult = await connection.tooling.query<RecordIds>(`Select Id from ApexTestResult`);
-      if (responseCodeTestResult.records) {
-        for (const record of responseCodeTestResult?.records) {
-          deleteIds.push(record.Id);
-        }
-        await connection.tooling.destroy('ApexTestResult', deleteIds);
-      }
-    } catch (e) {
-      throw new SfdxError(`Deletion from Coverage Results not possible.`);
-    }
-
     try {
       const queueResponse = await connection.requestPost(`${connection._baseUrl()}/tooling/runTestsAsynchronous/`, {
         classids: apexTestClassIdList.join(),
@@ -618,8 +572,7 @@ First the dependecies packages. And then this package.`
         }
       }
     } catch (e) {
-      console.log(e);
-      throw new SfdxError(messages.getMessage('errorCodeCoverage'));
+      throw new SfdxError(`System Exception: Problems to fetch results from ApexCodeCoverageAggregate`);
     }
 
     if (coveredCounter === 0) {
@@ -638,29 +591,30 @@ First the dependecies packages. And then this package.`
     }
   }
 
-  private async checkTestResult(): Promise<void> {
+  private async checkTestResult(apexClassList: string[]): Promise<void> {
     const connection: Connection = this.org.getConnection();
+    let responseFromOrg: QueryResult<ApexTestResult>
     try {
-      const responseFromOrg = await connection.tooling.query<ApexTestResult>(
-        `Select ApexClass.Name, Outcome, MethodName, Message from ApexTestResult Where Outcome = 'Fail'`
+      responseFromOrg = await connection.query<ApexTestResult>(
+        `Select ApexClass.Name, Outcome, MethodName, Message from ApexTestResult Where Outcome = 'Fail' And ApexClassId In ('${apexClassList.join(
+        "','"
+        )}')`
       );
+    } catch (e) {
+      throw new SfdxError(`System Exception: Problems to found Results from ApexTestResult`);
+    }
       if (responseFromOrg.records.length > 0) {
         for (const result of responseFromOrg.records) {
           let table = new Table({
-            head: [COLOR_ERROR('ApexClass Name'), COLOR_ERROR('Methodname')],
+            head: [COLOR_ERROR('ApexClass Name'), COLOR_ERROR('Methodname'), COLOR_ERROR('ErrorMessage')],
             wordWrap: true,
           });
-          table.push([result.ApexClass.Name, result.MethodName]);
+          table.push([result.ApexClass.Name, result.MethodName, result.Message]);
           console.log(table.toString());
-          EONLogger.log(COLOR_ERROR(`ErrorMessage:`));
-          EONLogger.log(COLOR_INFO(`${result.Message}`));
         }
         EONLogger.log(COLOR_ERROR(`This package contains testclass errors.`));
-        throw new SfdxError(`Please fix this issues and try again.`);
-      }
-    } catch (e) {
-      throw new SfdxError(messages.getMessage('errorCodeCoverage'));
-    }
+        throw new SfdxError(`Please fix this issues from the table and try again.`);
+      }  
   }
 
   private async runDeploymentSteps(scriptPath: string, scriptStep: string, scriptVariable1: string) {
