@@ -13,15 +13,18 @@ export function getDeployUrls(projectJson: SfdxProjectJson, packagename: string)
       path: currentPackage.fullPath,
       managed: false,
       dependency: [],
-      postDeploymentScript: currentPackage.postDeploymentScript ?? '',
-      preDeploymentScript: currentPackage.preDeploymentScript ?? ''
+      postDeploymentScript: currentPackage?.postDeploymentScript ?? '',
+      preDeploymentScript: currentPackage?.preDeploymentScript ?? ''
     };
 
     if (currentPackage.dependencies) {
       currentPackage.dependencies.forEach((dep) => {
+        const depPackage: NamedPackageDirLarge = packageDirs.find((pck) => pck.package === dep.package);
         const treeDep: PackageTree = {
           packagename: dep.package,
           path: packageDirs.find((pck) => pck.package === dep.package)?.fullPath,
+          postDeploymentScript: depPackage?.postDeploymentScript ?? '',
+          preDeploymentScript: depPackage?.preDeploymentScript ?? ''
         };
         packageTree.dependency = [...packageTree.dependency, treeDep];
       });

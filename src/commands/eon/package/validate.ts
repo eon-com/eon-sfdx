@@ -206,18 +206,10 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
     //run validation tasks
     for (const [key, value] of packageMap) {
       //Start deploy process
-      //execute preDeployment Scripts
-      if (value.preDeploymentScript && this.flags.deploymentscripts) {
-        EONLogger.log(COLOR_INFO(`☝ Found pre deployment script for package ${key}`));
-        await this.runDeploymentSteps(value.preDeploymentScript, 'preDeployment', key);
-      }
+    
       //Deploy Unlocked Package
       await this.deployPackageWithDependency(key, value.path);
-      //execute postDeployment Scripts
-      if (value.postDeploymentScript && this.flags.deploymentscripts) {
-        EONLogger.log(COLOR_INFO(`☝ Found post deployment script for package ${key}`));
-        await this.runDeploymentSteps(value.postDeploymentScript, 'postDeployment', key);
-      }
+     
       //Run Tests
       await this.getApexClassesFromPaths(key, value.path);
     }
@@ -251,11 +243,11 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
       packageSingleMap.set(pck, { 
         message: `Package`, 
         path: path,
-        postDeploymentScript: '',
-        preDeploymentScript: ''
+        postDeploymentScript: packageDependencyTree.postDeploymentScript,
+        preDeploymentScript: packageDependencyTree.preDeploymentScript
       });
     }
-
+    console.log(packageSingleMap)
     if (packageSingleMap.size > 0) {
       for (const [key, value] of packageSingleMap) {
         if (value.message === 'Package') {
