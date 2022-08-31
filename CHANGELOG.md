@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.2.0-beta.6](https://github.com/eon-com/eon-sfdx/compare/v1.2.0-beta.5...v1.2.0-beta.6) (2022-08-31)
+
 ## [1.2.0-beta.5](https://github.com/eon-com/eon-sfdx/compare/v1.2.0-beta.4...v1.2.0-beta.5) (2022-08-31)
 
 ## [1.2.0-beta.4](https://github.com/eon-com/eon-sfdx/compare/v1.2.0-beta.3...v1.2.0-beta.4) (2022-08-30)
