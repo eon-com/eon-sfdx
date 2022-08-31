@@ -269,7 +269,7 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
         }
         await this.deployPackageTreeNode(key, value.path);
         //execute post deployment script for dependency
-        if (value.postDeploymentScript && this.flags.deploymentscripts) {
+        if (value.postDeploymentScript && value.message === 'Package' && this.flags.deploymentscripts) {
           EONLogger.log(COLOR_INFO(`☝ Found post deployment script for dependency package ${key}`));
           await this.runDeploymentSteps(value.postDeploymentScript, 'postDeployment', key);
         }
