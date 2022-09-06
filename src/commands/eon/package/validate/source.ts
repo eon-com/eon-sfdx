@@ -294,7 +294,7 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
     username = await Aliases.fetch(this.flags.alias);
     }
     const sourceComps = await this.getApexClassesForSource(path);
-    const testLevel = sourceComps.apexClassNames.length > 0 ? 'RunSpecifiedTests' : 'NoTestRun';
+    const testLevel = sourceComps.apexTestclassNames.length > 0 ? 'RunSpecifiedTests' : 'NoTestRun';
     EONLogger.log(COLOR_HEADER(`Validate source package: ${pck}`));
     EONLogger.log(`${COLOR_NOTIFY('Path:')} ${COLOR_INFO(path)}`);
     EONLogger.log(`${COLOR_NOTIFY('Metadata Size:')} ${COLOR_INFO(sourceComps.comps.length)}`);
