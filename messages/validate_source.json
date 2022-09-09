@@ -1,9 +1,8 @@
 {
-    "commandDescription": "Validation Job to check source packages on org",
-    "sourceFlag": "Flag for source branch",
-    "targetFlag": "Flag for target branch",
-    "scriptFlag": "Flag to run pre/post deployment scripts",
-    "packageFlag": "Validate one selected package",
-    "examples": ["sfdx eon:validate:source", "sfdx  eon:validate:source -p mypackage"]
-  }
-  
+  "commandDescription": "Validation Job to check source packages on org",
+  "sourceFlag": "Flag for source branch",
+  "targetFlag": "Flag for target branch",
+  "scriptFlag": "Flag to run pre/post deployment scripts",
+  "packageFlag": "Validate one selected package",
+  "examples": ["sfdx eon:validate:source", "sfdx  eon:validate:source -p mypackage"]
+}

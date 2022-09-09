@@ -16,7 +16,6 @@ const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 import {
   ApexCodeCoverageAggregate,
-  RecordIds,
   ApexClass,
   NamedPackageDirLarge,
   ApexTestQueueItem,
@@ -38,7 +37,7 @@ import EONLogger, {
 } from '../../../eon/EONLogger';
 import path from 'path';
 import Table from 'cli-table3';
-import { UpsertResult } from 'jsforce';
+import { UpsertResult, QueryResult } from 'jsforce';
 import { LOGOBANNER } from '../../../eon/logo';
 // Initialize Messages with the current plugin directory
 Messages.importMessagesDirectory(__dirname);
@@ -85,6 +84,12 @@ export default class Validate extends SfdxCommand {
       default: '',
       required: false,
     }),
+    devhubalias: flags.string({
+      char: 'a',
+      description: messages.getMessage('devAliasFlag'),
+      default: '',
+      required: false,
+    }),
   };
 
   // Set this to true if your command requires a project workspace; 'requiresProject' is false by default
@@ -114,6 +119,7 @@ export default class Validate extends SfdxCommand {
     const packageMap = new Map<string, NamedPackageDirLarge>();
     // check changed packages
     for (const pck of packageDirs) {
+      let packageCheck = false;
       if (this.flags.package) {
         if (pck.package === this.flags.package) {
           packageMap.set(pck.package, pck);
@@ -121,13 +127,37 @@ export default class Validate extends SfdxCommand {
           continue;
         }
       }
-      if (
-        changes.files.some((change) =>
+      packageCheck = changes.files.some((change) => {
+        if (
           path
             .join(path.dirname(projectJson.getPath()), path.normalize(change.file))
             .includes(path.normalize(pck.fullPath))
-        )
-      ) {
+        ) {
+          return true;
+        }
+        //check for metadata move between packages
+        if (change.file.search('=>') > -1) {
+          let pathString = change.file.replace('{', '');
+          pathString = pathString.replace('}', '');
+          let packageOldChange = pathString.slice(0, 36);
+          let packageNewChange = pathString.slice(39);
+          if (
+            path
+              .join(path.dirname(projectJson.getPath()), path.normalize(packageOldChange))
+              .includes(path.normalize(pck.fullPath))
+          ) {
+            return true;
+          }
+          if (
+            path
+              .join(path.dirname(projectJson.getPath()), path.normalize(packageNewChange))
+              .includes(path.normalize(pck.fullPath))
+          ) {
+            return true;
+          }
+        }
+      });
+      if (packageCheck) {
         //special checks for packages
         if (pck.ignoreOnStage?.includes('validate')) {
           //only packages without ignore flags
@@ -171,11 +201,10 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
     }
     //fetch scratch org
     if (this.flags.pooltag) {
-      if (!this.flags.targetdevhubusername) {
-        console.log(this.flags);
+      if (!this.flags.devhubalias) {
         throw new SfdxError(`Please set a target devhub username flag when the pool tag is set. 👆`);
       }
-      await this.fetchScratchOrg(this.flags.pooltag, this.flags.targetdevhubusername);
+      await this.fetchScratchOrg(this.flags.pooltag, this.flags.devhubalias);
     }
     //run validation tasks
     for (const [key, value] of packageMap) {
@@ -244,7 +273,7 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
         }
         await this.deployPackageTreeNode(key, value.path);
         //execute post deployment script for dependency
-        if (value.postDeploymentScript && this.flags.deploymentscripts) {
+        if (value.postDeploymentScript && value.message === 'Package' && this.flags.deploymentscripts) {
           EONLogger.log(COLOR_INFO(`☝ Found post deployment script for dependency package ${key}`));
           await this.runDeploymentSteps(value.postDeploymentScript, 'postDeployment', key);
         }
@@ -407,17 +436,13 @@ First the dependecies packages. And then this package.`
     EONLogger.log(COLOR_INFO(`⌛ Waiting For test run results`));
     let _i: number = 2;
 
-    const cliProgress = require('cli-progress');
-    const bar1 = new cliProgress.SingleBar(
-      {
-        format: COLOR_HEADER('[{bar}]') + ' {percentage}% | {value}/{total} completed',
-      },
-      cliProgress.Presets.shades_classic
-    );
-    bar1.start(apexTestClassIdList.length, 0);
     do {
       testRunResult = await this.checkTestRunStatus(queueIdList);
-      bar1.update(testRunResult.CompletedList.length + testRunResult.FailedList.length);
+      EONLogger.log(
+        COLOR_TRACE(
+          `Test Processing: ${testRunResult.ProcessingList.length}, Test Completed: ${testRunResult.CompletedList.length},Test Failed: ${testRunResult.FailedList.length} , Test Queued: ${testRunResult.QueuedList.length}`
+        )
+      );
       await new Promise((resolve) => setTimeout(resolve, 10000));
       _i++;
       if (_i > 180) {
@@ -425,9 +450,8 @@ First the dependecies packages. And then this package.`
       }
     } while (testRunResult.QueuedList.length > 0 || testRunResult.ProcessingList.length > 0);
 
-    bar1.stop();
     //check testrun result only for errors
-    await this.checkTestResult();
+    await this.checkTestResult(apexTestClassIdList);
 
     //check Code Coverage
     if (apexClassIdList.length > 0) {
@@ -473,41 +497,6 @@ First the dependecies packages. And then this package.`
   private async addClassesToApexQueue(apexTestClassIdList: string[]): Promise<string[]> {
     let recordResult: string[] = [];
     const connection: Connection = this.org.getConnection();
-    let deleteIds: string[] = [];
-
-    try {
-      //delete all entries from code coverage
-      const responseCodeCoverage = await connection.tooling.query<RecordIds>(`Select Id from ApexCodeCoverage`);
-      if (responseCodeCoverage?.records) {
-        for (const record of responseCodeCoverage?.records) {
-          deleteIds.push(record.Id);
-        }
-        await connection.tooling.destroy('ApexCodeCoverage', deleteIds);
-      }
-      //delete all entries from code coverage aggregation
-      deleteIds = [];
-      const responseCodeAggregate = await connection.tooling.query<RecordIds>(
-        `Select Id from ApexCodeCoverageAggregate`
-      );
-      if (responseCodeAggregate.records) {
-        for (const record of responseCodeAggregate?.records) {
-          deleteIds.push(record.Id);
-        }
-        await connection.tooling.destroy('ApexCodeCoverageAggregate', deleteIds);
-      }
-      deleteIds = [];
-      //delete all entries from test result
-      const responseCodeTestResult = await connection.tooling.query<RecordIds>(`Select Id from ApexTestResult`);
-      if (responseCodeTestResult.records) {
-        for (const record of responseCodeTestResult?.records) {
-          deleteIds.push(record.Id);
-        }
-        await connection.tooling.destroy('ApexTestResult', deleteIds);
-      }
-    } catch (e) {
-      throw new SfdxError(`Deletion from Coverage Results not possible.`);
-    }
-
     try {
       const queueResponse = await connection.requestPost(`${connection._baseUrl()}/tooling/runTestsAsynchronous/`, {
         classids: apexTestClassIdList.join(),
@@ -595,8 +584,7 @@ First the dependecies packages. And then this package.`
         }
       }
     } catch (e) {
-      console.log(e);
-      throw new SfdxError(messages.getMessage('errorCodeCoverage'));
+      throw new SfdxError(`System Exception: Problems to fetch results from ApexCodeCoverageAggregate`);
     }
 
     if (coveredCounter === 0) {
@@ -615,28 +603,29 @@ First the dependecies packages. And then this package.`
     }
   }
 
-  private async checkTestResult(): Promise<void> {
+  private async checkTestResult(apexClassList: string[]): Promise<void> {
     const connection: Connection = this.org.getConnection();
+    let responseFromOrg: QueryResult<ApexTestResult>;
     try {
-      const responseFromOrg = await connection.tooling.query<ApexTestResult>(
-        `Select ApexClass.Name, Outcome, MethodName, Message from ApexTestResult Where Outcome = 'Fail'`
+      responseFromOrg = await connection.query<ApexTestResult>(
+        `Select ApexClass.Name, Outcome, MethodName, Message from ApexTestResult Where Outcome = 'Fail' And ApexClassId In ('${apexClassList.join(
+          "','"
+        )}')`
       );
-      if (responseFromOrg.records.length > 0) {
-        for (const result of responseFromOrg.records) {
-          let table = new Table({
-            head: [COLOR_ERROR('ApexClass Name'), COLOR_ERROR('Methodname')],
-            wordWrap: true,
-          });
-          table.push([result.ApexClass.Name, result.MethodName]);
-          console.log(table.toString());
-          EONLogger.log(COLOR_ERROR(`ErrorMessage:`));
-          EONLogger.log(COLOR_INFO(`${result.Message}`));
-        }
-        EONLogger.log(COLOR_ERROR(`This package contains testclass errors.`));
-        throw new SfdxError(`Please fix this issues and try again.`);
-      }
     } catch (e) {
-      throw new SfdxError(messages.getMessage('errorCodeCoverage'));
+      throw new SfdxError(`System Exception: Problems to found Results from ApexTestResult`);
+    }
+    if (responseFromOrg.records.length > 0) {
+      for (const result of responseFromOrg.records) {
+        let table = new Table({
+          head: [COLOR_ERROR('ApexClass Name'), COLOR_ERROR('Methodname'), COLOR_ERROR('ErrorMessage')],
+          wordWrap: true,
+        });
+        table.push([result.ApexClass.Name, result.MethodName, result.Message]);
+        console.log(table.toString());
+      }
+      EONLogger.log(COLOR_ERROR(`This package contains testclass errors.`));
+      throw new SfdxError(`Please fix this issues from the table and try again.`);
     }
   }
 

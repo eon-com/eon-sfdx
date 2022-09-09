@@ -5,6 +5,7 @@
   "scriptFlag": "Flag to run pre/post deployment scripts",
   "packageFlag": "Validate one selected package",
   "poolFlag": "Pool tag to fetch scratch orgs",
+  "devAliasFlag": "Target dev hub alias",
   "examples": ["sfdx eon:validate", "sfdx  eon:validate"],
   "errorDeployment": "Process finsihed with Exit Code 1.",
   "errorFoundNoApex": "Query Apex from Org failed: %s",

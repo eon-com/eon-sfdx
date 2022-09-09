@@ -18,7 +18,7 @@ import {
   NamedPackageDirLarge,
   ApexTestclassCheck,
   SourcePackageComps,
-  CodeCoverageWarnings
+  CodeCoverageWarnings,
 } from '../../../../helper/types';
 import EONLogger, {
   COLOR_INFO,
@@ -98,6 +98,7 @@ export default class Validate extends SfdxCommand {
     const packageMap = new Map<string, NamedPackageDirLarge>();
     // check changed packages
     for (const pck of packageDirs) {
+      let packageCheck = false;
       if (this.flags.package) {
         if (pck.package === this.flags.package && this.flags.package.search('src') > -1) {
           packageMap.set(pck.package, pck);
@@ -105,13 +106,37 @@ export default class Validate extends SfdxCommand {
           continue;
         }
       }
-      if (
-        changes.files.some((change) =>
+      packageCheck = changes.files.some((change) => {
+        if (
           path
             .join(path.dirname(projectJson.getPath()), path.normalize(change.file))
             .includes(path.normalize(pck.fullPath))
-        )
-      ) {
+        ) {
+          return true;
+        }
+        //check for metadata move between packages
+        if (change.file.search('=>') > -1) {
+          let pathString = change.file.replace('{', '');
+          pathString = pathString.replace('}', '');
+          let packageOldChange = pathString.slice(0, 36);
+          let packageNewChange = pathString.slice(39);
+          if (
+            path
+              .join(path.dirname(projectJson.getPath()), path.normalize(packageOldChange))
+              .includes(path.normalize(pck.fullPath))
+          ) {
+            return true;
+          }
+          if (
+            path
+              .join(path.dirname(projectJson.getPath()), path.normalize(packageNewChange))
+              .includes(path.normalize(pck.fullPath))
+          ) {
+            return true;
+          }
+        }
+      });
+      if (packageCheck) {
         //special checks for packages
         if (pck.ignoreOnStage?.includes('validate')) {
           //only packages without ignore flags
@@ -129,8 +154,8 @@ export default class Validate extends SfdxCommand {
           continue;
         }
         if (pck.package.search('src') > -1) {
-        packageMap.set(pck.package, pck);
-        table.push([pck.package]);
+          packageMap.set(pck.package, pck);
+          table.push([pck.package]);
         }
       }
     }
@@ -143,7 +168,7 @@ export default class Validate extends SfdxCommand {
     EONLogger.log(COLOR_NOTIFY(packageMessage));
     EONLogger.log(COLOR_INFO(table.toString()));
 
-    if(packageMap.size === 0 && includeForceApp){
+    if (packageMap.size === 0 && includeForceApp) {
       throw new SfdxError(
         `Validation failed. This merge request contains only data from the force-app folder. This folder is not part of the deployment. 
 Please put your changes in a (new) unlocked package or a (new) source package. THX`
@@ -163,13 +188,12 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
         await this.validateSourcePackage(path.normalize(value.path), key);
         continue;
       }
-      
+
       //execute postDeployment Scripts
       if (value.postDeploymentScript && this.flags.deploymentscripts) {
         EONLogger.log(COLOR_INFO(`☝ Found post deployment script for package ${key}`));
         await this.runDeploymentSteps(value.postDeploymentScript, 'postDeployment', key);
       }
-     
     }
     EONLogger.log(COLOR_HEADER(`Yippiee. 🤙 Validation finsihed without errors. Great 🤜🤛`));
     return {};
@@ -182,68 +206,72 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
       wordWrap: true,
     });
     //print deployment errors
-    if(input.componentFailures){
-    let result: DeployError[] = [];
-    if (Array.isArray(input.componentFailures)) {
-      result = input.componentFailures.map((a) => {
+    if (input.componentFailures) {
+      let result: DeployError[] = [];
+      if (Array.isArray(input.componentFailures)) {
+        result = input.componentFailures.map((a) => {
+          const res: DeployError = {
+            Name: a.fullName,
+            Type: a.componentType,
+            Status: a.problemType,
+            Message: a.problem,
+          };
+          return res;
+        });
+      } else {
         const res: DeployError = {
-          Name: a.fullName,
-          Type: a.componentType,
-          Status: a.problemType,
-          Message: a.problem,
+          Name: input.componentFailures.fullName,
+          Type: input.componentFailures.componentType,
+          Status: input.componentFailures.problemType,
+          Message: input.componentFailures.problem,
         };
-        return res;
+        result = [...result, res];
+      }
+      result.forEach((r) => {
+        let obj = {};
+        obj[r.Name] = r.Message;
+        table.push(obj);
       });
-    } else {
-      const res: DeployError = {
-        Name: input.componentFailures.fullName,
-        Type: input.componentFailures.componentType,
-        Status: input.componentFailures.problemType,
-        Message: input.componentFailures.problem,
-      };
-      result = [...result, res];
-    }
-    result.forEach((r) => {
-      let obj = {};
-      obj[r.Name] = r.Message;
-      table.push(obj);
-    });
-    console.log(table.toString());
-    throw new SfdxError(
-      `Deployment failed. Please check error messages from table and fix this issues from package.`
-    );
-    // print test run errors
-    } else if(input.runTestResult && input.runTestResult.failures){
+      console.log(table.toString());
+      throw new SfdxError(
+        `Deployment failed. Please check error messages from table and fix this issues from package.`
+      );
+      // print test run errors
+    } else if (input.runTestResult && input.runTestResult.failures) {
       let tableTest = new Table({
         head: ['Apex Class', 'Message', 'Stack Trace'],
         colWidths: [60, 60, 60], // Requires fixed column widths
         wordWrap: true,
       });
       if (Array.isArray(input.runTestResult.failures)) {
-        input.runTestResult.failures.forEach(a => {
-          tableTest.push([a.name,a.message,a.stackTrace])
-        })
+        input.runTestResult.failures.forEach((a) => {
+          tableTest.push([a.name, a.message, a.stackTrace]);
+        });
       } else {
-        tableTest.push([input.runTestResult.failures.name,input.runTestResult.failures.message,input.runTestResult.failures.stackTrace])
+        tableTest.push([
+          input.runTestResult.failures.name,
+          input.runTestResult.failures.message,
+          input.runTestResult.failures.stackTrace,
+        ]);
       }
       console.log(tableTest.toString());
       throw new SfdxError(
-      `Testrun failed. Please check the testclass errors from table and fix this issues from package.`
+        `Testrun failed. Please check the testclass errors from table and fix this issues from package.`
       );
-    // print code coverage errors
-    } else if(input.runTestResult && input.runTestResult.codeCoverageWarnings){
+      // print code coverage errors
+    } else if (input.runTestResult && input.runTestResult.codeCoverageWarnings) {
       if (Array.isArray(input.runTestResult.codeCoverageWarnings)) {
-        const coverageList:CodeCoverageWarnings[] = input.runTestResult.codeCoverageWarnings;
-        coverageList.forEach(a => {
-          table.push([a.name,a.message])
-        })
+        const coverageList: CodeCoverageWarnings[] = input.runTestResult.codeCoverageWarnings;
+        coverageList.forEach((a) => {
+          table.push([a.name, a.message]);
+        });
       } else {
-        const coverageList:CodeCoverageWarnings = input.runTestResult.codeCoverageWarnings;
-          table.push([coverageList.name,coverageList.message])
+        const coverageList: CodeCoverageWarnings = input.runTestResult.codeCoverageWarnings;
+        table.push([coverageList.name, coverageList.message]);
       }
       console.log(table.toString());
       throw new SfdxError(
-      `Testcoverage failed. Please check the coverage from table and fix this issues from package.`
+        `Testcoverage failed. Please check the coverage from table and fix this issues from package.`
       );
     }
   }
@@ -270,44 +298,63 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
 
   private async validateSourcePackage(path: string, pck: string) {
     EONLogger.log(COLOR_HEADER(`💪 Start Deployment and Tests for source package.`));
-    let username = this.org.getConnection().getUsername()
-    if(this.flags.alias){
-    username = await Aliases.fetch(this.flags.alias);
+    let username = this.org.getConnection().getUsername();
+    if (this.flags.alias) {
+      username = await Aliases.fetch(this.flags.alias);
     }
     const sourceComps = await this.getApexClassesForSource(path);
-    const testLevel = sourceComps.apexClassNames.length > 0 ? 'RunSpecifiedTests' : 'NoTestRun';
+    const testLevel = sourceComps.apexTestclassNames.length > 0 ? 'RunSpecifiedTests' : 'NoTestRun';
     EONLogger.log(COLOR_HEADER(`Validate source package: ${pck}`));
     EONLogger.log(`${COLOR_NOTIFY('Path:')} ${COLOR_INFO(path)}`);
     EONLogger.log(`${COLOR_NOTIFY('Metadata Size:')} ${COLOR_INFO(sourceComps.comps.length)}`);
     EONLogger.log(`${COLOR_NOTIFY('TestLevel:')} ${COLOR_INFO(testLevel)}`);
     EONLogger.log(`${COLOR_NOTIFY('Username:')} ${COLOR_INFO(username)}`);
-    EONLogger.log(`${COLOR_NOTIFY('ApexClasses:')} ${sourceComps.apexClassNames.length > 0 ? COLOR_INFO(sourceComps.apexClassNames.join()) : COLOR_INFO('no Apex Classes in source package')}`);
-    EONLogger.log(`${COLOR_NOTIFY('ApexTestClasses:')} ${sourceComps.apexTestclassNames.length > 0 ? COLOR_INFO(sourceComps.apexTestclassNames.join()) : COLOR_INFO('no Apex Test Classes in source package')}`); 
+    EONLogger.log(
+      `${COLOR_NOTIFY('ApexClasses:')} ${
+        sourceComps.apexClassNames.length > 0
+          ? COLOR_INFO(sourceComps.apexClassNames.join())
+          : COLOR_INFO('no Apex Classes in source package')
+      }`
+    );
+    EONLogger.log(
+      `${COLOR_NOTIFY('ApexTestClasses:')} ${
+        sourceComps.apexTestclassNames.length > 0
+          ? COLOR_INFO(sourceComps.apexTestclassNames.join())
+          : COLOR_INFO('no Apex Test Classes in source package')
+      }`
+    );
 
     if (sourceComps.apexClassNames.length > 0 && sourceComps.apexTestclassNames.length === 0) {
       throw new SfdxError(
         `Found apex class(es) for package ${pck} but no testclass(es). Please create a new testclass.`
       );
     }
-    
+
     const deploy: MetadataApiDeploy = await ComponentSet.fromSource(path).deploy({
       usernameOrConnection: username,
-      apiOptions: {checkOnly: true, testLevel: testLevel, runTests: sourceComps.apexTestclassNames}
+      apiOptions: { checkOnly: true, testLevel: testLevel, runTests: sourceComps.apexTestclassNames },
     });
     // Attach a listener to check the deploy status on each poll
     let counter = 0;
     deploy.onUpdate((response) => {
       if (counter === 5) {
-        const { status, numberComponentsDeployed, numberComponentsTotal, numberTestsTotal, numberTestsCompleted, stateDetail } = response;
+        const {
+          status,
+          numberComponentsDeployed,
+          numberComponentsTotal,
+          numberTestsTotal,
+          numberTestsCompleted,
+          stateDetail,
+        } = response;
         const progress = `${numberComponentsDeployed}/${numberComponentsTotal}`;
         const testProgress = `${numberTestsCompleted}/${numberTestsTotal}`;
-        let message = ''
-        if(numberComponentsDeployed < sourceComps.comps.length){
-           message = `⌛ Deploy Package: ${pck} Status: ${status} Progress: ${progress}`;
-        } else if(numberComponentsDeployed === numberComponentsTotal && numberTestsTotal > 0){
-           message = `⌛ Test Package: ${pck} Status: ${status} Progress: ${testProgress} ${stateDetail ?? ''}`;
-        } else if(numberTestsTotal === 0 && sourceComps.apexTestclassNames.length > 0){
-           message = `⌛ Waiting for testclass execution`;
+        let message = '';
+        if (numberComponentsDeployed < sourceComps.comps.length) {
+          message = `⌛ Deploy Package: ${pck} Status: ${status} Progress: ${progress}`;
+        } else if (numberComponentsDeployed === numberComponentsTotal && numberTestsTotal > 0) {
+          message = `⌛ Test Package: ${pck} Status: ${status} Progress: ${testProgress} ${stateDetail ?? ''}`;
+        } else if (numberTestsTotal === 0 && sourceComps.apexTestclassNames.length > 0) {
+          message = `⌛ Waiting for testclass execution`;
         }
         EONLogger.log(COLOR_TRACE(message));
         counter = 0;
@@ -318,19 +365,19 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
 
     // Wait for polling to finish and get the DeployResult object
     const res = await deploy.pollStatus();
-      if (!res.response.success) {
-        await this.print(res.response.details);
-      } else {
-        EONLogger.log(COLOR_INFO(`✔ Deployment and tests for source package ${pck} successfully 👌`));
-      }
+    if (!res.response.success) {
+      await this.print(res.response.details);
+    } else {
+      EONLogger.log(COLOR_INFO(`✔ Deployment and tests for source package ${pck} successfully 👌`));
+    }
   }
 
   private async getApexClassesForSource(path: string): Promise<SourcePackageComps> {
-    const sourcePckComps: SourcePackageComps = {comps: [],apexClassNames: [], apexTestclassNames: []};
+    const sourcePckComps: SourcePackageComps = { comps: [], apexClassNames: [], apexTestclassNames: [] };
     const resolver: MetadataResolver = new MetadataResolver();
 
     for (const component of resolver.getComponentsFromPath(path)) {
-      sourcePckComps.comps.push(component.name)
+      sourcePckComps.comps.push(component.name);
       if (component.type.id === 'apexclass') {
         const apexCheckResult: ApexTestclassCheck = await this.checkIsSourceTestClass(component.content);
         if (apexCheckResult.isTest) {
@@ -341,20 +388,18 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
       }
     }
 
-   
     return sourcePckComps;
   }
 
   //check if apex class is a testclass from code identifier @isTest
   private async checkIsSourceTestClass(comp: string): Promise<ApexTestclassCheck> {
-    let checkResult: ApexTestclassCheck = {isTest: false}
+    let checkResult: ApexTestclassCheck = { isTest: false };
     try {
-      const data = await fs.promises.readFile(comp, 'utf8')
+      const data = await fs.promises.readFile(comp, 'utf8');
       if (data.search('@isTest') > -1 || data.search('@IsTest') > -1) {
         checkResult.isTest = true;
       }
-    }
-    catch(err) {
+    } catch (err) {
       EONLogger.log(COLOR_TRACE(err));
       return checkResult;
     }
