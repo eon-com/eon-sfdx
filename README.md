@@ -16,7 +16,7 @@ $ npm install -g @eon-com/eon-sfdx
 $ sfdx COMMAND
 running command...
 $ sfdx (-v|--version|version)
-@eon-com/eon-sfdx/1.2.0-beta.3 darwin-x64 node-v16.6.1
+@eon-com/eon-sfdx/1.3.0-beta.0 darwin-x64 node-v16.6.1
 $ sfdx --help [COMMAND]
 USAGE
   $ sfdx COMMAND
@@ -29,11 +29,11 @@ USAGE
 * [`sfdx eon:org:features:update -f <string> [-a <string>] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-eonorgfeaturesupdate--f-string--a-string--u-string---apiversion-string---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
 * [`sfdx eon:org:gettype [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-eonorggettype--u-string---apiversion-string---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
 * [`sfdx eon:package:deploy [-p <string>] [-i] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-eonpackagedeploy--p-string--i--u-string---apiversion-string---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
-* [`sfdx eon:package:validate [-t <string>] [-s <string>] [-d] [-p <string>] [-g <string>] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-eonpackagevalidate--t-string--s-string--d--p-string--g-string--u-string---apiversion-string---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
+* [`sfdx eon:package:validate [-t <string>] [-s <string>] [-d] [-p <string>] [-g <string>] [-a <string>] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-eonpackagevalidate--t-string--s-string--d--p-string--g-string--a-string--u-string---apiversion-string---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
 * [`sfdx eon:package:validate:source [-t <string>] [-s <string>] [-d] [-p <string>] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-eonpackagevalidatesource--t-string--s-string--d--p-string--u-string---apiversion-string---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
 * [`sfdx eon:update:customlabel -n <string> -c <string> [-a <string>] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-eonupdatecustomlabel--n-string--c-string--a-string--u-string---apiversion-string---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
 * [`sfdx eon:update:externaldatasource -n <string> [-e <string>] [-a <string>] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-eonupdateexternaldatasource--n-string--e-string--a-string--u-string---apiversion-string---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
-* [`sfdx eon:update:metadata -d <string> -p <string> -v <string> [-a <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-eonupdatemetadata--d-string--p-string--v-string--a-string---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
+* [`sfdx eon:update:metadata -d <string> -p <string> -v <string> [-k <string>] [-a <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-eonupdatemetadata--d-string--p-string--v-string--k-string--a-string---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
 * [`sfdx eon:update:namedcredential -n <string> [-e <string>] [-p <string>] [-s <string>] [-a <string>] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-eonupdatenamedcredential--n-string--e-string--p-string--s-string--a-string--u-string---apiversion-string---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
 * [`sfdx eon:upsert:customsetting -n <string> -k <string> -v <string> [-a <string>] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-eonupsertcustomsetting--n-string--k-string--v-string--a-string--u-string---apiversion-string---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
 
@@ -55,7 +55,7 @@ EXAMPLE
   sfdx eon:commit
 ```
 
-_See code: [src/commands/eon/commit.ts](https://github.com/eon-com/eon-sfdx/blob/v1.2.0-beta.3/src/commands/eon/commit.ts)_
+_See code: [src/commands/eon/commit.ts](https://github.com/eon-com/eon-sfdx/blob/v1.3.0-beta.0/src/commands/eon/commit.ts)_
 
 ## `sfdx eon:org:features:update -f <string> [-a <string>] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
 
@@ -88,7 +88,7 @@ EXAMPLE
   sfdx eon:org:features:update -f feature-settings.yml -a production
 ```
 
-_See code: [src/commands/eon/org/features/update.ts](https://github.com/eon-com/eon-sfdx/blob/v1.2.0-beta.3/src/commands/eon/org/features/update.ts)_
+_See code: [src/commands/eon/org/features/update.ts](https://github.com/eon-com/eon-sfdx/blob/v1.3.0-beta.0/src/commands/eon/org/features/update.ts)_
 
 ## `sfdx eon:org:gettype [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
 
@@ -115,7 +115,7 @@ EXAMPLE
   sfdx eon:org:type
 ```
 
-_See code: [src/commands/eon/org/gettype.ts](https://github.com/eon-com/eon-sfdx/blob/v1.2.0-beta.3/src/commands/eon/org/gettype.ts)_
+_See code: [src/commands/eon/org/gettype.ts](https://github.com/eon-com/eon-sfdx/blob/v1.3.0-beta.0/src/commands/eon/org/gettype.ts)_
 
 ## `sfdx eon:package:deploy [-p <string>] [-i] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
 
@@ -146,18 +146,20 @@ EXAMPLES
   sfdx eon:deploy:package --packagename core-datamodel
 ```
 
-_See code: [src/commands/eon/package/deploy.ts](https://github.com/eon-com/eon-sfdx/blob/v1.2.0-beta.3/src/commands/eon/package/deploy.ts)_
+_See code: [src/commands/eon/package/deploy.ts](https://github.com/eon-com/eon-sfdx/blob/v1.3.0-beta.0/src/commands/eon/package/deploy.ts)_
 
-## `sfdx eon:package:validate [-t <string>] [-s <string>] [-d] [-p <string>] [-g <string>] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
+## `sfdx eon:package:validate [-t <string>] [-s <string>] [-d] [-p <string>] [-g <string>] [-a <string>] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
 
 Validation Job to check package changes on scratch
 
 ```
 USAGE
-  $ sfdx eon:package:validate [-t <string>] [-s <string>] [-d] [-p <string>] [-g <string>] [-u <string>] [--apiversion 
-  <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
+  $ sfdx eon:package:validate [-t <string>] [-s <string>] [-d] [-p <string>] [-g <string>] [-a <string>] [-u <string>] 
+  [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
 
 OPTIONS
+  -a, --devhubalias=devhubalias                                                     Target dev hub alias
+
   -d, --deploymentscripts                                                           Flag to run pre/post deployment
                                                                                     scripts
 
@@ -185,7 +187,7 @@ EXAMPLES
   sfdx  eon:validate
 ```
 
-_See code: [src/commands/eon/package/validate.ts](https://github.com/eon-com/eon-sfdx/blob/v1.2.0-beta.3/src/commands/eon/package/validate.ts)_
+_See code: [src/commands/eon/package/validate.ts](https://github.com/eon-com/eon-sfdx/blob/v1.3.0-beta.0/src/commands/eon/package/validate.ts)_
 
 ## `sfdx eon:package:validate:source [-t <string>] [-s <string>] [-d] [-p <string>] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
 
@@ -222,7 +224,7 @@ EXAMPLES
   sfdx  eon:validate:source -p mypackage
 ```
 
-_See code: [src/commands/eon/package/validate/source.ts](https://github.com/eon-com/eon-sfdx/blob/v1.2.0-beta.3/src/commands/eon/package/validate/source.ts)_
+_See code: [src/commands/eon/package/validate/source.ts](https://github.com/eon-com/eon-sfdx/blob/v1.3.0-beta.0/src/commands/eon/package/validate/source.ts)_
 
 ## `sfdx eon:update:customlabel -n <string> -c <string> [-a <string>] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
 
@@ -260,7 +262,7 @@ EXAMPLES
   sfdx eon:upsert:customlabel --targetusername myOrg@example.com -n my_label -v XXX
 ```
 
-_See code: [src/commands/eon/update/customlabel.ts](https://github.com/eon-com/eon-sfdx/blob/v1.2.0-beta.3/src/commands/eon/update/customlabel.ts)_
+_See code: [src/commands/eon/update/customlabel.ts](https://github.com/eon-com/eon-sfdx/blob/v1.3.0-beta.0/src/commands/eon/update/customlabel.ts)_
 
 ## `sfdx eon:update:externaldatasource -n <string> [-e <string>] [-a <string>] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
 
@@ -297,15 +299,15 @@ EXAMPLES
   sfdx eon:update:datasource --targetusername myOrg@example.com -n my_source -e https://test.com
 ```
 
-_See code: [src/commands/eon/update/externaldatasource.ts](https://github.com/eon-com/eon-sfdx/blob/v1.2.0-beta.3/src/commands/eon/update/externaldatasource.ts)_
+_See code: [src/commands/eon/update/externaldatasource.ts](https://github.com/eon-com/eon-sfdx/blob/v1.3.0-beta.0/src/commands/eon/update/externaldatasource.ts)_
 
-## `sfdx eon:update:metadata -d <string> -p <string> -v <string> [-a <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
+## `sfdx eon:update:metadata -d <string> -p <string> -v <string> [-k <string>] [-a <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
 
 Replace placeholder in XML files
 
 ```
 USAGE
-  $ sfdx eon:update:metadata -d <string> -p <string> -v <string> [-a <string>] [--json] [--loglevel 
+  $ sfdx eon:update:metadata -d <string> -p <string> -v <string> [-k <string>] [-a <string>] [--json] [--loglevel 
   trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
 
 OPTIONS
@@ -315,6 +317,9 @@ OPTIONS
   -d, --directory=directory                                                         (required) Directory to file or
                                                                                     folder containing the file(s) to be
                                                                                     changed
+
+  -k, --artifactdirectory=artifactdirectory                                         Optional directory if deployed src
+                                                                                    is unpacked from artifact
 
   -p, --placeholder=placeholder                                                     (required) Name of the placeholder
                                                                                     inside the XML that should be
@@ -335,7 +340,7 @@ EXAMPLES
   'test@test.com.staging' --alias $ALIAS
 ```
 
-_See code: [src/commands/eon/update/metadata.ts](https://github.com/eon-com/eon-sfdx/blob/v1.2.0-beta.3/src/commands/eon/update/metadata.ts)_
+_See code: [src/commands/eon/update/metadata.ts](https://github.com/eon-com/eon-sfdx/blob/v1.3.0-beta.0/src/commands/eon/update/metadata.ts)_
 
 ## `sfdx eon:update:namedcredential -n <string> [-e <string>] [-p <string>] [-s <string>] [-a <string>] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
 
@@ -377,7 +382,7 @@ EXAMPLES
   sfdx eon:update:namedcredentials --targetusername myOrg@example.com -n xx_base -e https://test.com
 ```
 
-_See code: [src/commands/eon/update/namedcredential.ts](https://github.com/eon-com/eon-sfdx/blob/v1.2.0-beta.3/src/commands/eon/update/namedcredential.ts)_
+_See code: [src/commands/eon/update/namedcredential.ts](https://github.com/eon-com/eon-sfdx/blob/v1.3.0-beta.0/src/commands/eon/update/namedcredential.ts)_
 
 ## `sfdx eon:upsert:customsetting -n <string> -k <string> -v <string> [-a <string>] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
 
@@ -418,6 +423,6 @@ EXAMPLES
   sfdx eon:update:customsetting --targetusername myOrg@example.com -n my_object__c -k XXX -v xxx
 ```
 
-_See code: [src/commands/eon/upsert/customsetting.ts](https://github.com/eon-com/eon-sfdx/blob/v1.2.0-beta.3/src/commands/eon/upsert/customsetting.ts)_
+_See code: [src/commands/eon/upsert/customsetting.ts](https://github.com/eon-com/eon-sfdx/blob/v1.3.0-beta.0/src/commands/eon/upsert/customsetting.ts)_
 <!-- commandsstop -->
 <!-- debugging-your-plugin -->
