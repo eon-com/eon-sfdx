@@ -9,6 +9,7 @@
   "commandDescription_custommetadata": "Update Custom Metadata Settings",
   "commandDescription_customsetting": "Update Custom Settings",
   "commandDescription_metadata": "Replace placeholder in XML files",
+  "artifactDirectoryMetadataFlagDescription": "Optional directory if deployed src is unpacked from artifact",
   "directoryMetadataFlagDescription": "Directory to file or folder containing the file(s) to be changed",
   "placeholderMetadataFlagDescription": "Name of the placeholder inside the XML that should be replaced",
   "valueMetadataFlagDescription": "value used to replace the placeholder",

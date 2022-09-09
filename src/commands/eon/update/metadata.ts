@@ -37,6 +37,10 @@ export default class Metadata extends SfdxCommand {
       description: messages.getMessage('directoryMetadataFlagDescription'),
       required: true,
     }),
+    artifactdirectory: flags.string({
+      char: 'k',
+      description: messages.getMessage('artifactDirectoryMetadataFlagDescription'),
+    }),
     placeholder: flags.string({
       char: 'p',
       description: messages.getMessage('placeholderMetadataFlagDescription'),
@@ -58,6 +62,7 @@ export default class Metadata extends SfdxCommand {
 
   public async run(): Promise<void> {
     EONLogger.log(COLOR_HEADER(LOGOBANNER));
+
     // get sfdx project.json
     const projectJson: SfdxProjectJson = await this.project.retrieveSfdxProjectJson();
     const settings: PluginSettings = projectJson.getContents()?.plugins['eon-sfdx'] as PluginSettings;
@@ -68,11 +73,15 @@ export default class Metadata extends SfdxCommand {
       ? settings.metadataPlaceholderFormat.replace('placeholder', this.flags.placeholder)
       : `{[${this.flags.placeholder}]}`;
 
+    const targetdir = this.flags.artifactdirectory
+      ? this.flags.artifactdirectory.split('package/source')[0] + 'package/source/' + this.flags.directory
+      : this.flags.directory;
+
     try {
-      const dirStat = await fspromise.stat(this.flags.directory);
+      const dirStat = await fspromise.stat(targetdir);
       let updatedFiles: string[] = [];
       if (dirStat.isDirectory()) {
-        const filePaths = getAllFiles(this.flags.directory);
+        const filePaths = getAllFiles(targetdir);
         for await (const p of filePaths) {
           const raw = await fspromise.readFile(p);
           let content = raw.toString();
@@ -83,12 +92,12 @@ export default class Metadata extends SfdxCommand {
           }
         }
       } else {
-        const raw = await fspromise.readFile(this.flags.directory);
+        const raw = await fspromise.readFile(targetdir);
         let content = raw.toString();
         if (content.includes(placeholder)) {
           content = content.replace(placeholder, value);
-          await fspromise.writeFile(this.flags.directory, content);
-          updatedFiles = [...updatedFiles, path.basename(this.flags.directory)];
+          await fspromise.writeFile(targetdir, content);
+          updatedFiles = [...updatedFiles, path.basename(targetdir)];
         }
       }
 
