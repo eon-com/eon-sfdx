@@ -207,7 +207,7 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
       //Start deploy process
     
       //Deploy Unlocked Package
-      await this.deployPackageWithDependency(key, value.path);
+      //await this.deployPackageWithDependency(key, value.path);
      
       //Run Tests
       await this.getApexClassesFromPaths(key, value.path);
@@ -437,9 +437,10 @@ First the dependecies packages. And then this package.`
         throw new Error('Apex test run timeout after 30 minutes');
       }
     } while (testRunResult.QueuedList.length > 0 || testRunResult.ProcessingList.length > 0);
-
+    
     //check testrun result only for errors
-    await this.checkTestResult(apexTestClassIdList);
+    await this.checkTestResult(apexTestClassIdList,queueIdList);
+
 
     //check Code Coverage
     if (apexClassIdList.length > 0) {
@@ -591,13 +592,15 @@ First the dependecies packages. And then this package.`
     }
   }
 
-  private async checkTestResult(apexClassList: string[]): Promise<void> {
+  private async checkTestResult(apexClassList: string[], jobId: string[]): Promise<void> {
     const connection: Connection = this.org.getConnection();
     let responseFromOrg: QueryResult<ApexTestResult>
     try {
       responseFromOrg = await connection.query<ApexTestResult>(
         `Select ApexClass.Name, Outcome, MethodName, Message from ApexTestResult Where Outcome = 'Fail' And ApexClassId In ('${apexClassList.join(
         "','"
+        )}') And AsyncApexJobId In ('${jobId.join(
+          "','"
         )}')`
       );
     } catch (e) {
