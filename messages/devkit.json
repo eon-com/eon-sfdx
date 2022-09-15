@@ -1,0 +1,5 @@
+{
+  "commandDescription": "Initialize a devkit for a package",
+  "packageFlag": "Name of the package where the devkit should be created",
+  "examples": ["sfdx eon:devkit:create"]
+}
