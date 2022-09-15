@@ -13,7 +13,15 @@ import { Messages, NamedPackageDir, SfdxProjectJson } from '@salesforce/core';
 import { AnyJson } from '@salesforce/ts-types';
 import EONLogger, { COLOR_ERROR, COLOR_HEADER, COLOR_INFO } from '../../../../eon/EONLogger';
 import { LOGOBANNER } from '../../../../eon/logo';
-import { eonDevKitYml, exampleApex, exportJson } from '../../../../helper/filecontents';
+import {
+  DEVKITFOLDER,
+  EONDEVKITYML,
+  EXAMPLEAPEX,
+  EXPORTJSON,
+  SCRIPTSFOLDER,
+  SETUPFILE,
+  TESTDATAFOLDER,
+} from '../../../../helper/devkit-constants';
 // Initialize Messages with the current plugin directory
 Messages.importMessagesDirectory(__dirname);
 
@@ -21,7 +29,7 @@ Messages.importMessagesDirectory(__dirname);
 // or any library that is using the messages framework can also be loaded this way.
 const messages = Messages.loadMessages('@eon-com/eon-sfdx', 'devkit');
 
-export default class Validate extends SfdxCommand {
+export default class Create extends SfdxCommand {
   public static description = messages.getMessage('commandDescription');
 
   public static examples = messages.getMessage('examples').split(os.EOL);
@@ -41,10 +49,6 @@ export default class Validate extends SfdxCommand {
   public async run(): Promise<AnyJson> {
     EONLogger.log(COLOR_HEADER(LOGOBANNER));
     const packagename = this.flags.package;
-    const setupFileName = 'eon-devkit.yml';
-    const devkitFolderName = 'devkit';
-    const scriptsFolderName = 'scripts';
-    const testdataFolderName = 'testdata';
 
     const projectJson: SfdxProjectJson = await this.project.retrieveSfdxProjectJson();
 
@@ -56,52 +60,48 @@ export default class Validate extends SfdxCommand {
       return;
     }
     const packagePath: string = packageDirs.find((a) => a.package === packagename).path;
-    const filePaths: String[] = this.findFileInDir(packagePath, setupFileName);
+    const filePaths: String[] = this.findFileInDir(packagePath, SETUPFILE);
 
-    if (filePaths.length > 2) {
-      EONLogger.log(COLOR_ERROR('Multiple ' + setupFileName + ' files found in package ' + packagename));
-      EONLogger.log(COLOR_ERROR('Only one ' + setupFileName + ' file is allowed per package'));
+    if (filePaths.length > 1) {
+      EONLogger.log(COLOR_ERROR('Multiple ' + SETUPFILE + ' files found in package ' + packagename));
+      EONLogger.log(COLOR_ERROR('Only one ' + SETUPFILE + ' file is allowed per package'));
       return;
     } else if (filePaths.length === 1) {
-      EONLogger.log(COLOR_INFO(setupFileName + ' file in package ' + packagename + ' already exists.'));
-      //todo: check if basic structure is given
+      EONLogger.log(COLOR_INFO(SETUPFILE + ' file in package ' + packagename + ' already exists.'));
       return;
     }
 
     // create new subfolders of devkit
-    if (!fs.existsSync(path.join(packagePath, devkitFolderName))) {
-      fs.mkdirSync(path.join(packagePath, devkitFolderName));
+    if (!fs.existsSync(path.join(packagePath, DEVKITFOLDER))) {
+      fs.mkdirSync(path.join(packagePath, DEVKITFOLDER));
     }
-    if (!fs.existsSync(path.join(packagePath, devkitFolderName, scriptsFolderName))) {
-      fs.mkdirSync(path.join(packagePath, devkitFolderName, scriptsFolderName));
+    if (!fs.existsSync(path.join(packagePath, DEVKITFOLDER, SCRIPTSFOLDER))) {
+      fs.mkdirSync(path.join(packagePath, DEVKITFOLDER, SCRIPTSFOLDER));
     }
-    if (!fs.existsSync(path.join(packagePath, devkitFolderName, testdataFolderName))) {
-      fs.mkdirSync(path.join(packagePath, devkitFolderName, testdataFolderName));
+    if (!fs.existsSync(path.join(packagePath, DEVKITFOLDER, TESTDATAFOLDER))) {
+      fs.mkdirSync(path.join(packagePath, DEVKITFOLDER, TESTDATAFOLDER));
     }
     // create new yml file
-    const baseStructureYaml = eonDevKitYml;
-    if (!fs.existsSync(path.join(packagePath, devkitFolderName, setupFileName))) {
-      fs.writeFileSync(path.join(packagePath, devkitFolderName, setupFileName), baseStructureYaml);
-      EONLogger.log(COLOR_INFO('Created ' + setupFileName + ' file in package ' + packagename));
+    const baseStructureYaml = EONDEVKITYML;
+    if (!fs.existsSync(path.join(packagePath, DEVKITFOLDER, SETUPFILE))) {
+      fs.writeFileSync(path.join(packagePath, DEVKITFOLDER, SETUPFILE), baseStructureYaml);
+      EONLogger.log(COLOR_INFO('Created ' + SETUPFILE + ' file in package ' + packagename));
     }
     // create new export.json file
-    const baseExportJson = exportJson;
+    const baseExportJson = EXPORTJSON;
 
-    if (!fs.existsSync(path.join(packagePath, devkitFolderName, testdataFolderName, 'export.json'))) {
-      fs.writeFileSync(path.join(packagePath, devkitFolderName, testdataFolderName, 'export.json'), baseExportJson);
+    if (!fs.existsSync(path.join(packagePath, DEVKITFOLDER, TESTDATAFOLDER, 'export.json'))) {
+      fs.writeFileSync(path.join(packagePath, DEVKITFOLDER, TESTDATAFOLDER, 'export.json'), baseExportJson);
       EONLogger.log(COLOR_INFO('Created export.json file in package ' + packagename));
     }
     // create example apex script
-    const exampleApexBody = exampleApex;
-    if (!fs.existsSync(path.join(packagePath, devkitFolderName, scriptsFolderName, 'setup-script.apex'))) {
-      fs.writeFileSync(
-        path.join(packagePath, devkitFolderName, scriptsFolderName, 'setup-script.apex'),
-        exampleApexBody
-      );
+    const exampleApexBody = EXAMPLEAPEX;
+    if (!fs.existsSync(path.join(packagePath, DEVKITFOLDER, SCRIPTSFOLDER, 'setup-script.apex'))) {
+      fs.writeFileSync(path.join(packagePath, DEVKITFOLDER, SCRIPTSFOLDER, 'setup-script.apex'), exampleApexBody);
       EONLogger.log(COLOR_INFO('Created setup-script.apex file in package ' + packagename));
     }
 
-    EONLogger.log(COLOR_HEADER('Devkit setup completed.'));
+    EONLogger.log(COLOR_HEADER('Devkit creation completed for package ' + packagename));
     return {};
   }
 
