@@ -104,6 +104,7 @@ export default class Validate extends SfdxCommand {
     EONLogger.log(COLOR_HEADER('Search for unlocked package changes'));
     // get sfdx project.json
     const projectJson: SfdxProjectJson = await this.project.retrieveSfdxProjectJson();
+    const packageAliases = projectJson.getContents().packageAliases;
 
     // get all packages
     let packageDirs: NamedPackageDirLarge[] = projectJson.getUniquePackageDirectories();
@@ -175,7 +176,7 @@ export default class Validate extends SfdxCommand {
           continue;
         }
 
-        if (pck.package.search('src') > -1) {
+        if (!packageAliases[pck.package]) {
           EONLogger.log(COLOR_WARNING(`👆 No validation for source packages: ${pck.package}`));
           continue;
         }
@@ -451,7 +452,7 @@ First the dependecies packages. And then this package.`
     } while (testRunResult.QueuedList.length > 0 || testRunResult.ProcessingList.length > 0);
 
     //check testrun result only for errors
-    await this.checkTestResult(apexTestClassIdList);
+    await this.checkTestResult(apexTestClassIdList,queueIdList);
 
     //check Code Coverage
     if (apexClassIdList.length > 0) {
@@ -603,13 +604,15 @@ First the dependecies packages. And then this package.`
     }
   }
 
-  private async checkTestResult(apexClassList: string[]): Promise<void> {
+  private async checkTestResult(apexClassList: string[],jobId: string[]): Promise<void> {
     const connection: Connection = this.org.getConnection();
     let responseFromOrg: QueryResult<ApexTestResult>;
     try {
       responseFromOrg = await connection.query<ApexTestResult>(
         `Select ApexClass.Name, Outcome, MethodName, Message from ApexTestResult Where Outcome = 'Fail' And ApexClassId In ('${apexClassList.join(
           "','"
+        )}') And AsyncApexJobId In ('${jobId.join(
+            "','"  
         )}')`
       );
     } catch (e) {
