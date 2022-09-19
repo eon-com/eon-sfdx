@@ -436,22 +436,14 @@ export default class GitLabStatus extends SfdxCommand {
                         let packageIndex = value.releaseTag.search('_v');
                         if (
                             pck.Version__c.localeCompare(
-                                value.releaseTag.slice(packageIndex + 2, packageIndex + 11),
+                                value.releaseTag.slice(packageIndex + 2),
                                 undefined,
                                 { numeric: true, sensitivity: 'base' }
                             ) > -1
                         ) {
                             value[orgKey] = true;
                             ++GitLabStatus.deploymentCounter[orgKey];
-                        } else if (
-                            key.startsWith('src') &&
-                            pck.Version__c.search(
-                                value.releaseTag.slice(packageIndex + 2, packageIndex + 7)
-                            ) > -1
-                        ) {
-                            value[orgKey] = true;
-                            ++GitLabStatus.deploymentCounter[orgKey];
-                        }
+                        } 
                     }
                 }
             }
