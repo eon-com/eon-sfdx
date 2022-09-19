@@ -102,7 +102,7 @@ export default class GitLabStatus extends SfdxCommand {
             COLOR_INFO('isOnProd'),
             COLOR_INFO('isOnEWISIT')
         ],
-        colWidths: [40, 30, 13, 13, 13, 13, 13], // Requires fixed column widths
+        colWidths: [40, 20, 13, 13, 13, 13, 13], // Requires fixed column widths
         wordWrap: true,
     });
     //create org alias array
@@ -360,7 +360,7 @@ export default class GitLabStatus extends SfdxCommand {
             if (mergeCommitResponse?.status === 200 && mergeCommitResponse.data) {
                 for (const tag of mergeCommitResponse.data) {
                     if (tag.commit?.id === tagSHA || tag.commit?.parent_ids.includes(tagSHA)) {
-                        value.releaseTag = tag.name;
+                        value.releaseTag = tag.name.slice(tag.name.search('_v') + 2);
                         value.commitId = tag?.commit?.short_id;
                         ++GitLabStatus.packageTagCounter
                     }
@@ -369,7 +369,7 @@ export default class GitLabStatus extends SfdxCommand {
                 if (value.releaseTag === 'package-not-created') {
                     for (const tag of mergeCommitResponse.data) {
                         if (tag.name.startsWith(`${key}_v${value.version}`)) {
-                            value.releaseTag = tag.name;
+                            value.releaseTag = tag.name.slice(tag.name.search('_v') + 2);
                             value.commitId = tag?.commit?.short_id;
                             ++GitLabStatus.packageTagCounter
                             break;
@@ -389,7 +389,7 @@ export default class GitLabStatus extends SfdxCommand {
                            { numeric: true, sensitivity: 'base' }
                            ) > -1
                          ) {
-                            value.releaseTag = tag.name;
+                            value.releaseTag = tag.name.slice(tag.name.search('_v') + 2);
                             value.commitId = tag?.commit?.short_id;
                             ++GitLabStatus.packageTagCounter
                            break;
