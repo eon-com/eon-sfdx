@@ -8,9 +8,15 @@ import * as os from 'os';
 import { flags, SfdxCommand } from '@salesforce/command';
 import { Messages, NamedPackageDir, SfdxProjectJson } from '@salesforce/core';
 import { AnyJson } from '@salesforce/ts-types';
-import EONLogger, { COLOR_ERROR, COLOR_HEADER, COLOR_INFO, COLOR_NOTIFY, COLOR_TRACE } from '../../../../eon/EONLogger';
-import { LOGOBANNER } from '../../../../eon/logo';
-import { DevKitYaml, getDevKits } from '../../../../helper/devkit-constants';
+import EONLogger, {
+  COLOR_ERROR,
+  COLOR_HEADER,
+  COLOR_INFO,
+  COLOR_NOTIFY,
+  COLOR_TRACE,
+} from '../../../../../eon/EONLogger';
+import { LOGOBANNER } from '../../../../../eon/logo';
+import { DevKitYaml, getDevKits } from '../../../../../helper/devkit-constants';
 import execa from 'execa';
 import path from 'path';
 import { Listr } from 'listr2';
