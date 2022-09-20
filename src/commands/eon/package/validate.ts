@@ -104,6 +104,7 @@ export default class Validate extends SfdxCommand {
     EONLogger.log(COLOR_HEADER('Search for unlocked package changes'));
     // get sfdx project.json
     const projectJson: SfdxProjectJson = await this.project.retrieveSfdxProjectJson();
+    const packageAliases = projectJson.getContents().packageAliases;
 
     // get all packages
     let packageDirs: NamedPackageDirLarge[] = projectJson.getUniquePackageDirectories();
@@ -175,7 +176,7 @@ export default class Validate extends SfdxCommand {
           continue;
         }
 
-        if (pck.package.search('src') > -1) {
+        if (!packageAliases[pck.package]) {
           EONLogger.log(COLOR_WARNING(`👆 No validation for source packages: ${pck.package}`));
           continue;
         }

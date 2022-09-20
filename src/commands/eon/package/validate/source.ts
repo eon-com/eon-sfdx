@@ -83,9 +83,11 @@ export default class Validate extends SfdxCommand {
     EONLogger.log(COLOR_HEADER('Search for source package changes'));
     // get sfdx project.json
     const projectJson: SfdxProjectJson = await this.project.retrieveSfdxProjectJson();
+    const packageAliases = projectJson.getContents().packageAliases;
 
     // get all packages
     let packageDirs: NamedPackageDirLarge[] = projectJson.getUniquePackageDirectories();
+
     // get all diffs from current to target branch
     let git: SimpleGit = simplegit(path.dirname(projectJson.getPath()));
     const sourcebranch = this.flags.source || 'HEAD';
@@ -153,7 +155,7 @@ export default class Validate extends SfdxCommand {
           includeForceApp = true;
           continue;
         }
-        if (pck.package.search('src') > -1) {
+        if (!packageAliases[pck.package]) {
           packageMap.set(pck.package, pck);
           table.push([pck.package]);
         }
