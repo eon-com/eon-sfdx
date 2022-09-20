@@ -212,7 +212,7 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
       //Start deploy process
 
       //Deploy Unlocked Package
-      //await this.deployPackageWithDependency(key, value.path);
+      await this.deployPackageWithDependency(key, value.path);
 
       //Run Tests
       await this.getApexClassesFromPaths(key, value.path);
