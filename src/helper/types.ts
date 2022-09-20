@@ -274,3 +274,59 @@ export interface CodeCoverageWarnings {
   name?: string;
   namespace: {}
 }
+
+export interface SingleMergeRequest {
+  id: number;
+  packages: Map<string, GitPackageInfos>;
+  labels: string;
+  commitSHA: string;
+  author: string;
+  username: string;
+  title: string;
+  web_url: string;
+  createdat: string;
+  description: string;
+  merged_by: string;
+  reviewer: string;
+  isBuild: boolean;
+  isOnFT: boolean;
+  isOnSIT: boolean;
+  isOnPreProd: boolean;
+  isOnProd: boolean;
+  isOnEWISIT: boolean;
+  mergeStatus: string;
+  milestone: string;
+}
+
+export interface GitPackageInfos {
+  package: string;
+  version: string;
+  srcChange: boolean;
+  releaseTag: string;
+  commitId: string;
+  isOnFT: boolean;
+  isOnSIT: boolean;
+  isOnPreProd: boolean;
+  isOnProd: boolean;
+  isOnEWISIT: boolean;
+}
+
+export interface PackageChange{
+  old_path?: string;
+  new_path?: string;
+}
+
+export interface SfpowerscriptsArtifact2{
+  Id?: string;
+  Name?: string;
+  Version__c?: string;
+}
+
+export interface JobDetails{
+  name: string;
+  alias: string;
+  jobId: number;
+  status: string;
+  webUrl: string;
+  packages: string[];
+}
