@@ -330,3 +330,17 @@ export interface JobDetails{
   webUrl: string;
   packages: string[];
 }
+
+export interface UnassignPackage {
+  Package: string;
+  Id?: string;
+  UnassignKeys: UnassignKeys[];
+}
+
+export interface UnassignKeys {
+  Type: string;
+  Component: string;
+  ParentObject?: string
+  IsRemoved?: boolean;
+  Message?: string
+}

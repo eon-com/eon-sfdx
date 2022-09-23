@@ -1,0 +1,9 @@
+{
+    "commandDescription": "Unassign package member from a selected package",
+    "examples": ["sfdx eon:packagemember:unassign --packagename --type --component --configfile"],
+    "packageNameFlagDescription": "Package to unassign a component",
+    "typeFlagDescription": "Type from the component to unassign",
+    "componentFlagDescription": "Component name to unassign",
+    "configFlagDescription": "Config file to unassign several components",
+    "parentobjectFlagDescription": "Identifier for the parent object name from the component"
+}
