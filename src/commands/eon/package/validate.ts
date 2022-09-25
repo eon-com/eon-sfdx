@@ -90,6 +90,11 @@ export default class Validate extends SfdxCommand {
       default: '',
       required: false,
     }),
+    onlytests: flags.boolean({
+      char: 'o',
+      description: messages.getMessage('testclassFlag'),
+      required: false,
+    }),
   };
 
   // Set this to true if your command requires a project workspace; 'requiresProject' is false by default
@@ -123,9 +128,13 @@ export default class Validate extends SfdxCommand {
       let packageCheck = false;
       if (this.flags.package) {
         if (pck.package === this.flags.package) {
+          if (!packageAliases[pck.package]) {
+            EONLogger.log(COLOR_WARNING(`👆 No validation for source packages: ${pck.package}`));
+            continue;
+          }
           packageMap.set(pck.package, pck);
           table.push([pck.package]);
-          continue;
+          break;
         }
       }
       packageCheck = changes.files.some((change) => {
@@ -212,7 +221,11 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
       //Start deploy process
 
       //Deploy Unlocked Package
+      if(!this.flags.onlytests){
       await this.deployPackageWithDependency(key, value.path);
+      } else {
+        EONLogger.log(COLOR_WARNING(`👆 No deployment, only testclass execution`));
+      }
 
       //Run Tests
       await this.getApexClassesFromPaths(key, value.path);
