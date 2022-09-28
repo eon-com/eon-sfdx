@@ -90,6 +90,11 @@ export default class Validate extends SfdxCommand {
       default: '',
       required: false,
     }),
+    onlytests: flags.boolean({
+      char: 'o',
+      description: messages.getMessage('testclassFlag'),
+      required: false,
+    }),
   };
 
   // Set this to true if your command requires a project workspace; 'requiresProject' is false by default
@@ -105,15 +110,21 @@ export default class Validate extends SfdxCommand {
     // get sfdx project.json
     const projectJson: SfdxProjectJson = await this.project.retrieveSfdxProjectJson();
     const packageAliases = projectJson.getContents().packageAliases;
-
+    if (this.flags.target && this.flags.package) {
+      throw new SfdxError(`Either package or target flag can be used, not both`);
+    }
     // get all packages
     let packageDirs: NamedPackageDirLarge[] = projectJson.getUniquePackageDirectories();
     // get all diffs from current to target branch
+
     let git: SimpleGit = simplegit(path.dirname(projectJson.getPath()));
     const sourcebranch = this.flags.source || 'HEAD';
     let includeForceApp = false;
-    await git.fetch();
-    const changes: DiffResult = await git.diffSummary([`${this.flags.target}...${sourcebranch}`]);
+    let changes: DiffResult;
+    if (!this.flags.package) {
+      changes = await git.diffSummary([`${this.flags.target}...${sourcebranch}`]);
+      await git.fetch();
+    }
     let table = new Table({
       head: [COLOR_NOTIFY('Package')],
     });
@@ -123,41 +134,47 @@ export default class Validate extends SfdxCommand {
       let packageCheck = false;
       if (this.flags.package) {
         if (pck.package === this.flags.package) {
+          if (!packageAliases[pck.package]) {
+            EONLogger.log(COLOR_WARNING(`👆 No validation for source packages: ${pck.package}`));
+            continue;
+          }
           packageMap.set(pck.package, pck);
           table.push([pck.package]);
-          continue;
+          break;
         }
       }
-      packageCheck = changes.files.some((change) => {
-        if (
-          path
-            .join(path.dirname(projectJson.getPath()), path.normalize(change.file))
-            .includes(path.normalize(pck.fullPath))
-        ) {
-          return true;
-        }
-        //check for metadata move between packages
-        if (change.file.search('=>') > -1) {
-          let pathString = change.file.replace('{', '');
-          pathString = pathString.replace('}', '');
-          let packageOldChange = pathString.slice(0, 36);
-          let packageNewChange = pathString.slice(39);
+      if (this.flags.target) {
+        packageCheck = changes.files.some((change) => {
           if (
             path
-              .join(path.dirname(projectJson.getPath()), path.normalize(packageOldChange))
+              .join(path.dirname(projectJson.getPath()), path.normalize(change.file))
               .includes(path.normalize(pck.fullPath))
           ) {
             return true;
           }
-          if (
-            path
-              .join(path.dirname(projectJson.getPath()), path.normalize(packageNewChange))
-              .includes(path.normalize(pck.fullPath))
-          ) {
-            return true;
+          //check for metadata move between packages
+          if (change.file.search('=>') > -1) {
+            let pathString = change.file.replace('{', '');
+            pathString = pathString.replace('}', '');
+            let packageOldChange = pathString.slice(0, 36);
+            let packageNewChange = pathString.slice(39);
+            if (
+              path
+                .join(path.dirname(projectJson.getPath()), path.normalize(packageOldChange))
+                .includes(path.normalize(pck.fullPath))
+            ) {
+              return true;
+            }
+            if (
+              path
+                .join(path.dirname(projectJson.getPath()), path.normalize(packageNewChange))
+                .includes(path.normalize(pck.fullPath))
+            ) {
+              return true;
+            }
           }
-        }
-      });
+        });
+      }
       if (packageCheck) {
         //special checks for packages
         if (pck.ignoreOnStage?.includes('validate')) {
@@ -212,7 +229,11 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
       //Start deploy process
 
       //Deploy Unlocked Package
-      await this.deployPackageWithDependency(key, value.path);
+      if (!this.flags.onlytests) {
+        await this.deployPackageWithDependency(key, value.path);
+      } else {
+        EONLogger.log(COLOR_WARNING(`👆 No deployment, only testclass execution`));
+      }
 
       //Run Tests
       await this.getApexClassesFromPaths(key, value.path);

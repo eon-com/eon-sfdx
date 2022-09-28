@@ -103,9 +103,13 @@ export default class Validate extends SfdxCommand {
       let packageCheck = false;
       if (this.flags.package) {
         if (pck.package === this.flags.package && this.flags.package.search('src') > -1) {
+          if (!packageAliases[pck.package]) {
+            EONLogger.log(COLOR_WARNING(`👆 No validation for unlocked packages: ${pck.package}`));
+            continue;
+          }
           packageMap.set(pck.package, pck);
           table.push([pck.package]);
-          continue;
+          break;
         }
       }
       packageCheck = changes.files.some((change) => {
@@ -158,6 +162,8 @@ export default class Validate extends SfdxCommand {
         if (!packageAliases[pck.package]) {
           packageMap.set(pck.package, pck);
           table.push([pck.package]);
+        } else {
+          EONLogger.log(COLOR_WARNING(`👆 No validation for unlocked packages: ${pck.package}`));
         }
       }
     }

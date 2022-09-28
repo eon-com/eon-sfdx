@@ -6,10 +6,16 @@
   "packageFlag": "Validate one selected package",
   "poolFlag": "Pool tag to fetch scratch orgs",
   "devAliasFlag": "Target dev hub alias",
-  "examples": ["sfdx eon:validate", "sfdx  eon:validate"],
+  "examples": [
+   "sfdx eon:validate -t origin/main",
+   "sfdx  eon:validate -t origin/main -p core",
+   "sfdx  eon:validate -t origin/main -p core -o",
+   "sfdx  eon:validate --target origin/main --package --onlytests"
+  ],
   "errorDeployment": "Process finsihed with Exit Code 1.",
   "errorFoundNoApex": "Query Apex from Org failed: %s",
   "errorApexQueueInsert": "Testclass cannot inserted to TestQueue.See error messages",
   "errorApexQueueSelect": "Select on Object ApexTestQueueItem not possible",
-  "errorCodeCoverage": "No Apex Test Coverage found"
+  "errorCodeCoverage": "No Apex Test Coverage found",
+  "testclassFlag": "Run validation without deployment only for testclass execution"
 }
