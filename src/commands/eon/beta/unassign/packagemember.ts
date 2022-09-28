@@ -16,9 +16,9 @@ import EONLogger, {
   COLOR_SUCCESS,
   COLOR_INFO,
   COLOR_ERROR,
-} from '../../../eon/EONLogger';
-import { LOGOBANNER } from '../../../eon/logo';
-import { UnassignPackage } from '../../../helper/types';
+} from '../../../../eon/EONLogger';
+import { LOGOBANNER } from '../../../../eon/logo';
+import { UnassignPackage } from '../../../../helper/types';
 import puppeteer from 'puppeteer';
 import YAML from 'yaml';
 import path from 'path';
@@ -107,6 +107,17 @@ export default class PackageMemberUnassign extends SfdxCommand {
     /**
      run this part only for the config flag
     */
+    if (!this.flags.configfile && !this.flags.packagename) {
+      throw new SfdxError(`Either a single packagemember or a config file must be used.`);
+    }
+    if (this.flags.configfile && this.flags.packagename) {
+      throw new SfdxError(`Either a single packagemember or a config file can be used.`);
+    }
+    if (this.flags.type == 'Custom Field' && !this.flags.parentobject) {
+      throw new SfdxError(
+        `If object specific component are selected, --paremtobject is required to find the unique component`
+      );
+    }
 
     if (this.flags.configfile) {
       EONLogger.log(COLOR_TRACE(`Use config file ${this.flags.configfile} to remove components`));
@@ -163,6 +174,7 @@ export default class PackageMemberUnassign extends SfdxCommand {
       /**
      run this part only for single changes
     */
+
       EONLogger.log(COLOR_TRACE(`Start processing remove from a single component`));
       let packageData: UnassignPackage = {
         Package: this.flags.packagename,
