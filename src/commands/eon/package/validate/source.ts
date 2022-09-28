@@ -208,7 +208,7 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
       wordWrap: true,
     });
     //print deployment errors
-    if (input.componentFailures) {
+    if ((Array.isArray(input.componentFailures) && input.componentFailures.length > 0) || (typeof input.componentFailures === 'object' && Object.keys(input.componentFailures).length > 0)) {
       let result: DeployError[] = [];
       if (Array.isArray(input.componentFailures)) {
         result = input.componentFailures.map((a) => {
