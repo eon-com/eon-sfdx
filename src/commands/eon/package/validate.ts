@@ -143,6 +143,7 @@ export default class Validate extends SfdxCommand {
           break;
         }
       }
+
       if (this.flags.target) {
         packageCheck = changes.files.some((change) => {
           if (
@@ -154,22 +155,7 @@ export default class Validate extends SfdxCommand {
           }
           //check for metadata move between packages
           if (change.file.search('=>') > -1) {
-            let pathString = change.file.replace('{', '');
-            pathString = pathString.replace('}', '');
-            let packageOldChange = pathString.slice(0, 36);
-            let packageNewChange = pathString.slice(39);
-            if (
-              path
-                .join(path.dirname(projectJson.getPath()), path.normalize(packageOldChange))
-                .includes(path.normalize(pck.fullPath))
-            ) {
-              return true;
-            }
-            if (
-              path
-                .join(path.dirname(projectJson.getPath()), path.normalize(packageNewChange))
-                .includes(path.normalize(pck.fullPath))
-            ) {
+            if (change.file.search(pck.package) > -1) {
               return true;
             }
           }
