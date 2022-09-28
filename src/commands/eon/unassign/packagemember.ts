@@ -16,9 +16,9 @@ import EONLogger, {
   COLOR_SUCCESS,
   COLOR_INFO,
   COLOR_ERROR,
-} from '../../../../eon/EONLogger';
-import { LOGOBANNER } from '../../../../eon/logo';
-import { UnassignPackage } from '../../../../helper/types';
+} from '../../../eon/EONLogger';
+import { LOGOBANNER } from '../../../eon/logo';
+import { UnassignPackage } from '../../../helper/types';
 import puppeteer from 'puppeteer';
 import YAML from 'yaml';
 import path from 'path';

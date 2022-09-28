@@ -11,8 +11,8 @@ import path from 'path';
 import { Messages, NamedPackageDir, SfdxProjectJson } from '@salesforce/core';
 
 import { AnyJson } from '@salesforce/ts-types';
-import EONLogger, { COLOR_ERROR, COLOR_HEADER, COLOR_INFO } from '../../../../../eon/EONLogger';
-import { LOGOBANNER } from '../../../../../eon/logo';
+import EONLogger, { COLOR_ERROR, COLOR_HEADER, COLOR_INFO } from '../../../../eon/EONLogger';
+import { LOGOBANNER } from '../../../../eon/logo';
 import {
   DEVKITFOLDER,
   EONDEVKITYML,
@@ -21,7 +21,7 @@ import {
   SCRIPTSFOLDER,
   SETUPFILE,
   TESTDATAFOLDER,
-} from '../../../../../helper/devkit-constants';
+} from '../../../../helper/devkit-constants';
 // Initialize Messages with the current plugin directory
 Messages.importMessagesDirectory(__dirname);
 
