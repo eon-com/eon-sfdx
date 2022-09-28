@@ -443,7 +443,7 @@ export default class GitLabStatus extends SfdxCommand {
             if (pck.Name === key) {
               let packageIndex = value.releaseTag.search('_v');
               if (
-                pck.Version__c.localeCompare(value.releaseTag.slice(packageIndex + 2), undefined, {
+                pck.Version__c.localeCompare(value.releaseTag.slice(packageIndex + 1), undefined, {
                   numeric: true,
                   sensitivity: 'base',
                 }) > -1
