@@ -344,3 +344,9 @@ export interface UnassignKeys {
   IsRemoved?: boolean;
   Message?: string
 }
+
+export interface ProjectValidationOutput {
+  Process: string;
+  Package: string;
+  Message: string;
+}

@@ -1,0 +1,16 @@
+{
+    "commandDescription": "This command performs static checks in the sfdx-project json file for changed packages. Optional flags are used to control which validations are to be carried out. The individual tests are described with the flags.",
+    "source": "This flag is required for the git diff check and describes the source value. The default value is HEAD",
+    "target": "This flag is required for the git diff check and describes the target value. For example main branch.",
+    "package": "Validate only one selected package",
+    "versionupdate": "Checks whether the versions of the changed packages for the merge request have been updated. The check is against the target flag.",
+    "missingdeps": "Checks whether all dependend packages are present in the unlocked package tree",
+    "order": "Checks if the dependent packages are arranged in the correct order in the package tree. Furthermore, it is checked that the dependend packages are arranged in front of the unlocked package in the tree.",
+    "depsversion": "Checks whether the dependent packages have at least the versions of the dependent packages. Default this commands checks only the required versions.",
+    "examples": [
+     "sfdx eon:project:validate -t origin/main --versionupdate",
+     "sfdx eon:project:validate -t --order -p core",
+     "sfdx eon:project:validate -t origin/main --versionupdate --missingdeps --order --depsversion",
+     "sfdx eon:project:validate -t origin/main - -v -m -o -d"
+    ]
+  }
