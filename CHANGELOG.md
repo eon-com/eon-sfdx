@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.6.0](https://github.com/eon-com/eon-sfdx/compare/v1.5.1...v1.6.0) (2022-10-04)
+
+
+### Features
+
+* new command for static project analysis ([6f7d3a7](https://github.com/eon-com/eon-sfdx/commit/6f7d3a75dd1186c26eff798bf379c429cbf96666))
+
+
+### Bug Fixes
+
+* **validate:source:** resolve error where single errors are not displayed ([3f67c61](https://github.com/eon-com/eon-sfdx/commit/3f67c61adf45dcb720633002d7955035cddaff9b))
+
 ### [1.5.1](https://github.com/eon-com/eon-sfdx/compare/v1.5.0...v1.5.1) (2022-09-28)
 
 ### [1.4.2](https://github.com/eon-com/eon-sfdx/compare/v1.4.1...v1.4.2) (2022-09-20)
