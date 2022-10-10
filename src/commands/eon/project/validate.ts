@@ -9,10 +9,7 @@ import { flags, SfdxCommand } from '@salesforce/command';
 import { Messages, SfdxError, SfdxProjectJson, PackageDir } from '@salesforce/core';
 import { AnyJson } from '@salesforce/ts-types';
 import simplegit, { DiffResult, SimpleGit } from 'simple-git';
-import {
-  ProjectValidationOutput,
-  NamedPackageDirLarge
-} from '../../../helper/types';
+import { ProjectValidationOutput, NamedPackageDirLarge, Status } from '../../../helper/types';
 import EONLogger, {
   COLOR_INFO,
   COLOR_KEY_MESSAGE,
@@ -20,11 +17,15 @@ import EONLogger, {
   COLOR_NOTIFY,
   COLOR_WARNING,
   COLOR_TRACE,
+  COLOR_EON_YELLOW,
+  COLOR_EON_BLUE,
+  COLOR_ERROR,
 } from '../../../eon/EONLogger';
 import path from 'path';
 import Table from 'cli-table3';
 import { LOGOBANNER } from '../../../eon/logo';
 import { ProjectJson } from '@salesforce/core/lib/sfdxProject';
+import stripAnsi from 'strip-ansi';
 // Initialize Messages with the current plugin directory
 Messages.importMessagesDirectory(__dirname);
 
@@ -85,15 +86,13 @@ export default class ProjectValidate extends SfdxCommand {
   // Comment this out if your command does not require an org username
   protected static requiresUsername = true;
 
+  protected static publicPackageMap = new Map<string, NamedPackageDirLarge>();
+
   public async run(): Promise<AnyJson> {
     EONLogger.log(COLOR_HEADER(LOGOBANNER));
     EONLogger.log(COLOR_KEY_MESSAGE('Static checks on sfdx-project.json file...'));
     let hasError = false;
-    let tableOutput = new Table({
-      head: [COLOR_INFO('Static check'), COLOR_INFO('Package'), COLOR_INFO('Message')],
-      colWidths: [30, 40, 50], // Requires fixed column widths
-      wordWrap: true,
-    });
+    let tableOutput: ProjectValidationOutput[] = [];
     // get sfdx project.json
     const projectJson: SfdxProjectJson = await this.project.retrieveSfdxProjectJson();
     const packageAliases = projectJson.getContents().packageAliases;
@@ -195,14 +194,9 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
         //check update version number
         const singlePackageCheckList = this.checkSingleVersionUpdate(value, packageDirsTarget);
         if (singlePackageCheckList.length > 0) {
-          for (const singlePackageCheck of singlePackageCheckList) {
-            tableOutput.push([
-              { content: singlePackageCheck.Process },
-              { content: singlePackageCheck.Package },
-              { content: singlePackageCheck.Message },
-            ]);
-            hasError = true;
-          }
+          ProjectValidate.publicPackageMap.set(value.package, value);
+          tableOutput = [...singlePackageCheckList];
+          hasError = true;
         }
       }
     }
@@ -215,14 +209,9 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
         }
         const singlePackageCheckList = this.checkMissingDeps(packageDirs, value);
         if (singlePackageCheckList.length > 0) {
-          for (const singlePackageCheck of singlePackageCheckList) {
-            tableOutput.push([
-              { content: singlePackageCheck.Process },
-              { content: singlePackageCheck.Package },
-              { content: singlePackageCheck.Message },
-            ]);
-            hasError = true;
-          }
+          ProjectValidate.publicPackageMap.set(value.package, value);
+          tableOutput = [...singlePackageCheckList];
+          hasError = true;
         }
       }
     }
@@ -235,14 +224,9 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
         }
         const singlePackageCheckList = this.checkPackageOrder(packageDirs, value, packageAliases);
         if (singlePackageCheckList.length > 0) {
-          for (const singlePackageCheck of singlePackageCheckList) {
-            tableOutput.push([
-              { content: singlePackageCheck.Process },
-              { content: singlePackageCheck.Package },
-              { content: singlePackageCheck.Message },
-            ]);
-            hasError = true;
-          }
+          ProjectValidate.publicPackageMap.set(value.package, value);
+          tableOutput = [...singlePackageCheckList];
+          hasError = true;
         }
       }
     }
@@ -255,21 +239,26 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
         }
         const singlePackageCheckList = this.checkDepVersion(packageDirs, value);
         if (singlePackageCheckList.length > 0) {
-          for (const singlePackageCheck of singlePackageCheckList) {
-            tableOutput.push([
-              { content: singlePackageCheck.Process },
-              { content: singlePackageCheck.Package },
-              { content: singlePackageCheck.Message },
-            ]);
-            hasError = true;
-          }
+          ProjectValidate.publicPackageMap.set(value.package, value);
+          tableOutput = [...singlePackageCheckList];
+          hasError = true;
         }
       }
     }
     if (hasError) {
-      console.log(tableOutput.toString());
+      //console.log(tableOutput.toString());
+      EONLogger.log(
+        COLOR_ERROR(`Static check found errors. Please check the package templates with the correct data 🧐`)
+      );
+      for (const publicPck of ProjectValidate.publicPackageMap.values()) {
+        console.log(COLOR_INFO(`>>>>>>>>>>>>sfdx-project.json cutout>>>>📦 ${publicPck.package}>>>>>>>>`), '\n');
+        console.log(this.createTableString(publicPck),'\n');
+        console.log(
+          COLOR_INFO(`<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<`)
+        );
+      }
       throw new SfdxError(
-        `Static checks failed. Please check error messages from table and fix this issues from sfdx-project.json file`
+        `Static checks failed. Please fetch the new data from table and fix this issues from sfdx-project.json file`
       );
     }
 
@@ -297,6 +286,7 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
             Package: sourcePackageDir.package,
             Message: `Package Version without change. Please update version ${sourcePackageDir.versionNumber}`,
           });
+          sourcePackageDir.versionNumber = `"${COLOR_EON_BLUE(targetPackage.versionNumber)}"`;
         }
       }
     }
@@ -309,7 +299,7 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
   ): ProjectValidationOutput[] {
     EONLogger.log(COLOR_TRACE(`Start check missing dependencies for package ${packageTree.package}`));
     const validationResponse: ProjectValidationOutput[] = [];
-    const depPackageSet = new Set<string>();
+    const depPackageSet = new Map<string, string>();
     if (!packageTree?.dependencies) {
       throw new SfdxError(
         `Validation for missing dependencies failed. unlocked package ${packageTree.package} has no dependencies array.
@@ -328,17 +318,20 @@ Please add an empty array for the dependencies.`
         if (pckDepsTree.package === sourcePackageTree.package) {
           if (sourcePackageTree.dependencies && Array.isArray(sourcePackageTree.dependencies)) {
             for (const sourcePckDep of sourcePackageTree.dependencies) {
-              depPackageSet.add(sourcePckDep.package);
+               
+              depPackageSet.set(sourcePckDep.package, `${sourcePckDep.package === sourcePackageTree.package && sourcePackageTree.versionNumber ? sourcePackageTree.versionNumber.replace('NEXT','LATEST') : 'kd'}`);
             }
           }
         }
       }
     }
+    let depPackageCounter = 0;
     // now iterate over the required packages set
-    for (const requiredPck of depPackageSet) {
+    for (const [key, value] of depPackageSet) {
+      depPackageCounter++;
       let isInPackageTree = false;
       for (const pckDepsTree of packageTree.dependencies) {
-        if (pckDepsTree.package === requiredPck) {
+        if (pckDepsTree.package === key) {
           isInPackageTree = true;
         }
       }
@@ -346,8 +339,18 @@ Please add an empty array for the dependencies.`
         validationResponse.push({
           Process: `Missing dependencies`,
           Package: packageTree.package,
-          Message: `Please add package ${requiredPck} to the dependencies`,
+          Message: `Please add package ${key} to the dependencies`,
         });
+        if (value && value !== undefined) {
+          packageTree.dependencies.splice(depPackageCounter, 0, {
+            package: COLOR_EON_BLUE(key),
+            versionNumber: COLOR_EON_BLUE(value),
+          });
+        } else {
+          packageTree.dependencies.splice(depPackageCounter, 0, {
+            package: COLOR_EON_BLUE(key),
+          });
+        }
       }
     }
     // iterate again to
@@ -361,96 +364,121 @@ Please add an empty array for the dependencies.`
       [k: string]: string;
     }
   ): ProjectValidationOutput[] {
-    EONLogger.log(COLOR_TRACE(`Start checking order for package ${packageTree.package}`));
-    const currentPckIndexMap = new Map<string, number>();
-    const newPckIndexMap = new Map<string, number>();
-    const validationResponse: ProjectValidationOutput[] = [];
-    let newPackageIndex = 0;
-    if (!packageTree?.dependencies) {
-      throw new SfdxError(
-        `Validation for missing dependencies failed. unlocked package ${packageTree.package} has no dependencies array.
+    try {
+      EONLogger.log(COLOR_TRACE(`Start checking order for package ${packageTree.package}`));
+      const currentPckIndexMap = new Map<string, number>();
+      const newPckIndexMap = new Map<string, number>();
+      const validationResponse: ProjectValidationOutput[] = [];
+      let newPackageIndex = 0;
+      if (!packageTree?.dependencies) {
+        throw new SfdxError(
+          `Validation for missing dependencies failed. unlocked package ${packageTree.package} has no dependencies array.
   Please add an empty array for the dependencies.`
-      );
-    }
-    if (
-      !(packageTree?.dependencies && Array.isArray(packageTree.dependencies) && packageTree.dependencies.length > 0)
-    ) {
-      EONLogger.log(COLOR_INFO(`✔️ Package has no dependencies. Finished without check.`));
-      return validationResponse;
-    }
-    // create perfect order from sfdx-project json top to down
-    for (const sourcePackageTree of sourcePackageDirs) {
-      for (const sourcePckDep of packageTree.dependencies) {
-        //managed package??
-        if (packageAliases[sourcePckDep.package] && packageAliases[sourcePckDep.package].startsWith('04')) {
-          if (!newPckIndexMap.get(sourcePckDep.package)) {
+        );
+      }
+      if (
+        !(packageTree?.dependencies && Array.isArray(packageTree.dependencies) && packageTree.dependencies.length > 0)
+      ) {
+        EONLogger.log(COLOR_INFO(`✔️ Package has no dependencies. Finished without check.`));
+        return validationResponse;
+      }
+      // create perfect order from sfdx-project json top to down
+      for (const sourcePackageTree of sourcePackageDirs) {
+        for (const sourcePckDep of packageTree.dependencies) {
+          //managed package??
+          if (packageAliases[sourcePckDep.package] && packageAliases[sourcePckDep.package].startsWith('04')) {
+            if (!newPckIndexMap.get(sourcePckDep.package)) {
+              newPckIndexMap.set(sourcePckDep.package, newPackageIndex);
+              newPackageIndex++;
+            }
+          }
+          if (sourcePckDep.package === sourcePackageTree.package) {
+            newPckIndexMap.set(sourcePckDep.package, newPackageIndex);
             newPackageIndex++;
+          }
+        }
+      }
+      //create current order
+      newPackageIndex = 0;
+      for (const sourcePckDep of packageTree.dependencies) {
+        currentPckIndexMap.set(sourcePckDep.package, newPackageIndex);
+        newPackageIndex++;
+      }
+      // create output
+      let outputList: string[] = [];
+      for (const newOrder of currentPckIndexMap.keys()) {
+        outputList.push(newOrder);
+      }
+      if (outputList.length > 0) {
+        //EONLogger.log(COLOR_INFO(`Current Order: ${outputList.join()}`));
+      }
+      outputList = [];
+      for (const [key, value] of newPckIndexMap) {
+        outputList.push(key);
+        if (currentPckIndexMap.get(key)) {
+          if (currentPckIndexMap.get(key) > value) {
+            let splicePck: string = stripAnsi(packageTree.dependencies[currentPckIndexMap.get(key)].package);
+            let spliceVersion: string = stripAnsi(packageTree.dependencies[currentPckIndexMap.get(key)].versionNumber);
+            if (spliceVersion && spliceVersion !== undefined) {
+              packageTree.dependencies.splice(value, 0, {
+                package: COLOR_EON_YELLOW(splicePck),
+                versionNumber: COLOR_EON_YELLOW(spliceVersion),
+              });
+            } else {
+              packageTree.dependencies.splice(value, 0, {
+                package: COLOR_EON_YELLOW(splicePck),
+              });
+            }
+            packageTree.dependencies.splice(currentPckIndexMap.get(key) + 1, 1);
+            validationResponse.push({
+              Process: `Dependency Order`,
+              Package: packageTree.package,
+              Message: `Package ${key} has the wrong order position. Current postion is ${currentPckIndexMap.get(
+                key
+              )}. New position is ${value}. Please check the New Order Details on top of the table ☝️.`,
+            });
+            //create current order after splice process
+            newPackageIndex = 0;
+            currentPckIndexMap.clear();
+            for (const sourcePckDep of packageTree.dependencies) {
+              currentPckIndexMap.set(sourcePckDep.package, newPackageIndex);
+              newPackageIndex++;
+            }
+          }
+        }
+      }
+      if (outputList.length > 0) {
+        //EONLogger.log(COLOR_INFO(`New Order: ${outputList.join()}`));
+      }
+      // now check also the correct package position. the package itself must come after the dependencies
+      currentPckIndexMap.clear();
+      newPackageIndex = 0;
+      let currentPackageIndex = 0;
+      for (const sourcePackageTree of sourcePackageDirs) {
+        for (const sourcePckDep of packageTree.dependencies) {
+          if (sourcePckDep.package === sourcePackageTree.package) {
             newPckIndexMap.set(sourcePckDep.package, newPackageIndex);
           }
         }
-        if (sourcePckDep.package === sourcePackageTree.package) {
-          newPackageIndex++;
-          newPckIndexMap.set(sourcePckDep.package, newPackageIndex);
+        if (sourcePackageTree.package === packageTree.package) {
+          currentPackageIndex = newPackageIndex;
         }
+        newPackageIndex++;
       }
-    }
-    //create current order
-    newPackageIndex = 0;
-    for (const sourcePckDep of packageTree.dependencies) {
-      newPackageIndex++;
-      currentPckIndexMap.set(sourcePckDep.package, newPackageIndex);
-    }
-    // create output
-    let outputList: string[] = [];
-    for (const newOrder of currentPckIndexMap.keys()) {
-      outputList.push(newOrder);
-    }
-    if (outputList.length > 0) {
-      EONLogger.log(COLOR_INFO(`Current Order: ${outputList.join()}`));
-    }
-    outputList = [];
-    for (const [key, value] of newPckIndexMap) {
-      outputList.push(key);
-      if (currentPckIndexMap.get(key)) {
-        if (currentPckIndexMap.get(key) > value) {
+      for (const [key, value] of newPckIndexMap) {
+        if (value > currentPackageIndex) {
           validationResponse.push({
-            Process: `Dependency Order`,
+            Process: `Main Package Order`,
             Package: packageTree.package,
-            Message: `Package ${key} has the wrong order position. Current postion is ${currentPckIndexMap.get(
-              key
-            )}. New position is ${value}. Please check the New Order Details on top of the table ☝️.`,
+            Message: `The dependend package ${key} is behind the main package. Please change the position of the main package.`,
           });
         }
       }
+
+      return validationResponse;
+    } catch (e) {
+      throw new SfdxError(e);
     }
-    if (outputList.length > 0) {
-      EONLogger.log(COLOR_INFO(`New Order: ${outputList.join()}`));
-    }
-    // now check also the correct package position. the package itself must come after the dependencies
-    currentPckIndexMap.clear();
-    newPackageIndex = 0;
-    let currentPackageIndex = 0;
-    for (const sourcePackageTree of sourcePackageDirs) {
-      newPackageIndex++;
-      for (const sourcePckDep of packageTree.dependencies) {
-        if (sourcePckDep.package === sourcePackageTree.package) {
-          newPckIndexMap.set(sourcePckDep.package, newPackageIndex);
-        }
-      }
-      if (sourcePackageTree.package === packageTree.package) {
-        currentPackageIndex = newPackageIndex;
-      }
-    }
-    for (const [key, value] of newPckIndexMap) {
-      if (value > currentPackageIndex) {
-        validationResponse.push({
-          Process: `Main Package Order`,
-          Package: packageTree.package,
-          Message: `The dependend package ${key} is behind the main package. Please change the position of the main package.`,
-        });
-      }
-    }
-    return validationResponse;
   }
 
   private checkDepVersion(
@@ -474,48 +502,78 @@ Please add an empty array for the dependencies.`
       return validationResponse;
     }
 
-      for (const sourcePackageTree of sourcePackageDirs) {
-        for (const sourcePckDep of packageTree.dependencies) {
-          if (sourcePckDep.package === sourcePackageTree.package) {
-            if (sourcePackageTree.versionNumber) {
-                if(sourcePackageTree.versionNumber.search('NEXT') === -1){
-                    throw new SfdxError(
-                        `Validation for dependencies version failed. Unlocked package ${packageTree.package} has wrong version format.
+    for (const sourcePackageTree of sourcePackageDirs) {
+      for (const sourcePckDep of packageTree.dependencies) {
+        if (sourcePckDep.package === sourcePackageTree.package) {
+          if (sourcePackageTree?.versionNumber) {
+            if (sourcePackageTree.versionNumber.search('NEXT') === -1) {
+              throw new SfdxError(
+                `Validation for dependencies version failed. Unlocked package ${packageTree.package} has wrong version format.
 The job cannot find the 'NEXT' prefix. Please check the version number ${sourcePckDep.versionNumber} for package ${sourcePckDep.package}.`
-                      );
-                }
-                newPackageVersionMap.set(sourcePckDep.package, sourcePackageTree.versionNumber.replace('.NEXT',''));
+              );
+            }
+            newPackageVersionMap.set(sourcePckDep.package, sourcePackageTree.versionNumber.replace('.NEXT', ''));
+          }
+        }
+      }
+    }
+    for (const sourcePckDep of packageTree.dependencies) {
+      if (sourcePckDep?.versionNumber) {
+        if (sourcePckDep.versionNumber.search('LATEST') === -1) {
+          throw new SfdxError(
+            `Validation for dependencies version failed. A dependend package for ${packageTree.package} has a wrong version format.
+The job cannot find the 'LATEST' prefix. Please check the version number ${sourcePckDep.versionNumber} for package ${sourcePckDep.package}.`
+          );
+        }
+        currentPackageVersionMap.set(sourcePckDep.package, sourcePckDep.versionNumber.replace('.LATEST', ''));
+      }
+    }
+    for (const [key, value] of currentPackageVersionMap) {
+      if (newPackageVersionMap.get(key)) {
+        if (
+          newPackageVersionMap.get(key).localeCompare(value, undefined, {
+            numeric: true,
+            sensitivity: 'base',
+          }) > 0
+        ) {
+          validationResponse.push({
+            Process: `Package dependency version`,
+            Package: packageTree.package,
+            Message: `Dependend package ${key} needs a higher version. Please update version to ${newPackageVersionMap.get(
+              key
+            )}!`,
+          });
+          for (const sourcePckDep of packageTree.dependencies) {
+            if (sourcePckDep.package === key) {
+              let colorVersion: string = stripAnsi(sourcePckDep.versionNumber);
+              colorVersion = COLOR_EON_BLUE(`${newPackageVersionMap.get(key)}.LATEST`);
+              sourcePckDep.versionNumber = colorVersion;
             }
           }
         }
       }
-      for (const sourcePckDep of packageTree.dependencies) {
-        if(sourcePckDep.versionNumber){
-            if(sourcePckDep.versionNumber.search('LATEST') === - 1){
-                throw new SfdxError(
-                    `Validation for dependencies version failed. A dependend package for ${packageTree.package} has a wrong version format.
-The job cannot find the 'LATEST' prefix. Please check the version number ${sourcePckDep.versionNumber} for package ${sourcePckDep.package}.`
-                  );
-            }
-            currentPackageVersionMap.set(sourcePckDep.package, sourcePckDep.versionNumber.replace('.LATEST',''))
-        }
-      }
-    for (const [key,value] of currentPackageVersionMap){
-        if(newPackageVersionMap.get(key)){
-            if (
-                value.localeCompare(newPackageVersionMap.get(key), undefined, {
-                  numeric: true,
-                  sensitivity: 'base',
-                }) > -1
-              ) {
-                validationResponse.push({
-                  Process: `Package dependency version`,
-                  Package: packageTree.package,
-                  Message: `Dependend package ${key} needs a higher version. Please update version to ${newPackageVersionMap.get(key)}!`,
-                });
-              }
-        }
     }
     return validationResponse;
+  }
+
+  private createTableString(packageTree: NamedPackageDirLarge): string {
+    let outputString: string = '';
+    outputString = `        {\n`;
+    outputString = outputString + `             "path": "${packageTree.path}"\n`;
+    outputString = outputString + `             "package": "${packageTree.package}"\n`;
+    outputString = outputString + `             "versionName": "${packageTree.versionName}"\n`;
+    outputString = outputString + `             "versionNumber": "${packageTree.versionNumber}"\n`;
+    outputString = outputString + `             "default": "${packageTree.default}"\n`;
+    outputString = outputString + `             "dependencies": [\n`;
+    for (const packageDep of packageTree.dependencies) {
+      outputString = outputString + `                 {\n`;
+      outputString = outputString + `                     "package": "${packageDep.package}"\n`;
+      if (packageDep.versionNumber) {
+        outputString = outputString + `                     "versionNumber": "${packageDep.versionNumber}"\n`;
+      }
+      outputString = outputString + `                 }\n`;
+    }
+    outputString = outputString + `             ]\n`;
+    return outputString;
   }
 }
