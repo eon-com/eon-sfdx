@@ -472,7 +472,7 @@ First the dependecies packages. And then this package.`
     const connection: Connection = this.org.getConnection();
     try {
       const apexObj: ApexClass = await connection.singleRecordQuery(
-        "Select Id,Name,Body from ApexClass Where Name = '" + comp + "' And LengthWithoutComments != -1 LIMIT 1",
+        "Select Id,Name,Body from ApexClass Where Name = '" + comp + "' And ManageableState = 'unmanaged' LIMIT 1",
         { tooling: true }
       );
       if (apexObj && (apexObj.Body.search('@isTest') > -1 || apexObj.Body.search('@IsTest') > -1)) {
@@ -623,15 +623,16 @@ First the dependecies packages. And then this package.`
     } catch (e) {
       throw new SfdxError(`System Exception: Problems to found Results from ApexTestResult`);
     }
+    let table = new Table({
+      head: [COLOR_ERROR('ApexClass Name'), COLOR_ERROR('Methodname'), COLOR_ERROR('ErrorMessage')],
+      colWidths: [60, 60, 60],
+      wordWrap: true,
+    });
     if (responseFromOrg.records.length > 0) {
       for (const result of responseFromOrg.records) {
-        let table = new Table({
-          head: [COLOR_ERROR('ApexClass Name'), COLOR_ERROR('Methodname'), COLOR_ERROR('ErrorMessage')],
-          wordWrap: true,
-        });
         table.push([result.ApexClass.Name, result.MethodName, result.Message]);
-        console.log(table.toString());
       }
+      console.log(table.toString());
       EONLogger.log(COLOR_ERROR(`This package contains testclass errors.`));
       throw new SfdxError(`Please fix this issues from the table and try again.`);
     }
