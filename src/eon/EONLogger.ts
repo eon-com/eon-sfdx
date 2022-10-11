@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 export const COLOR_ERROR = chalk.bold.red;
 export const COLOR_INFO = chalk.white;
+export const COLOR_INFO_BOLD = chalk.white.bold;
 export const COLOR_WARNING = chalk.yellow;
 export const COLOR_NOTIFY = chalk.cyan;
 export const COLOR_TRACE = chalk.gray;
