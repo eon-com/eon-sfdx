@@ -9,7 +9,7 @@ import { flags, SfdxCommand } from '@salesforce/command';
 import { Messages, SfdxError, SfdxProjectJson, PackageDir } from '@salesforce/core';
 import { AnyJson } from '@salesforce/ts-types';
 import simplegit, { DiffResult, SimpleGit } from 'simple-git';
-import { ProjectValidationOutput, NamedPackageDirLarge, Status } from '../../../helper/types';
+import { ProjectValidationOutput, NamedPackageDirLarge } from '../../../helper/types';
 import EONLogger, {
   COLOR_INFO,
   COLOR_KEY_MESSAGE,
@@ -92,7 +92,6 @@ export default class ProjectValidate extends SfdxCommand {
     EONLogger.log(COLOR_HEADER(LOGOBANNER));
     EONLogger.log(COLOR_KEY_MESSAGE('Static checks on sfdx-project.json file...'));
     let hasError = false;
-    let tableOutput: ProjectValidationOutput[] = [];
     // get sfdx project.json
     const projectJson: SfdxProjectJson = await this.project.retrieveSfdxProjectJson();
     const packageAliases = projectJson.getContents().packageAliases;
@@ -107,6 +106,7 @@ export default class ProjectValidate extends SfdxCommand {
     let projectJsonString: string;
     let projectJsonTarget: ProjectJson;
     let packageDirsTarget: PackageDir[] = [];
+    let packageCheckList: ProjectValidationOutput[] = []
     if (!this.flags.package) {
       EONLogger.log(COLOR_HEADER('Search for package changes'));
       projectJsonString = await git.show([`${this.flags.target}:sfdx-project.json`]);
@@ -194,8 +194,8 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
         //check update version number
         const singlePackageCheckList = this.checkSingleVersionUpdate(value, packageDirsTarget);
         if (singlePackageCheckList.length > 0) {
+          packageCheckList = [...packageCheckList,...singlePackageCheckList];
           ProjectValidate.publicPackageMap.set(value.package, value);
-          tableOutput = [...singlePackageCheckList];
           hasError = true;
         }
       }
@@ -209,8 +209,8 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
         }
         const singlePackageCheckList = this.checkMissingDeps(packageDirs, value);
         if (singlePackageCheckList.length > 0) {
+          packageCheckList = [...packageCheckList,...singlePackageCheckList];
           ProjectValidate.publicPackageMap.set(value.package, value);
-          tableOutput = [...singlePackageCheckList];
           hasError = true;
         }
       }
@@ -224,8 +224,8 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
         }
         const singlePackageCheckList = this.checkPackageOrder(packageDirs, value, packageAliases);
         if (singlePackageCheckList.length > 0) {
+          packageCheckList = [...packageCheckList,...singlePackageCheckList];
           ProjectValidate.publicPackageMap.set(value.package, value);
-          tableOutput = [...singlePackageCheckList];
           hasError = true;
         }
       }
@@ -239,8 +239,8 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
         }
         const singlePackageCheckList = this.checkDepVersion(packageDirs, value);
         if (singlePackageCheckList.length > 0) {
+          packageCheckList = [...packageCheckList,...singlePackageCheckList];
           ProjectValidate.publicPackageMap.set(value.package, value);
-          tableOutput = [...singlePackageCheckList];
           hasError = true;
         }
       }
@@ -251,10 +251,14 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
         COLOR_ERROR(`Static check found errors. Please check the package templates with the correct data 🧐`)
       );
       for (const publicPck of ProjectValidate.publicPackageMap.values()) {
-        console.log(COLOR_INFO(`>>>>>>>>>>>>sfdx-project.json cutout>>>>📦 ${publicPck.package}>>>>>>>>`), '\n');
+        const pckOrderMainList = packageCheckList.filter(pck => pck.Package === publicPck.package && pck.Process === 'Main Package Order');
+        console.log(COLOR_INFO(`>>>>>>>>>>>> sfdx-project.json snippet >>>> 📦 ${publicPck.package}>>>>>>>>`), '\n');
         console.log(this.createTableString(publicPck),'\n');
+        if(pckOrderMainList.length > 0){
+          EONLogger.log(COLOR_WARNING(`👆 This package has a wrong position in the project json. Please put this package behind ⤵ the depend package ${pckOrderMainList[pckOrderMainList.length - 1].Message} ❗️`));
+        }
         console.log(
-          COLOR_INFO(`<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<`)
+          COLOR_INFO(`<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<`, '\n')
         );
       }
       throw new SfdxError(
@@ -286,7 +290,24 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
             Package: sourcePackageDir.package,
             Message: `Package Version without change. Please update version ${sourcePackageDir.versionNumber}`,
           });
-          sourcePackageDir.versionNumber = `"${COLOR_EON_BLUE(targetPackage.versionNumber)}"`;
+          //create the new version number from target branch , update minor version
+          let newMinorVersion: string = '';
+          try {
+          if(targetPackage.versionNumber){
+            const startVersion = targetPackage.versionNumber.slice(0,targetPackage.versionNumber.indexOf('.'))
+            const endVersion = targetPackage.versionNumber.slice(targetPackage.versionNumber.lastIndexOf('.') + 1)
+            const firstPoint = targetPackage.versionNumber.indexOf('.') + 1;
+            const lastPoint = targetPackage.versionNumber.lastIndexOf('.');
+            const oldMinor = targetPackage.versionNumber.slice(firstPoint,lastPoint);
+            const newMinor = ~~oldMinor + 1;
+            newMinorVersion = `${startVersion}.${newMinor}.${endVersion}.NEXT`
+          }
+          } catch (e){
+            throw new SfdxError(
+              `Static checks failed. Cannot create a new minor version from target branch. Please check the project json from main.`
+            );
+          }
+          sourcePackageDir.versionNumber = `"${COLOR_EON_BLUE(newMinorVersion)}"`;
         }
       }
     }
@@ -318,8 +339,9 @@ Please add an empty array for the dependencies.`
         if (pckDepsTree.package === sourcePackageTree.package) {
           if (sourcePackageTree.dependencies && Array.isArray(sourcePackageTree.dependencies)) {
             for (const sourcePckDep of sourcePackageTree.dependencies) {
-               
-              depPackageSet.set(sourcePckDep.package, `${sourcePckDep.package === sourcePackageTree.package && sourcePackageTree.versionNumber ? sourcePackageTree.versionNumber.replace('NEXT','LATEST') : 'kd'}`);
+              //get the latest version from main for new package dependency
+              const mainPckTree = sourcePackageDirs.filter(pck => pck.package === sourcePckDep.package); 
+              depPackageSet.set(sourcePckDep.package, mainPckTree.length > 0 && mainPckTree[0].versionNumber ? mainPckTree[0].versionNumber.replace('.NEXT','.LATEST') : sourcePckDep.versionNumber)
             }
           }
         }
@@ -470,7 +492,7 @@ Please add an empty array for the dependencies.`
           validationResponse.push({
             Process: `Main Package Order`,
             Package: packageTree.package,
-            Message: `The dependend package ${key} is behind the main package. Please change the position of the main package.`,
+            Message: key,
           });
         }
       }
