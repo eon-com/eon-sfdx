@@ -198,7 +198,6 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
       colWidths: [60, 60], // Requires fixed column widths
       wordWrap: true,
     });
-    console.log(input);
     //print deployment errors
     if (
       (Array.isArray(input.componentFailures) && input.componentFailures.length > 0) ||
