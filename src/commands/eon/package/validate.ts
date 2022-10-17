@@ -331,7 +331,10 @@ First the dependecies packages. And then this package.`
       wordWrap: true,
     });
     //print deployment errors
-    if (input.componentFailures) {
+    if (
+      (Array.isArray(input.componentFailures) && input.componentFailures.length > 0) ||
+      (typeof input.componentFailures === 'object' && Object.keys(input.componentFailures).length > 0)
+    ) {
       let result: DeployError[] = [];
       if (Array.isArray(input.componentFailures)) {
         result = input.componentFailures.map((a) => {
@@ -362,7 +365,15 @@ First the dependecies packages. And then this package.`
         `Deployment failed. Please check error messages from table and fix this issues from package.`
       );
       // print test run errors
-    } else if (input.runTestResult && input.runTestResult.failures) {
+    } else if (
+      (input.runTestResult &&
+        input.runTestResult.failures &&
+        Array.isArray(input.runTestResult.failures) &&
+        input.runTestResult.failures.length > 0) ||
+      (input.runTestResult &&
+        typeof input.runTestResult.failures === 'object' &&
+        Object.keys(input.runTestResult.failures).length > 0)
+    ) {
       let tableTest = new Table({
         head: ['Apex Class', 'Message', 'Stack Trace'],
         colWidths: [60, 60, 60], // Requires fixed column widths
@@ -384,7 +395,15 @@ First the dependecies packages. And then this package.`
         `Testrun failed. Please check the testclass errors from table and fix this issues from package.`
       );
       // print code coverage errors
-    } else if (input.runTestResult && input.runTestResult.codeCoverageWarnings) {
+    } else if (
+      (input.runTestResult &&
+        input.runTestResult.codeCoverageWarnings &&
+        Array.isArray(input.runTestResult.codeCoverageWarnings) &&
+        input.runTestResult.codeCoverageWarnings.length > 0) ||
+      (input.runTestResult &&
+        typeof input.runTestResult.codeCoverageWarnings === 'object' &&
+        Object.keys(input.runTestResult.codeCoverageWarnings).length > 0)
+    ) {
       if (Array.isArray(input.runTestResult.codeCoverageWarnings)) {
         const coverageList: CodeCoverageWarnings[] = input.runTestResult.codeCoverageWarnings;
         coverageList.forEach((a) => {
@@ -397,6 +416,10 @@ First the dependecies packages. And then this package.`
       console.log(table.toString());
       throw new SfdxError(
         `Testcoverage failed. Please check the coverage from table and fix this issues from package.`
+      );
+    } else {
+      throw new SfdxError(
+        `Validation failed. No errors in the response. Please validate manual and check the errors on org (setup -> deployment status).`
       );
     }
   }
