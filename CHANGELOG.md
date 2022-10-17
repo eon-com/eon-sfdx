@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.7.0](https://github.com/eon-com/eon-sfdx/compare/v1.6.1...v1.7.0) (2022-10-17)
+
+
+### Features
+
+* (new command) create table for error handling ([ce5dc4b](https://github.com/eon-com/eon-sfdx/commit/ce5dc4b77d768dff4680a850651da5358c5ffafe))
+
+
+### Bug Fixes
+
+* (command) activate:bot ([dc57da9](https://github.com/eon-com/eon-sfdx/commit/dc57da903170c061f13506906f9f383b01e511df))
+* (command) activate:bot ([30b3426](https://github.com/eon-com/eon-sfdx/commit/30b3426028c67c4042161576399130612b73bef7))
+* (command) package:validate ([3bb9459](https://github.com/eon-com/eon-sfdx/commit/3bb945979bd79504eea5c43dafcb809e305055f2))
+
 ### [1.6.1](https://github.com/eon-com/eon-sfdx/compare/v1.6.0...v1.6.1) (2022-10-10)
 
 
