@@ -56,9 +56,7 @@ export default class GitHotfixCreate extends SfdxCommand {
     EONLogger.log(COLOR_HEADER(LOGOBANNER));
     EONLogger.log(COLOR_KEY_MESSAGE('Start creating branch from gitlab...'));
     EONLogger.log(COLOR_HEADER(`👉 Hotfix-Branch: hotfix-${this.flags.ticket}-${this.flags.package} 👈`));
-    // get sfdx project.json
 
-    const packageDirs:PackageDirParsed[] = this.project.getSfdxProjectJson().getContents().packageDirectories;
     //get package
     const commitId = await this.getCommitFromOrg()
     if(!commitId){
@@ -67,6 +65,8 @@ export default class GitHotfixCreate extends SfdxCommand {
     EONLogger.log(COLOR_TRACE(`Found commit id ${commitId} 👌`));
     //get branch
     await this.getBranch(commitId)
+    // get sfdx project.json
+    const packageDirs:PackageDirParsed[] = this.project.getSfdxProjectJson().getContents().packageDirectories
     this.updatePackageTree(packageDirs);
     await this.project.getSfdxProjectJson().write(this.project.getSfdxProjectJson().getContents())
 
