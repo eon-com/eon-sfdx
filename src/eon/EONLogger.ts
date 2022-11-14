@@ -8,8 +8,8 @@ export const COLOR_TRACE = chalk.gray;
 export const COLOR_HEADER = chalk.cyan.bold;
 export const COLOR_SUCCESS = chalk.green.bold;
 export const COLOR_KEY_MESSAGE = chalk.magentaBright.bold;
-export const COLOR_EON_YELLOW = chalk.hex('#DAD600').bold.italic;
-export const COLOR_EON_BLUE = chalk.hex('#00738B').bold.italic;
+export const COLOR_ERROR_DIM = chalk.red.dim.italic;
+export const COLOR_INFO_BOLD_DIM = chalk.white.dim.italic.bold;
 
 export default class EONLogger {
   static enableColor() {
