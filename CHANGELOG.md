@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.8.0](https://github.com/eon-com/eon-sfdx/compare/v1.7.0...v1.8.0) (2022-11-17)
+
+
+### Features
+
+* adding new command to create branch from org snapshot ([2a86434](https://github.com/eon-com/eon-sfdx/commit/2a86434c7b24d594c9423886d225286531422f95))
+
+
+### Bug Fixes
+
+* new project validate command ([601996c](https://github.com/eon-com/eon-sfdx/commit/601996cd8660b247a21358246003c8657d3a0696))
+
 ## [1.7.0](https://github.com/eon-com/eon-sfdx/compare/v1.6.1...v1.7.0) (2022-10-17)
 
 
