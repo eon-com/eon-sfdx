@@ -1,0 +1,11 @@
+{
+  "commandDescription": "Job to create a hotfix brnach for the selected package",
+  "packageFlag": "Package for create the hotfix branch",
+  "ticketFlag": "Jira ticket number to create the correct branch name",
+  "examples": [
+   "sfdx eon:validate -t origin/main",
+   "sfdx  eon:validate -t origin/main -p core",
+   "sfdx  eon:validate -t origin/main -p core -o",
+   "sfdx  eon:validate --target origin/main --package --onlytests"
+  ]
+}

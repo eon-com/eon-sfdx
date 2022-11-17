@@ -114,6 +114,7 @@ export interface ProjectJsonParsed {
 export interface PackageDirParsed extends PackageDir {
   name?: string;
   fullPath?: string;
+  ignoreOnStage?: string[];
 }
 export type FileResponse = FileResponseSuccess | FileResponseFailure;
 
@@ -320,6 +321,7 @@ export interface SfpowerscriptsArtifact2{
   Id?: string;
   Name?: string;
   Version__c?: string;
+  CommitId__c?: string;
 }
 
 export interface JobDetails{
@@ -350,3 +352,4 @@ export interface ProjectValidationOutput {
   Package: string;
   Message: string;
 }
+
