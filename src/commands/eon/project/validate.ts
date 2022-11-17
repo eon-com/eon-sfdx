@@ -268,7 +268,11 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
           COLOR_INFO(ProjectValidate.TREE_VERSION_UPDATE),
           `${
             hasTreeVersionUpdate
-              ? COLOR_INFO(`👎 Update package version. Please look into the ${COLOR_EON_YELLOW(`changes`)} from the package snippets!`)
+              ? COLOR_INFO(
+                  `👎 Update package version. Please look into the ${COLOR_EON_YELLOW(
+                    `changes`
+                  )} from the package snippets!`
+                )
               : '👍'
           }`,
         ]);
@@ -276,7 +280,9 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
           COLOR_INFO(ProjectValidate.MISSING_DEPS),
           `${
             hasMissingDeps
-              ? COLOR_INFO(`👎 Add dependencies.Please look into the ${COLOR_EON_YELLOW(`changes`)} from the package snippets!`)
+              ? COLOR_INFO(
+                  `👎 Add dependencies.Please look into the ${COLOR_EON_YELLOW(`changes`)} from the package snippets!`
+                )
               : '👍'
           }`,
         ]);
@@ -296,7 +302,11 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
           COLOR_INFO(ProjectValidate.TREE_DEPS_ORDER),
           `${
             hasTreeDepsOrder
-              ? COLOR_INFO(`👎 Change dependencies order.Please look into the ${COLOR_EON_YELLOW(`changes`)} from the package snippets!`)
+              ? COLOR_INFO(
+                  `👎 Change dependencies order.Please look into the ${COLOR_EON_YELLOW(
+                    `changes`
+                  )} from the package snippets!`
+                )
               : '👍'
           }`,
         ]);
@@ -304,7 +314,11 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
           COLOR_INFO(ProjectValidate.TREE_DEPS_VERSION),
           `${
             hasDepsVersion
-              ? COLOR_INFO(`👎 Update dependency version.Please look into the ${COLOR_EON_YELLOW(`changes`)} from the package snippets!`)
+              ? COLOR_INFO(
+                  `👎 Update dependency version.Please look into the ${COLOR_EON_YELLOW(
+                    `changes`
+                  )} from the package snippets!`
+                )
               : '👍'
           }`,
         ]);
@@ -601,7 +615,11 @@ The job cannot find the 'LATEST' prefix. Please check the version number ${sourc
           newPackageVersionMap.get(key).localeCompare(value, undefined, {
             numeric: true,
             sensitivity: 'base',
-          }) > 0
+          }) > 0 ||
+          newPackageVersionMap.get(key).localeCompare(value, undefined, {
+            numeric: true,
+            sensitivity: 'base',
+          }) < 0
         ) {
           validationResponse.push({
             Process: ProjectValidate.TREE_DEPS_VERSION,
@@ -633,16 +651,19 @@ The job cannot find the 'LATEST' prefix. Please check the version number ${sourc
     }
     outputString = outputString + `             "versionNumber": "${packageTree.versionNumber}",\n`;
     outputString =
-      outputString + `${packageTree.dependencies &&
-      Array.isArray(packageTree.dependencies) &&
-      packageTree.dependencies.length > 0
-        ? `             "default": "${packageTree.default}",\n`
-        : `             "default": "${packageTree.default}"\n`}`;
+      outputString +
+      `${
+        packageTree.dependencies && Array.isArray(packageTree.dependencies) && packageTree.dependencies.length > 0
+          ? `             "default": "${packageTree.default}",\n`
+          : `             "default": "${packageTree.default}"\n`
+      }`;
     if (packageTree.dependencies && Array.isArray(packageTree.dependencies) && packageTree.dependencies.length > 0) {
       outputString = outputString + `             "dependencies": [\n`;
       packageTree.dependencies.forEach((value, index) => {
         outputString = outputString + `                 {\n`;
-        outputString = outputString + `                     "package": "${value.package}",\n`;
+        outputString = value.versionNumber
+          ? outputString + `                     "package": "${value.package}",\n`
+          : outputString + `                     "package": "${value.package}"\n`;
         if (value.versionNumber) {
           outputString = outputString + `                     "versionNumber": "${value.versionNumber}"\n`;
         }
