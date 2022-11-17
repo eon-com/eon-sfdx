@@ -79,6 +79,11 @@ export default class ProjectValidate extends SfdxCommand {
       default: '',
       required: false,
     }),
+    all: flags.boolean({
+      char: 'a',
+      description: messages.getMessage('all'),
+      required: false,
+    }),
   };
 
   // Set this to true if your command requires a project workspace; 'requiresProject' is false by default
@@ -186,7 +191,7 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
     }
 
     //run validation tasks
-    if (this.flags.versionupdate) {
+    if (this.flags.versionupdate || this.flags.all) {
       EONLogger.log(COLOR_HEADER('🔎 Start static check for 👉 Package changes with version update'));
       for (const value of packageMap.values()) {
         //check update version number
@@ -198,7 +203,7 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
         }
       }
     }
-    if (this.flags.missingdeps) {
+    if (this.flags.missingdeps || this.flags.all) {
       EONLogger.log(COLOR_HEADER('🔎 Start static checks for 👉 Missing dependencies'));
       for (const value of packageMap.values()) {
         if (!packageAliases[value.package]) {
@@ -213,7 +218,7 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
         }
       }
     }
-    if (this.flags.order) {
+    if (this.flags.order || this.flags.all) {
       EONLogger.log(COLOR_HEADER('🔎 Start static checks for 👉 Correct package order'));
       for (const value of packageMap.values()) {
         if (!packageAliases[value.package]) {
@@ -228,7 +233,7 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
         }
       }
     }
-    if (this.flags.depsversion) {
+    if (this.flags.depsversion || this.flags.all) {
       EONLogger.log(COLOR_HEADER('🔎 Start static checks for 👉 Correct dependencies version'));
       for (const value of packageMap.values()) {
         if (!packageAliases[value.package]) {
