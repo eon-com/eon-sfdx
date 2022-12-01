@@ -667,7 +667,9 @@ First the dependecies packages. And then this package.`
     try {
       const cmdPrefix = process.platform !== 'win32' ? 'sh -e' : 'cmd.exe /c';
       const { stdout, stderr } = await exec(
-        `${cmdPrefix} ${path.normalize(scriptPath)} ${scriptVariable1} ${this.org.getConnection().getUsername()}`,
+        `${cmdPrefix} ${path.normalize(path.join(__dirname, scriptPath))} ${scriptVariable1} ${this.org
+          .getConnection()
+          .getUsername()}`,
         { timeout: 0, encoding: 'utf-8', maxBuffer: 5242880 }
       );
       if (stderr) {
