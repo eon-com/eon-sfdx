@@ -357,7 +357,7 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
             .localeCompare(targetPackage.versionNumber.replace('.NEXT', ''), undefined, {
               numeric: true,
               sensitivity: 'base',
-            }) < 0
+            }) < 1
         ) {
           validationResponse.push({
             Process: ProjectValidate.TREE_VERSION_UPDATE,
