@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.9.0](https://github.com/eon-com/eon-sfdx/compare/v1.7.0...v1.9.0) (2022-12-01)
+
+
+### Features
+
+* adding new command to create branch from org snapshot ([2a86434](https://github.com/eon-com/eon-sfdx/commit/2a86434c7b24d594c9423886d225286531422f95))
+
+
+### Bug Fixes
+
+* new project validate command ([601996c](https://github.com/eon-com/eon-sfdx/commit/601996cd8660b247a21358246003c8657d3a0696))
+* **project-validate:** fixed issue when parsing version numbers from packages ([6375380](https://github.com/eon-com/eon-sfdx/commit/63753800ce1a32765f1e98a30e2e71d17d709c73))
+* **validate-package:** fix issue where post deployment script path is found in artifacts ([d643dfa](https://github.com/eon-com/eon-sfdx/commit/d643dfaa8a5e877971d036e39d3028900604594c))
+* **validate-source:** fix issue where script is not executed correctly when called from artifact ([2f179f6](https://github.com/eon-com/eon-sfdx/commit/2f179f680294844dc765ba5a3c5530594f6fc8cd))
+
 ## [1.8.0](https://github.com/eon-com/eon-sfdx/compare/v1.7.0...v1.8.0) (2022-11-17)
 
 
