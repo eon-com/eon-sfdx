@@ -39,7 +39,7 @@ export default class ProjectValidate extends SfdxCommand {
   public static examples = messages.getMessage('examples').split(os.EOL);
 
   public static args = [{ name: 'file' }];
-
+  
   protected static flagsConfig = {
     // Label For Named Credential as Required
     target: flags.string({
@@ -258,12 +258,12 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
           (pck) => pck.Package === publicPck.package && pck.Process === ProjectValidate.TREE_ORDER
         );
         const hasTreeVersionUpdate = packageCheckList.some(
-          (pck) => pck.Process === ProjectValidate.TREE_VERSION_UPDATE
+          (pck) => pck.Package === publicPck.package && pck.Process === ProjectValidate.TREE_VERSION_UPDATE
         );
-        const hasMissingDeps = packageCheckList.some((pck) => pck.Process === ProjectValidate.MISSING_DEPS);
-        const hasTreeOrder = packageCheckList.some((pck) => pck.Process === ProjectValidate.TREE_ORDER);
-        const hasTreeDepsOrder = packageCheckList.some((pck) => pck.Process === ProjectValidate.TREE_DEPS_ORDER);
-        const hasDepsVersion = packageCheckList.some((pck) => pck.Process === ProjectValidate.TREE_DEPS_VERSION);
+        const hasMissingDeps = packageCheckList.some((pck) => pck.Package === publicPck.package && pck.Process === ProjectValidate.MISSING_DEPS);
+        const hasTreeOrder = packageCheckList.some((pck) => pck.Package === publicPck.package && pck.Process === ProjectValidate.TREE_ORDER);
+        const hasTreeDepsOrder = packageCheckList.some((pck) => pck.Package === publicPck.package && pck.Process === ProjectValidate.TREE_DEPS_ORDER);
+        const hasDepsVersion = packageCheckList.some((pck) => pck.Package === publicPck.package && pck.Process === ProjectValidate.TREE_DEPS_VERSION);
         let table = new Table({
           head: ['Check', 'Result'],
           colWidths: [60, 100], // Requires fixed column widths
@@ -297,7 +297,7 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
             hasTreeOrder
               ? COLOR_INFO(
                   `👎 Change package order.Please put package ${publicPck.package} behind ⤵ the depend package ${
-                    pckOrderMainList[pckOrderMainList.length - 1].Message
+                    pckOrderMainList[pckOrderMainList.length - 1]?.Message
                   } ❗️`
                 )
               : '👍'
