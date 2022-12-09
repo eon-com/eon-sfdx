@@ -1,7 +1,7 @@
 {
   "name": "@eon-com/eon-sfdx",
   "description": "Salesforce DX (SFDX) commands to support salesforce developments & deployments",
-  "version": "1.9.1",
+  "version": "1.9.2",
   "author": {
     "email": "eon-sfdx@eon.com",
     "name": "Constantin Schlusche"
@@ -108,6 +108,6 @@
     "prepack": "rm -rf lib && tsc -b && oclif-dev manifest && oclif-dev readme",
     "test": "nyc --extension .ts --require ts-node/register mocha --forbid-only \"test/**/*.test.ts\"",
     "version": "oclif-dev readme && git add README.md",
-    "release": "yarn version && standard-version"
+    "release": "standard-version"
   }
 }

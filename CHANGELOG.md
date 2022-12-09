@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.9.2](https://github.com/eon-com/eon-sfdx/compare/v1.9.1...v1.9.2) (2022-12-09)
+
+
+### Bug Fixes
+
+* **project-validate:** resolve table output issue from pipeline test ([c746be9](https://github.com/eon-com/eon-sfdx/commit/c746be95e3a60a8de283ef0650d49983249f2855))
+
 ### [1.9.1](https://github.com/eon-com/eon-sfdx/compare/v1.9.0...v1.9.1) (2022-12-08)
 
 ## [1.9.0](https://github.com/eon-com/eon-sfdx/compare/v1.7.0...v1.9.0) (2022-12-01)
