@@ -185,7 +185,8 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
       //execute postDeployment Scripts
       if (value.postDeploymentScript && this.flags.deploymentscripts) {
         EONLogger.log(COLOR_INFO(`☝ Found post deployment script for package ${key}`));
-        await this.runDeploymentSteps(value.postDeploymentScript, 'postDeployment', key);
+        EONLogger.log(COLOR_INFO(`☝ No post deployment execution in source validation job`));
+        //await this.runDeploymentSteps(value.postDeploymentScript, 'postDeployment', key);
       }
     }
     EONLogger.log(COLOR_HEADER(`Yippiee. 🤙 Validation finsihed without errors. Great 🤜🤛`));
@@ -298,7 +299,7 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
     try {
       const cmdPrefix = process.platform !== 'win32' ? 'sh -e' : 'cmd.exe /c';
       const { stdout, stderr } = await exec(
-        `${cmdPrefix} ${path.normalize(path.join(__dirname, scriptPath))} ${scriptVariable1} ${this.org
+        `${cmdPrefix} ${path.normalize(path.join(process.cwd(), scriptPath))} ${scriptVariable1} ${this.org
           .getConnection()
           .getUsername()}`,
         { timeout: 0, encoding: 'utf-8', maxBuffer: 5242880 }
