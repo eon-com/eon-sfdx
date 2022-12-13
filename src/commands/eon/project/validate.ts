@@ -6,7 +6,7 @@
  */
 import * as os from 'os';
 import { flags, SfdxCommand } from '@salesforce/command';
-import { Messages, SfdxError, SfdxProjectJson, PackageDir } from '@salesforce/core';
+import { Messages, SfdxError, SfdxProjectJson, PackageDir, PackageDirDependency } from '@salesforce/core';
 import { AnyJson } from '@salesforce/ts-types';
 import simplegit, { DiffResult, SimpleGit } from 'simple-git';
 import { ProjectValidationOutput, NamedPackageDirLarge } from '../../../helper/types';
@@ -39,7 +39,7 @@ export default class ProjectValidate extends SfdxCommand {
   public static examples = messages.getMessage('examples').split(os.EOL);
 
   public static args = [{ name: 'file' }];
-  
+
   protected static flagsConfig = {
     // Label For Named Credential as Required
     target: flags.string({
@@ -260,10 +260,18 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
         const hasTreeVersionUpdate = packageCheckList.some(
           (pck) => pck.Package === publicPck.package && pck.Process === ProjectValidate.TREE_VERSION_UPDATE
         );
-        const hasMissingDeps = packageCheckList.some((pck) => pck.Package === publicPck.package && pck.Process === ProjectValidate.MISSING_DEPS);
-        const hasTreeOrder = packageCheckList.some((pck) => pck.Package === publicPck.package && pck.Process === ProjectValidate.TREE_ORDER);
-        const hasTreeDepsOrder = packageCheckList.some((pck) => pck.Package === publicPck.package && pck.Process === ProjectValidate.TREE_DEPS_ORDER);
-        const hasDepsVersion = packageCheckList.some((pck) => pck.Package === publicPck.package && pck.Process === ProjectValidate.TREE_DEPS_VERSION);
+        const hasMissingDeps = packageCheckList.some(
+          (pck) => pck.Package === publicPck.package && pck.Process === ProjectValidate.MISSING_DEPS
+        );
+        const hasTreeOrder = packageCheckList.some(
+          (pck) => pck.Package === publicPck.package && pck.Process === ProjectValidate.TREE_ORDER
+        );
+        const hasTreeDepsOrder = packageCheckList.some(
+          (pck) => pck.Package === publicPck.package && pck.Process === ProjectValidate.TREE_DEPS_ORDER
+        );
+        const hasDepsVersion = packageCheckList.some(
+          (pck) => pck.Package === publicPck.package && pck.Process === ProjectValidate.TREE_DEPS_VERSION
+        );
         let table = new Table({
           head: ['Check', 'Result'],
           colWidths: [60, 100], // Requires fixed column widths
@@ -468,29 +476,43 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
       const validationResponse: ProjectValidationOutput[] = [];
       let newPackageIndex = 0;
       if (
-        !(packageTree.dependencies && Array.isArray(packageTree.dependencies) && packageTree.dependencies.length > 0)
+        !(
+          packageTree.dependencies &&
+          Array.isArray(packageTree.dependencies) &&
+          typeof packageAliases === 'object' &&
+          packageTree.dependencies.length > 0
+        )
       ) {
         EONLogger.log(COLOR_INFO(`✔️ Package has no dependencies. Finished without check.`));
         return validationResponse;
       }
+      // create a map for the perfect managed package order , this order comes from the alias section in sfdx-project.json
+      let managedAliasMap = new Map<string, number>();
+      let managedAliasCounter = -15;
+      Object.entries(packageAliases).forEach(([key, value]) => {
+        if (value.startsWith('04')) {
+          managedAliasMap.set(key, managedAliasCounter);
+          managedAliasCounter++;
+        }
+      });
       // create perfect order from sfdx-project json top to down
+      let packageDirCounter = 0;
       for (const sourcePackageTree of sourcePackageDirs) {
+        packageDirCounter++;
         for (const sourcePckDep of packageTree.dependencies) {
           //managed package??
           if (packageAliases[sourcePckDep.package] && packageAliases[sourcePckDep.package].startsWith('04')) {
             if (!newPckIndexMap.get(sourcePckDep.package)) {
-              newPckIndexMap.set(sourcePckDep.package, newPackageIndex);
-              newPackageIndex++;
+              newPckIndexMap.set(sourcePckDep.package, managedAliasMap.get(sourcePckDep.package));
             }
           }
           if (sourcePckDep.package === sourcePackageTree.package) {
-            newPckIndexMap.set(sourcePckDep.package, newPackageIndex);
-            newPackageIndex++;
+            newPckIndexMap.set(sourcePckDep.package, packageDirCounter);
           }
         }
       }
       //create current order
-      newPackageIndex = 0;
+      newPackageIndex = 1;
       for (const sourcePckDep of packageTree.dependencies) {
         currentPckIndexMap.set(sourcePckDep.package, newPackageIndex);
         newPackageIndex++;
@@ -504,43 +526,61 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
         //EONLogger.log(COLOR_INFO(`Current Order: ${outputList.join()}`));
       }
       outputList = [];
+      let newPackageTreeDepsList: PackageDirDependency[] = [];
+      const newIndexPckMap = new Map<number, string>();
       for (const [key, value] of newPckIndexMap) {
+        newIndexPckMap.set(value, key);
+      }
+      const newIndexPckSortMap = new Map([...newIndexPckMap].sort((a, b) => a[0] - b[0]));
+      const newPckIndexSortMap = new Map<string, number>();
+      newPackageIndex = 1;
+      for (const value of newIndexPckSortMap.values()) {
+        newPckIndexSortMap.set(value, newPackageIndex);
+        newPackageIndex++;
+      }
+      for (const [key, value] of newPckIndexSortMap) {
         outputList.push(key);
         if (currentPckIndexMap.get(key)) {
           if (currentPckIndexMap.get(key) > value) {
-            let splicePck: string = stripAnsi(packageTree.dependencies[currentPckIndexMap.get(key)].package);
-            let spliceVersion: string = stripAnsi(packageTree.dependencies[currentPckIndexMap.get(key)].versionNumber);
+            let splicePck: string = stripAnsi(packageTree.dependencies[currentPckIndexMap.get(key) - 1].package);
+            let spliceVersion: string = stripAnsi(
+              packageTree.dependencies[currentPckIndexMap.get(key) - 1].versionNumber
+            );
             if (spliceVersion && spliceVersion !== undefined) {
-              packageTree.dependencies.splice(value, 0, {
+              newPackageTreeDepsList.push({
                 package: COLOR_EON_YELLOW(splicePck),
                 versionNumber: COLOR_EON_YELLOW(spliceVersion),
               });
             } else {
-              packageTree.dependencies.splice(value, 0, {
-                package: COLOR_EON_YELLOW(splicePck),
-              });
+              newPackageTreeDepsList.push({ package: COLOR_EON_YELLOW(splicePck) });
             }
-            packageTree.dependencies.splice(currentPckIndexMap.get(key) + 1, 1);
             validationResponse.push({
               Process: ProjectValidate.TREE_DEPS_ORDER,
               Package: packageTree.package,
               Message: `Package ${key} has the wrong order position. Current postion is ${currentPckIndexMap.get(
                 key
-              )}. New position is ${value}. Please put the package ${key} on top to package ${
+              )}. New position is ${value}. Please put the package ${value} on top to package ${
                 packageTree.dependencies[value + 1].package
               }.
   Please check the New Order Details on top of the table ☝️.`,
             });
-            //create current order after splice process
-            newPackageIndex = 0;
-            currentPckIndexMap.clear();
-            for (const sourcePckDep of packageTree.dependencies) {
-              currentPckIndexMap.set(sourcePckDep.package, newPackageIndex);
-              newPackageIndex++;
+          } else {
+            let splicePck: string = stripAnsi(packageTree.dependencies[currentPckIndexMap.get(key) - 1].package);
+            let spliceVersion: string = stripAnsi(
+              packageTree.dependencies[currentPckIndexMap.get(key) - 1].versionNumber
+            );
+            if (spliceVersion && spliceVersion !== undefined) {
+              newPackageTreeDepsList.push({
+                package: splicePck,
+                versionNumber: spliceVersion,
+              });
+            } else {
+              newPackageTreeDepsList.push({ package: splicePck });
             }
           }
         }
       }
+      packageTree.dependencies = newPackageTreeDepsList;
       if (outputList.length > 0) {
         //EONLogger.log(COLOR_INFO(`New Order: ${outputList.join()}`));
       }
