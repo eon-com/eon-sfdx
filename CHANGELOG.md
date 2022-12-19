@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.9.3](https://github.com/eon-com/eon-sfdx/compare/v1.9.2...v1.9.3) (2022-12-19)
+
+
+### Bug Fixes
+
+* **project-validation:** resolve wrong order for managed packages ([993b6ce](https://github.com/eon-com/eon-sfdx/commit/993b6cefbc69493659e89e77cc9659269fe9368d))
+
 ### [1.9.2](https://github.com/eon-com/eon-sfdx/compare/v1.9.1...v1.9.2) (2022-12-09)
 
 
