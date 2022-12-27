@@ -1,5 +1,5 @@
 import { NamedPackageDir, SfdxProjectJson } from '@salesforce/core';
-import { PackageTree } from '../helper/types';
+import { PackageTree } from './types';
 
 /**
  * This Class converts a sfdxProjectJson from core/Salesforce format to a package node tree across all levels
