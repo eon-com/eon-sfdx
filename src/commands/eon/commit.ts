@@ -28,7 +28,7 @@ import PackageReadme from '../../helper/package-readme';
 import fs from 'fs/promises';
 import path from 'path';
 import slash from 'slash';
-import PackageNodeTree from '../../helper/ package-tree';
+import PackageNodeTree from '../../helper/package-tree';
 // Initialize Messages with the current plugin directory
 Messages.importMessagesDirectory(__dirname);
 
