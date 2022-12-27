@@ -64,7 +64,7 @@ export default class Apply extends SfdxCommand {
         task: async () => {
           const permissionsets: string = devkit.permissionsets.join(',');
           try {
-            await execa('sfdx', ['force:user:permset:assign', '--permsetname', '"' + permissionsets + '"', '--json']);
+            await execa('sfdx', ['force:user:permset:assign', '--permsetname',  permissionsets, '--json']);
           } catch (error) {
             EONLogger.log(COLOR_NOTIFY('Assigning Permissionset finished with following message(s):'));
             console.log(error?.stdout);
