@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.9.4](https://github.com/eon-com/eon-sfdx/compare/v1.9.3...v1.9.4) (2023-01-13)
+
+
+### Bug Fixes
+
+* **devkit:** Fixing an issue where multiple permission set assignments causes the script to fail  ([#25](https://github.com/eon-com/eon-sfdx/issues/25)) ([0170099](https://github.com/eon-com/eon-sfdx/commit/0170099f16ae9fb9994fd38913b426e391590100))
+* **project-validation:** resolve output error for method checkPackageOrder ([#26](https://github.com/eon-com/eon-sfdx/issues/26)) ([9461eda](https://github.com/eon-com/eon-sfdx/commit/9461eda265bf3d1171797d26de1881d69fe5bd25))
+
 ### [1.9.3](https://github.com/eon-com/eon-sfdx/compare/v1.9.2...v1.9.3) (2022-12-19)
 
 
