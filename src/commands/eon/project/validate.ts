@@ -559,9 +559,7 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
               Package: packageTree.package,
               Message: `Package ${key} has the wrong order position. Current postion is ${currentPckIndexMap.get(
                 key
-              )}. New position is ${value}. Please put the package ${value} on top to package ${
-                packageTree.dependencies[value + 1].package
-              }.
+              )}. New position is ${value}. 
   Please check the New Order Details on top of the table ☝️.`,
             });
           } else {
