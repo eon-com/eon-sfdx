@@ -721,11 +721,7 @@ The job cannot find the 'LATEST' prefix. Please check the version number ${sourc
         subscriberPackageVersionMap.get(key).localeCompare(value, undefined, {
           numeric: true,
           sensitivity: 'base',
-        }) > 0 ||
-        subscriberPackageVersionMap.get(key).localeCompare(value, undefined, {
-          numeric: true,
-          sensitivity: 'base',
-        }) < 0
+        }) > 0 
       ) {
         validationResponse.push({
           Process: ProjectValidate.TREE_DEPS_VERSION,
