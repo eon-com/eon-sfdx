@@ -697,8 +697,8 @@ The job cannot find the 'LATEST' prefix. Please check the version number ${sourc
       outputString +
       `${
         packageTree.dependencies && Array.isArray(packageTree.dependencies) && packageTree.dependencies.length > 0
-          ? `             "default": "${packageTree.default}",\n`
-          : `             "default": "${packageTree.default}"\n`
+          ? `             "default": ${packageTree.default},\n`
+          : `             "default": ${packageTree.default}\n`
       }`;
     if (packageTree.dependencies && Array.isArray(packageTree.dependencies) && packageTree.dependencies.length > 0) {
       outputString = outputString + `             "dependencies": [\n`;
