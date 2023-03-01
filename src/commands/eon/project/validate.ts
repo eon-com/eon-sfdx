@@ -160,7 +160,7 @@ export default class ProjectValidate extends SfdxCommand {
           }
           //check for metadata move between packages
           if (change.file.search('=>') > -1) {
-            if (change.file.search(pck.package) > -1) {
+            if (change.file.search(`/${pck.package}/`) > -1) {
               return true;
             }
           }
