@@ -1,5 +1,5 @@
 import { PackageDir, NamedPackageDir } from '@salesforce/core';
-import { MetadataInfo } from 'jsforce';
+import { MetadataInfo,QueryResult } from 'jsforce';
 
 export enum ComponentStatus {
   Created = 'Created',
@@ -352,4 +352,37 @@ export interface ProjectValidationOutput {
   Package: string;
   Message: string;
 }
+
+export type MetadataPackageVersions = {
+  Id: string;
+  MajorVersion: string;
+  MinorVersion: string;
+  PatchVersion: string;
+  BuildNumber: string;
+  SystemModstamp: Date;
+}
+
+export type MetadataPackage = {
+  Name: string;
+  MetadataPackageVersions: QueryResult<MetadataPackageVersions>;
+}
+
+export type MetadataPackageVersion = {
+  id: string;
+  name: string;
+  version: string;
+  modifiedDate: Date;
+}
+
+export type Dependencies = {
+  ids?: SubscriberPackageVersionId[];
+};
+
+export type SubscriberPackageVersion = {
+  Dependencies: Dependencies;
+}
+
+export type SubscriberPackageVersionId = {
+  subscriberPackageVersionId: string;
+};
 

@@ -9,7 +9,13 @@ import { flags, SfdxCommand } from '@salesforce/command';
 import { Messages, SfdxError, SfdxProjectJson, PackageDir, PackageDirDependency } from '@salesforce/core';
 import { AnyJson } from '@salesforce/ts-types';
 import simplegit, { DiffResult, SimpleGit } from 'simple-git';
-import { ProjectValidationOutput, NamedPackageDirLarge } from '../../../helper/types';
+import {
+  ProjectValidationOutput,
+  NamedPackageDirLarge,
+  MetadataPackage,
+  MetadataPackageVersion,
+  SubscriberPackageVersion,
+} from '../../../helper/types';
 import EONLogger, {
   COLOR_INFO,
   COLOR_KEY_MESSAGE,
@@ -235,12 +241,36 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
     }
     if (this.flags.depsversion || this.flags.all) {
       EONLogger.log(COLOR_HEADER('🔎 Start static checks for 👉 Correct dependencies version'));
+
+      let metaPackageList = await this.org
+        .getConnection()
+        .autoFetchQuery<MetadataPackage>(
+          `Select Name,(select Id,  MajorVersion, MinorVersion, PatchVersion, BuildNumber, SystemModstamp  from MetadataPackageVersions ) from MetadataPackage`
+        );
+      let packageList = metaPackageList.records ? metaPackageList.records : [];
+      if (packageList.length === 0) {
+        EONLogger.log(COLOR_WARNING(`👆 No metadata packages found in this org`));
+        return {};
+      }
+      let packageVersionList: MetadataPackageVersion[] = [];
+
+      for (const meta of packageList) {
+        let packageVersion = meta.MetadataPackageVersions ? meta.MetadataPackageVersions.records : [];
+        for (const version of packageVersion) {
+          packageVersionList.push({
+            id: version.Id,
+            name: meta.Name,
+            version: `${version.MajorVersion}.${version.MinorVersion}.${version.PatchVersion}`,
+            modifiedDate: version.SystemModstamp,
+          });
+        }
+      }
       for (const value of packageMap.values()) {
         if (!packageAliases[value.package]) {
           EONLogger.log(COLOR_WARNING(`👆 No validation for source packages: ${value.package}`));
           continue;
         }
-        const singlePackageCheckList = this.checkDepVersion(packageDirs, value);
+        const singlePackageCheckList = await this.checkDepVersion(value, packageVersionList);
         if (singlePackageCheckList.length > 0) {
           packageCheckList = [...packageCheckList, ...singlePackageCheckList];
           ProjectValidate.publicPackageMap.set(value.package, value);
@@ -613,34 +643,33 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
     }
   }
 
-  private checkDepVersion(
-    sourcePackageDirs: NamedPackageDirLarge[],
-    packageTree: NamedPackageDirLarge
-  ): ProjectValidationOutput[] {
-    EONLogger.log(COLOR_TRACE(`Start checking dependency versions for package ${packageTree.package}`));
+  private async checkDepVersion(
+    packageTree: NamedPackageDirLarge,
+    packageVersionList: MetadataPackageVersion[]
+  ): Promise<ProjectValidationOutput[]> {
     const validationResponse: ProjectValidationOutput[] = [];
     const currentPackageVersionMap = new Map<string, string>();
-    const newPackageVersionMap = new Map<string, string>();
+    const subscriberPackageVersionMap = new Map<string, string>();
     if (!(packageTree.dependencies && Array.isArray(packageTree.dependencies) && packageTree.dependencies.length > 0)) {
       EONLogger.log(COLOR_INFO(`✔️ Package has no dependencies. Finished without check.`));
       return validationResponse;
     }
 
-    for (const sourcePackageTree of sourcePackageDirs) {
-      for (const sourcePckDep of packageTree.dependencies) {
-        if (sourcePckDep.package === sourcePackageTree.package) {
-          if (sourcePackageTree?.versionNumber) {
-            if (sourcePackageTree.versionNumber.search('NEXT') === -1) {
-              throw new SfdxError(
-                `Validation for dependencies version failed. Unlocked package ${packageTree.package} has wrong version format.
-The job cannot find the 'NEXT' prefix. Please check the version number ${sourcePckDep.versionNumber} for package ${sourcePckDep.package}.`
-              );
-            }
-            newPackageVersionMap.set(sourcePckDep.package, sourcePackageTree.versionNumber.replace('.NEXT', ''));
-          }
-        }
+    EONLogger.log(COLOR_TRACE(`Start checking dependency versions for package ${packageTree.package}`));
+    EONLogger.log(COLOR_TRACE(`Search latest version on dev hub for package ${packageTree.package}`));
+    // now fetch deps from dependend packages
+    for (const sourcePckDep of packageTree.dependencies) {
+      if (sourcePckDep?.versionNumber) {
+        await this.createSubsriberPackageVersionMap(
+          sourcePckDep.package,
+          subscriberPackageVersionMap,
+          packageVersionList
+        );
       }
     }
+    // first fetch package deps for unlocked package
+    await this.createSubsriberPackageVersionMap(packageTree.package, subscriberPackageVersionMap, packageVersionList);
+
     for (const sourcePckDep of packageTree.dependencies) {
       if (sourcePckDep?.versionNumber) {
         if (sourcePckDep.versionNumber.search('LATEST') === -1) {
@@ -653,30 +682,29 @@ The job cannot find the 'LATEST' prefix. Please check the version number ${sourc
       }
     }
     for (const [key, value] of currentPackageVersionMap) {
-      if (newPackageVersionMap.get(key)) {
-        if (
-          newPackageVersionMap.get(key).localeCompare(value, undefined, {
-            numeric: true,
-            sensitivity: 'base',
-          }) > 0 ||
-          newPackageVersionMap.get(key).localeCompare(value, undefined, {
-            numeric: true,
-            sensitivity: 'base',
-          }) < 0
-        ) {
-          validationResponse.push({
-            Process: ProjectValidate.TREE_DEPS_VERSION,
-            Package: packageTree.package,
-            Message: `Dependend package ${key} needs a higher version. Please update version to ${newPackageVersionMap.get(
-              key
-            )}!`,
-          });
-          for (const sourcePckDep of packageTree.dependencies) {
-            if (sourcePckDep.package === key) {
-              let colorVersion: string = stripAnsi(sourcePckDep.versionNumber);
-              colorVersion = COLOR_EON_YELLOW(`${newPackageVersionMap.get(key)}.LATEST`);
-              sourcePckDep.versionNumber = colorVersion;
-            }
+      if (!subscriberPackageVersionMap.has(key)) {
+        throw new SfdxError(
+          `Found no SubscriberPackageVersion dependency id for package ${key} on the dev hub. Please check the SubscriberPackageVersion for version ${value}.`
+        );
+      }
+      if (
+        subscriberPackageVersionMap.get(key).localeCompare(value, undefined, {
+          numeric: true,
+          sensitivity: 'base',
+        }) > 0
+      ) {
+        validationResponse.push({
+          Process: ProjectValidate.TREE_DEPS_VERSION,
+          Package: packageTree.package,
+          Message: `Dependend package ${key} needs a higher version. Please update version to ${subscriberPackageVersionMap.get(
+            key
+          )}!`,
+        });
+        for (const sourcePckDep of packageTree.dependencies) {
+          if (sourcePckDep.package === key) {
+            let colorVersion: string = stripAnsi(sourcePckDep.versionNumber);
+            colorVersion = COLOR_EON_YELLOW(`${subscriberPackageVersionMap.get(key)}.LATEST`);
+            sourcePckDep.versionNumber = colorVersion;
           }
         }
       }
@@ -719,5 +747,59 @@ The job cannot find the 'LATEST' prefix. Please check the version number ${sourc
     }
     outputString = outputString + `        }\n`;
     return outputString;
+  }
+
+  private async createSubsriberPackageVersionMap(
+    pck: string,
+    subscriberPackageVersionMap: Map<string, string>,
+    packageVersionList: MetadataPackageVersion[]
+  ): Promise<void> {
+    const latestPackageVersionList = packageVersionList
+      .filter((pckVersion) => pckVersion.name === pck)
+      .sort((a, b) => (a.modifiedDate > b.modifiedDate ? -1 : 1));
+    if (latestPackageVersionList.length === 0) {
+      throw new SfdxError(`Found no package version for package ${pck} on the dev hub. Please check the package name.`);
+    } else {
+      EONLogger.log(
+        COLOR_TRACE(`✔️ Found version ${latestPackageVersionList[0].version} with id ${latestPackageVersionList[0].id}`)
+      );
+    }
+
+    let subscriberPackageResponse = await this.org
+      .getConnection()
+      .tooling.autoFetchQuery<SubscriberPackageVersion>(
+        `Select Dependencies from SubscriberPackageVersion where id = '${latestPackageVersionList[0].id}'`
+      );
+    let subscriberPackageList = subscriberPackageResponse.records ? subscriberPackageResponse.records : [];
+    if (subscriberPackageList.length === 0) {
+      throw new SfdxError(
+        `Found no SubscriberPackageVersion for package ${pck} and Id ${latestPackageVersionList[0].id} on the dev hub. Please check the package name.`
+      );
+    } else {
+      if (subscriberPackageList[0].Dependencies?.ids && Array.isArray(subscriberPackageList[0].Dependencies?.ids)) {
+        subscriberPackageList[0].Dependencies.ids.forEach((id) => {
+          for (const version of packageVersionList) {
+            if (version.id === id.subscriberPackageVersionId) {
+              if (subscriberPackageVersionMap.has(version.name)) {
+                if (
+                  version.version.localeCompare(subscriberPackageVersionMap.get(version.name), undefined, {
+                    numeric: true,
+                    sensitivity: 'base',
+                  }) > 0
+                ) {
+                  subscriberPackageVersionMap.set(version.name, version.version);               
+                }
+              } else {
+                subscriberPackageVersionMap.set(version.name, version.version);           
+              }
+            }
+          }
+        });
+      } else {
+        EONLogger.log(
+          COLOR_TRACE(`Found no SubscriberPackageVersion dependencies for package ${pck} and Id ${latestPackageVersionList[0].id} on the dev hub. Please check the package name.`)
+        );
+      }
+    }
   }
 }
