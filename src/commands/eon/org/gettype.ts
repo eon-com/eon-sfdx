@@ -2,7 +2,7 @@
 
 import * as os from 'os';
 import { SfdxCommand } from '@salesforce/command';
-import { Connection, Messages } from '@salesforce/core';
+import { Messages } from '@salesforce/core';
 // Initialize Messages with the current plugin directory
 Messages.importMessagesDirectory(__dirname);
 
@@ -18,7 +18,7 @@ export default class Gettype extends SfdxCommand {
   protected static requiresUsername = true;
 
   public async run(): Promise<void> {
-    const connection: Connection = this.org.getConnection();
+    const connection = this.org.getConnection();
     const query = `SELECT IsSandbox, TrialExpirationDate FROM Organization`;
     let orgType: string;
     // The type we are querying for

@@ -1,6 +1,6 @@
 // function to establish connection to aws vault and retrieve a credential by key + tag
 
-import { SfdxProject, SfdxProjectJson } from '@salesforce/core';
+import { SfProject, SfProjectJson } from '@salesforce/core';
 import { PluginSettings, stringProperties } from '../helper/types';
 import {
   SecretsManagerClient,
@@ -9,7 +9,7 @@ import {
   GetSecretValueCommandOutput,
 } from '@aws-sdk/client-secrets-manager';
 import EONLogger, { COLOR_ERROR, COLOR_INFO, COLOR_KEY_MESSAGE } from '../eon/EONLogger';
-export default async function getSecretAWS(secretname: string, tag: string, project: SfdxProject): Promise<string> {
+export default async function getSecretAWS(secretname: string, tag: string, project: SfProject): Promise<string> {
   let settingKey: string = '';
   if (!secretname.includes('secret:')) {
     return secretname;
@@ -18,7 +18,7 @@ export default async function getSecretAWS(secretname: string, tag: string, proj
   }
 
   // get sfdx project.json
-  const projectJson: SfdxProjectJson = await project.retrieveSfdxProjectJson();
+  const projectJson: SfProjectJson = await project.retrieveSfProjectJson();
   const settings: PluginSettings = projectJson.getContents()?.plugins['eon-sfdx'] as PluginSettings;
   let secretNameAliasified = '';
   if (settings.awsSecretFormat) {

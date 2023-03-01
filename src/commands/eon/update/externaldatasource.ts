@@ -7,7 +7,7 @@
  */
 import * as os from 'os';
 import { flags, SfdxCommand } from '@salesforce/command';
-import { Connection, Messages, SfdxError } from '@salesforce/core';
+import { Messages, SfError, SfProject } from '@salesforce/core';
 import { ExternalDataSource } from '../../../helper/types';
 import EONLogger, { COLOR_ERROR, COLOR_SUCCESS, COLOR_HEADER } from '../../../eon/EONLogger';
 import getSettingValue from '../../../helper/aliasify-configuration';
@@ -50,17 +50,17 @@ export default class Externaldatasource extends SfdxCommand {
   public async run(): Promise<void> {
     EONLogger.log(COLOR_HEADER(LOGOBANNER));
     const endpoint = this.flags.endpoint
-      ? await getSettingValue(this.flags.endpoint, this.flags.alias, this.project)
+      ? await getSettingValue(this.flags.endpoint, this.flags.alias, await SfProject.resolve())
       : undefined;
 
-    const connection: Connection = this.org.getConnection();
+    const connection = this.org.getConnection();
 
     const responseFromOrg: ExternalDataSource[] = await connection.tooling
       .sobject('ExternalDataSource')
       .find({ DeveloperName: this.flags.name })
       .execute();
     if (responseFromOrg.length < 0) {
-      throw new SfdxError(`No external data source with MasterLabel ${this.flags.name} found in org.`);
+      throw new SfError(`No external data source with MasterLabel ${this.flags.name} found in org.`);
     }
     let externalDataSource: ExternalDataSource = responseFromOrg[0];
     await connection.tooling

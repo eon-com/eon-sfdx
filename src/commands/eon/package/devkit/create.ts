@@ -8,7 +8,7 @@ import * as os from 'os';
 import { flags, SfdxCommand } from '@salesforce/command';
 import fs from 'fs';
 import path from 'path';
-import { Messages, NamedPackageDir, SfdxProjectJson } from '@salesforce/core';
+import { Messages, NamedPackageDir } from '@salesforce/core';
 
 import { AnyJson } from '@salesforce/ts-types';
 import EONLogger, { COLOR_ERROR, COLOR_HEADER, COLOR_INFO } from '../../../../eon/EONLogger';
@@ -50,7 +50,7 @@ export default class Create extends SfdxCommand {
     EONLogger.log(COLOR_HEADER(LOGOBANNER));
     const packagename = this.flags.package;
 
-    const projectJson: SfdxProjectJson = await this.project.retrieveSfdxProjectJson();
+    const projectJson = await this.project.retrieveSfdxProjectJson();
 
     let packageDirs: NamedPackageDir[] = projectJson.getUniquePackageDirectories();
 

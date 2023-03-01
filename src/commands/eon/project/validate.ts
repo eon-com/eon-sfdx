@@ -6,7 +6,7 @@
  */
 import * as os from 'os';
 import { flags, SfdxCommand } from '@salesforce/command';
-import { Messages, SfdxError, SfdxProjectJson, PackageDir, PackageDirDependency } from '@salesforce/core';
+import { Messages, SfError, SfProjectJson, PackageDir, PackageDirDependency } from '@salesforce/core';
 import { AnyJson } from '@salesforce/ts-types';
 import simplegit, { DiffResult, SimpleGit } from 'simple-git';
 import { ProjectValidationOutput, NamedPackageDirLarge } from '../../../helper/types';
@@ -103,7 +103,7 @@ export default class ProjectValidate extends SfdxCommand {
     EONLogger.log(COLOR_KEY_MESSAGE('Static checks on sfdx-project.json file...'));
     let hasError = false;
     // get sfdx project.json
-    const projectJson: SfdxProjectJson = await this.project.retrieveSfdxProjectJson();
+    const projectJson = await this.project.retrieveSfdxProjectJson();
     const packageAliases = projectJson.getContents().packageAliases;
     // get all packages
     let packageDirs: NamedPackageDirLarge[] = projectJson.getUniquePackageDirectories();
@@ -115,12 +115,12 @@ export default class ProjectValidate extends SfdxCommand {
     EONLogger.log(COLOR_HEADER('Search for package changes'));
     const projectJsonString: string = await git.show([`${this.flags.target}:sfdx-project.json`]);
     if (!projectJsonString) {
-      throw new SfdxError(`Found no sfdx-project.json file on branch ${this.flags.target}`);
+      throw new SfError(`Found no sfdx-project.json file on branch ${this.flags.target}`);
     }
-    const projectJsonTarget: SfdxProjectJson = JSON.parse(projectJsonString);
+    const projectJsonTarget: SfProjectJson = JSON.parse(projectJsonString);
     packageDirsTarget = projectJsonTarget['packageDirectories'];
     if (!packageDirsTarget && !Array.isArray(packageDirsTarget)) {
-      throw new SfdxError(`Could not parse sfdx-project.json from target branch. Please check your target branch.`);
+      throw new SfError(`Could not parse sfdx-project.json from target branch. Please check your target branch.`);
     }
 
     const sourcebranch = this.flags.source || 'HEAD';
@@ -184,7 +184,7 @@ export default class ProjectValidate extends SfdxCommand {
     EONLogger.log(COLOR_INFO(table.toString()));
 
     if (packageMap.size === 0 && includeForceApp) {
-      throw new SfdxError(
+      throw new SfError(
         `Validation failed. This merge request contains only data from the force-app folder. This folder is not part of the deployment. 
 Please put your changes in a (new) unlocked package or a (new) source package. THX`
       );
@@ -341,7 +341,7 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
         console.log(this.createTableString(publicPck), '\n');
         EONLogger.log(`${COLOR_INFO_BOLD('End of package code snippets')}: ${COLOR_INFO(publicPck.package)}\n`);
       }
-      throw new SfdxError(
+      throw new SfError(
         `🔥 Static checks failed. Please fetch the new data from snippet and fix this issues from sfdx-project.json file`
       );
     }
@@ -389,7 +389,7 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
               newMinorVersion = `${startVersion}.${newMinor}.${endVersion}.NEXT`;
             }
           } catch (e) {
-            throw new SfdxError(
+            throw new SfError(
               `Static checks failed. Cannot create a new minor version from target branch. Please check the project json from main.`
             );
           }
@@ -609,7 +609,7 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
 
       return validationResponse;
     } catch (e) {
-      throw new SfdxError(e);
+      throw new SfError(e);
     }
   }
 
@@ -631,7 +631,7 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
         if (sourcePckDep.package === sourcePackageTree.package) {
           if (sourcePackageTree?.versionNumber) {
             if (sourcePackageTree.versionNumber.search('NEXT') === -1) {
-              throw new SfdxError(
+              throw new SfError(
                 `Validation for dependencies version failed. Unlocked package ${packageTree.package} has wrong version format.
 The job cannot find the 'NEXT' prefix. Please check the version number ${sourcePckDep.versionNumber} for package ${sourcePckDep.package}.`
               );
@@ -644,7 +644,7 @@ The job cannot find the 'NEXT' prefix. Please check the version number ${sourceP
     for (const sourcePckDep of packageTree.dependencies) {
       if (sourcePckDep?.versionNumber) {
         if (sourcePckDep.versionNumber.search('LATEST') === -1) {
-          throw new SfdxError(
+          throw new SfError(
             `Validation for dependencies version failed. A dependend package for ${packageTree.package} has a wrong version format.
 The job cannot find the 'LATEST' prefix. Please check the version number ${sourcePckDep.versionNumber} for package ${sourcePckDep.package}.`
           );

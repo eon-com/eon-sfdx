@@ -6,7 +6,7 @@
  */
 import * as os from 'os';
 import { flags, SfdxCommand } from '@salesforce/command';
-import { Messages, SfdxError, SfdxProjectJson, Aliases } from '@salesforce/core';
+import { Messages, SfError, StateAggregator } from '@salesforce/core';
 import { ComponentSet, MetadataApiDeploy, MetadataResolver, DeployDetails } from '@salesforce/source-deploy-retrieve';
 import { DeployError } from '../../../../interfaces/package-interfaces';
 import { AnyJson } from '@salesforce/ts-types';
@@ -82,7 +82,7 @@ export default class Validate extends SfdxCommand {
     EONLogger.log(COLOR_KEY_MESSAGE('Validating source package(s)...'));
     EONLogger.log(COLOR_HEADER('Search for source package changes'));
     // get sfdx project.json
-    const projectJson: SfdxProjectJson = await this.project.retrieveSfdxProjectJson();
+    const projectJson = await this.project.retrieveSfdxProjectJson();
     const packageAliases = projectJson.getContents().packageAliases;
 
     // get all packages
@@ -162,7 +162,7 @@ export default class Validate extends SfdxCommand {
     EONLogger.log(COLOR_INFO(table.toString()));
 
     if (packageMap.size === 0 && includeForceApp) {
-      throw new SfdxError(
+      throw new SfError(
         `Validation failed. This merge request contains only data from the force-app folder. This folder is not part of the deployment. 
 Please put your changes in a (new) unlocked package or a (new) source package. THX`
       );
@@ -230,7 +230,7 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
         table.push(obj);
       });
       console.log(table.toString());
-      throw new SfdxError(
+      throw new SfError(
         `Deployment failed. Please check error messages from table and fix this issues from package.`
       );
       // print test run errors
@@ -260,7 +260,7 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
         ]);
       }
       console.log(tableTest.toString());
-      throw new SfdxError(
+      throw new SfError(
         `Testrun failed. Please check the testclass errors from table and fix this issues from package.`
       );
       // print code coverage errors
@@ -283,11 +283,11 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
         table.push([coverageList.name, coverageList.message]);
       }
       console.log(table.toString());
-      throw new SfdxError(
+      throw new SfError(
         `Testcoverage failed. Please check the coverage from table and fix this issues from package.`
       );
     } else {
-      throw new SfdxError(
+      throw new SfError(
         `Validation failed. No errors in the response. Please validate manual and check the errors on org (setup -> deployment status).`
       );
     }
@@ -319,7 +319,8 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
     EONLogger.log(COLOR_HEADER(`💪 Start Deployment and Tests for source package.`));
     let username = this.org.getConnection().getUsername();
     if (this.flags.alias) {
-      username = await Aliases.fetch(this.flags.alias);
+      const stateAggregator = await StateAggregator.getInstance();
+      username = stateAggregator.aliases.resolveUsername(this.flags.alias)
     }
     const sourceComps = await this.getApexClassesForSource(path);
     const testLevel = sourceComps.apexTestclassNames.length > 0 ? 'RunSpecifiedTests' : 'NoTestRun';
@@ -344,7 +345,7 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
     );
 
     if (sourceComps.apexClassNames.length > 0 && sourceComps.apexTestclassNames.length === 0) {
-      throw new SfdxError(
+      throw new SfError(
         `Found apex class(es) for package ${pck} but no testclass(es). Please create a new testclass.`
       );
     }

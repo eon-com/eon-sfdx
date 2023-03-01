@@ -7,7 +7,7 @@
  */
 import * as os from 'os';
 import { flags, SfdxCommand } from '@salesforce/command';
-import { Connection, Messages, SfdxError } from '@salesforce/core';
+import { Messages, SfdxError, SfProject } from '@salesforce/core';
 import { CustomLabel } from '../../../helper/types';
 import getSettingValue from '../../../helper/aliasify-configuration';
 import EONLogger, { COLOR_ERROR, COLOR_SUCCESS, COLOR_HEADER } from '../../../eon/EONLogger';
@@ -50,8 +50,8 @@ export default class Customlabel extends SfdxCommand {
   public async run(): Promise<void> {
     EONLogger.log(COLOR_HEADER(LOGOBANNER));
     // prepare values and settings
-    const value = await getSettingValue(this.flags.value, this.flags.alias, this.project);
-    const connection: Connection = this.org.getConnection();
+    const value = await getSettingValue(this.flags.value, this.flags.alias, await SfProject.resolve());
+    const connection = this.org.getConnection();
 
     const responseFromOrg: CustomLabel[] = await connection.tooling
       .sobject('ExternalString')

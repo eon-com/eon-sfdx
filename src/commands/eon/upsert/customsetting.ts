@@ -7,7 +7,7 @@
  */
 import * as os from 'os';
 import { flags, SfdxCommand } from '@salesforce/command';
-import { Messages } from '@salesforce/core';
+import { Messages, SfProject } from '@salesforce/core';
 import EONLogger, { COLOR_HEADER, COLOR_TRACE, COLOR_ERROR, COLOR_SUCCESS } from '../../../eon/EONLogger';
 import { LOGOBANNER } from '../../../eon/logo';
 import getSettingValue from '../../../helper/aliasify-configuration';
@@ -55,7 +55,7 @@ export default class CustomSetting extends SfdxCommand {
   public async run(): Promise<void> {
     EONLogger.log(COLOR_HEADER(LOGOBANNER));
     const value = this.flags.value
-      ? await getSettingValue(this.flags.value, this.flags.alias, this.project)
+      ? await getSettingValue(this.flags.value, this.flags.alias, await SfProject.resolve())
       : undefined;
     const conn = this.org.getConnection();
     const query = `select id, ${this.flags.key}, SetupOwnerId from ${this.flags.name}`;

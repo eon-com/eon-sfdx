@@ -7,7 +7,7 @@
  */
 import * as os from 'os';
 import { flags, SfdxCommand } from '@salesforce/command';
-import { Connection, Messages, SfdxError } from '@salesforce/core';
+import { SfProject, Messages, SfError } from '@salesforce/core';
 import { NamedCredential } from '../../../helper/types';
 import EONLogger, { COLOR_ERROR, COLOR_SUCCESS, COLOR_HEADER } from '../../../eon/EONLogger';
 import getSettingValue from '../../../helper/aliasify-configuration';
@@ -57,23 +57,23 @@ export default class Namedcredential extends SfdxCommand {
   public async run(): Promise<void> {
     EONLogger.log(COLOR_HEADER(LOGOBANNER));
     const endpoint = this.flags.endpoint
-      ? await getSettingValue(this.flags.endpoint, this.flags.alias, this.project)
+      ? await getSettingValue(this.flags.endpoint, this.flags.alias, await SfProject.resolve())
       : undefined;
     const password = this.flags.password
-      ? await getSettingValue(this.flags.password, this.flags.alias, this.project)
+      ? await getSettingValue(this.flags.password, this.flags.alias, await SfProject.resolve())
       : undefined;
     const username = this.flags.username
-      ? await getSettingValue(this.flags.username, this.flags.alias, this.project)
+      ? await getSettingValue(this.flags.username, this.flags.alias, await SfProject.resolve())
       : undefined;
 
-    const connection: Connection = this.org.getConnection();
+    const connection = this.org.getConnection();
 
     const responseFromOrg: NamedCredential[] = await connection.tooling
       .sobject('NamedCredential')
       .find({ MasterLabel: this.flags.name })
       .execute();
     if (responseFromOrg.length < 0) {
-      throw new SfdxError(`No Namedcredential with MasterLabel ${this.flags.name} found in org.`);
+      throw new SfError(`No Namedcredential with MasterLabel ${this.flags.name} found in org.`);
     }
     let namedCredential: NamedCredential = responseFromOrg[0];
 

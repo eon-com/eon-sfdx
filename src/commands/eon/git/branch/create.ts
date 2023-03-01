@@ -6,7 +6,7 @@
  */
 import * as os from 'os';
 import { flags, SfdxCommand } from '@salesforce/command';
-import {Messages, SfdxError, SfdxProjectJson} from '@salesforce/core';
+import {Messages, SfError } from '@salesforce/core';
 import { AnyJson } from '@salesforce/ts-types';
 import simplegit, { SimpleGit } from 'simple-git';
 
@@ -60,7 +60,7 @@ export default class GitHotfixCreate extends SfdxCommand {
     //get package
     const commitId = await this.getCommitFromOrg()
     if(!commitId){
-      throw new SfdxError(`Found no Commit Id on Org! Please check the package name.`)
+      throw new SfError(`Found no Commit Id on Org! Please check the package name.`)
     }
     EONLogger.log(COLOR_TRACE(`Found commit id ${commitId} 👌`));
     //get branch
@@ -89,13 +89,13 @@ export default class GitHotfixCreate extends SfdxCommand {
         packageDir['ignoreOnStage'] = ['build'];
       }
     }
-    if(packageTree.size === 0){ throw new SfdxError(`Package ${this.flags.package} not found in sfdx-project.json`)}
+    if(packageTree.size === 0){ throw new SfError(`Package ${this.flags.package} not found in sfdx-project.json`)}
 
   }
 
   private async getBranch(commitId: string):Promise<void>{
     EONLogger.log(COLOR_TRACE('Start git tasks...'));
-    const projectJson: SfdxProjectJson = await this.project.retrieveSfdxProjectJson();
+    const projectJson = await this.project.retrieveSfdxProjectJson();
     let git: SimpleGit = simplegit(path.dirname(projectJson.getPath()));
        await git.fetch();
     EONLogger.log(COLOR_TRACE(`Check if the branch hotfix-${this.flags.ticket}-${this.flags.package} exist`));
@@ -130,7 +130,7 @@ export default class GitHotfixCreate extends SfdxCommand {
         `Select Id,CommitId__c from SfpowerscriptsArtifact2__c Where Name = '${this.flags.package}'`
       );
     } catch (e) {
-      throw new SfdxError(`Its not possible to select Commit Id from SfpowerscriptsArtifact2. Pelase check the details: ${e.message}`);
+      throw new SfError(`Its not possible to select Commit Id from SfpowerscriptsArtifact2. Pelase check the details: ${e.message}`);
     }
       return responseFromOrg.Id ? responseFromOrg.CommitId__c : '';
   }

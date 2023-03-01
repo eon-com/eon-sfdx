@@ -6,11 +6,12 @@
  */
 import * as os from 'os';
 import { flags, SfdxCommand } from '@salesforce/command';
-import { Messages, SfdxError, SfdxProjectJson, Connection } from '@salesforce/core';
+import { Messages, SfError, SfProject } from '@salesforce/core';
 import { ComponentSet, MetadataApiDeploy, MetadataResolver, DeployDetails } from '@salesforce/source-deploy-retrieve';
 import { getDeployUrls } from '../../../utils/get-packages';
 import { DeployError, PackageTree } from '../../../interfaces/package-interfaces';
 import { AnyJson } from '@salesforce/ts-types';
+import builder from 'junit-report-builder';
 import simplegit, { DiffResult, SimpleGit } from 'simple-git';
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
@@ -101,6 +102,8 @@ export default class Validate extends SfdxCommand {
   protected static requiresProject = true;
   // Comment this out if your command does not require an org username
   protected static requiresUsername = true;
+  // junit test suite
+  protected static testSuites = builder.newBuilder();
 
   public async run(): Promise<AnyJson> {
     EONLogger.log(COLOR_HEADER(LOGOBANNER));
@@ -108,10 +111,10 @@ export default class Validate extends SfdxCommand {
     await this.toggleParallelApexTesting();
     EONLogger.log(COLOR_HEADER('Search for unlocked package changes'));
     // get sfdx project.json
-    const projectJson: SfdxProjectJson = await this.project.retrieveSfdxProjectJson();
+    const projectJson = await this.project.retrieveSfdxProjectJson();
     const packageAliases = projectJson.getContents().packageAliases;
     if (this.flags.target && this.flags.package) {
-      throw new SfdxError(`Either package or target flag can be used, not both`);
+      throw new SfError(`Either package or target flag can be used, not both`);
     }
     // get all packages
     let packageDirs: NamedPackageDirLarge[] = projectJson.getUniquePackageDirectories();
@@ -198,7 +201,7 @@ export default class Validate extends SfdxCommand {
     EONLogger.log(COLOR_INFO(table.toString()));
 
     if (packageMap.size === 0 && includeForceApp) {
-      throw new SfdxError(
+      throw new SfError(
         `Validation failed. This merge request contains only data from the force-app folder. This folder is not part of the deployment. 
 Please put your changes in a (new) unlocked package or a (new) source package. THX`
       );
@@ -206,7 +209,7 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
     //fetch scratch org
     if (this.flags.pooltag) {
       if (!this.flags.devhubalias) {
-        throw new SfdxError(`Please set a target devhub username flag when the pool tag is set. 👆`);
+        throw new SfError(`Please set a target devhub username flag when the pool tag is set. 👆`);
       }
       await this.fetchScratchOrg(this.flags.pooltag, this.flags.devhubalias);
     }
@@ -235,7 +238,7 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
 
     const packageSingleMap = new Map<string, PackageInfo>();
     // get packages
-    const projectJson: SfdxProjectJson = await this.project.retrieveSfdxProjectJson();
+    const projectJson = (await SfProject.resolve()).getSfProjectJson();
 
     const packageDependencyTree: PackageTree = getDeployUrls(projectJson, pck);
     packageDependencyTree.dependency.forEach((dep) => {
@@ -290,7 +293,7 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
       //await tasks.run();
       // deploy dependencies
     } else {
-      throw new SfdxError(
+      throw new SfError(
         `Found no package tree information for package: ${pck} and path ${path}. Please check the order for this package and his dependecies in the sfdx-project.json. 
 First the dependecies packages. And then this package.`
       );
@@ -361,9 +364,7 @@ First the dependecies packages. And then this package.`
         table.push(obj);
       });
       console.log(table.toString());
-      throw new SfdxError(
-        `Deployment failed. Please check error messages from table and fix this issues from package.`
-      );
+      throw new SfError(`Deployment failed. Please check error messages from table and fix this issues from package.`);
       // print test run errors
     } else if (
       (input.runTestResult &&
@@ -391,7 +392,7 @@ First the dependecies packages. And then this package.`
         ]);
       }
       console.log(tableTest.toString());
-      throw new SfdxError(
+      throw new SfError(
         `Testrun failed. Please check the testclass errors from table and fix this issues from package.`
       );
       // print code coverage errors
@@ -414,11 +415,9 @@ First the dependecies packages. And then this package.`
         table.push([coverageList.name, coverageList.message]);
       }
       console.log(table.toString());
-      throw new SfdxError(
-        `Testcoverage failed. Please check the coverage from table and fix this issues from package.`
-      );
+      throw new SfError(`Testcoverage failed. Please check the coverage from table and fix this issues from package.`);
     } else {
-      throw new SfdxError(
+      throw new SfError(
         `Validation failed. No errors in the response. Please validate manual and check the errors on org (setup -> deployment status).`
       );
     }
@@ -448,9 +447,7 @@ First the dependecies packages. And then this package.`
     }
 
     if (apexCounter > 0 && apexTestClassNameList.length === 0) {
-      throw new SfdxError(
-        `Found apex class(es) for package ${pck} but no testclass(es). Please create a new testclass.`
-      );
+      throw new SfError(`Found apex class(es) for package ${pck} but no testclass(es). Please create a new testclass.`);
     }
     EONLogger.log(`${COLOR_NOTIFY('Package:')} ${COLOR_INFO(pck)}`);
     EONLogger.log(
@@ -486,13 +483,13 @@ First the dependecies packages. And then this package.`
 
     //check Code Coverage
     if (apexClassIdList.length > 0) {
-      await this.checkCodeCoverage(apexClassIdList);
+      await this.checkCodeCoverage(apexClassIdList, pck);
     }
   }
   //check if apex class is a testclass from code identifier @isTest
   private async checkIsTestClass(comp: string): Promise<ApexTestclassCheck> {
     let result: ApexTestclassCheck = { Id: '', isTest: false };
-    const connection: Connection = this.org.getConnection();
+    const connection = this.org.getConnection();
     try {
       const apexObj: ApexClass = await connection.singleRecordQuery(
         "Select Id,Name,Body from ApexClass Where Name = '" + comp + "' And ManageableState = 'unmanaged' LIMIT 1",
@@ -503,7 +500,7 @@ First the dependecies packages. And then this package.`
       }
       result.Id = apexObj.Id;
     } catch (e) {
-      throw new SfdxError(`Apex Query Error for Comp: ${comp} with detail error: ${e}`);
+      throw new SfError(`Apex Query Error for Comp: ${comp} with detail error: ${e}`);
     }
 
     return result;
@@ -513,7 +510,7 @@ First the dependecies packages. And then this package.`
   private async toggleParallelApexTesting() {
     try {
       EONLogger.log(COLOR_NOTIFY('Update Apex Metadata Settings in Scratch'));
-      const connection: Connection = this.org.getConnection();
+      const connection = this.org.getConnection();
       let apexSettingMetadata = { fullName: 'ApexSettings', enableDisableParallelApexTesting: false };
       let result: UpsertResult | UpsertResult[] = await connection.metadata.upsert('ApexSettings', apexSettingMetadata);
       if ((result as UpsertResult).success) {
@@ -527,7 +524,7 @@ First the dependecies packages. And then this package.`
   //Enable Synchronus Compile on Deploy
   private async addClassesToApexQueue(apexTestClassIdList: string[]): Promise<string[]> {
     let recordResult: string[] = [];
-    const connection: Connection = this.org.getConnection();
+    const connection = this.org.getConnection();
     try {
       const queueResponse = await connection.requestPost(`${connection._baseUrl()}/tooling/runTestsAsynchronous/`, {
         classids: apexTestClassIdList.join(),
@@ -536,16 +533,16 @@ First the dependecies packages. And then this package.`
       if (jobId) {
         recordResult.push(jobId);
       } else {
-        throw new SfdxError(`Post Request to Queue runs on error`);
+        throw new SfError(`Post Request to Queue runs on error`);
       }
     } catch (e) {
-      throw new SfdxError(`Insert to queue runs on error`);
+      throw new SfError(`Insert to queue runs on error`);
     }
     return recordResult;
   }
 
   private async checkTestRunStatus(ids: string[]): Promise<ApexTestQueueResult> {
-    const connection: Connection = this.org.getConnection();
+    const connection = this.org.getConnection();
     let queueResult: ApexTestQueueResult = {
       QueuedList: [],
       CompletedList: [],
@@ -576,13 +573,13 @@ First the dependecies packages. And then this package.`
       }
     } catch (e) {
       console.log(e);
-      throw new SfdxError(messages.getMessage('errorApexQueueSelect'));
+      throw new SfError(messages.getMessage('errorApexQueueSelect'));
     }
     return queueResult;
   }
 
-  private async checkCodeCoverage(ids: string[]): Promise<void> {
-    const connection: Connection = this.org.getConnection();
+  private async checkCodeCoverage(ids: string[], pck: string): Promise<void> {
+    const connection = this.org.getConnection();
     let table = new Table({
       head: [
         COLOR_INFO('Apex Test Modul'),
@@ -601,7 +598,14 @@ First the dependecies packages. And then this package.`
         )}')`
       );
       if (responseFromOrg.records) {
+        Validate.testSuites.testSuite().name(`Testsuite ${pck}`);
         for (const result of responseFromOrg.records) {
+          Validate.testSuites
+            .testSuite()
+            .name(`Testsuite ${pck}`)
+            .testCase()
+            .className(result.ApexClassOrTrigger.Name)
+            .name(`Lines Covered: ${result.ApexClassOrTrigger.Name}`);
           table.push([
             result.ApexClassOrTrigger.Name,
             result.NumLinesCovered,
@@ -615,18 +619,18 @@ First the dependecies packages. And then this package.`
         }
       }
     } catch (e) {
-      throw new SfdxError(`System Exception: Problems to fetch results from ApexCodeCoverageAggregate`);
+      throw new SfError(`System Exception: Problems to fetch results from ApexCodeCoverageAggregate`);
     }
 
     if (coveredCounter === 0) {
-      throw new SfdxError(`This package has no covered lines. Please check the testclasses.`);
+      throw new SfError(`This package has no covered lines. Please check the testclasses.`);
     }
     packageCoverage = Math.floor((coveredCounter / (coveredCounter + uncoveredCounter)) * 100);
 
     EONLogger.log(COLOR_INFO('Check Code Coverage for Testclasses:'));
     EONLogger.log(COLOR_INFO(table.toString()));
     if (packageCoverage < 75) {
-      throw new SfdxError(
+      throw new SfError(
         `The package has an overall coverage of ${packageCoverage}%, which does not meet the required overall coverage of 75%. Please check the testclass coverage table and fix the test classes.`
       );
     } else {
@@ -635,7 +639,7 @@ First the dependecies packages. And then this package.`
   }
 
   private async checkTestResult(apexClassList: string[], jobId: string[]): Promise<void> {
-    const connection: Connection = this.org.getConnection();
+    const connection = this.org.getConnection();
     let responseFromOrg: QueryResult<ApexTestResult>;
     try {
       responseFromOrg = await connection.query<ApexTestResult>(
@@ -644,7 +648,7 @@ First the dependecies packages. And then this package.`
         )}') And AsyncApexJobId In ('${jobId.join("','")}')`
       );
     } catch (e) {
-      throw new SfdxError(`System Exception: Problems to found Results from ApexTestResult`);
+      throw new SfError(`System Exception: Problems to found Results from ApexTestResult`);
     }
     let table = new Table({
       head: [COLOR_ERROR('ApexClass Name'), COLOR_ERROR('Methodname'), COLOR_ERROR('ErrorMessage')],
@@ -657,7 +661,7 @@ First the dependecies packages. And then this package.`
       }
       console.log(table.toString());
       EONLogger.log(COLOR_ERROR(`This package contains testclass errors.`));
-      throw new SfdxError(`Please fix this issues from the table and try again.`);
+      throw new SfError(`Please fix this issues from the table and try again.`);
     }
   }
 
@@ -696,13 +700,13 @@ First the dependecies packages. And then this package.`
         { timeout: 0, encoding: 'utf-8', maxBuffer: 5242880 }
       );
       if (stderr) {
-        throw new SfdxError(`Problems to fetch a scratch org from pool. Error: ${stderr}`);
+        throw new SfError(`Problems to fetch a scratch org from pool. Error: ${stderr}`);
       }
       if (stdout) {
         EONLogger.log(COLOR_INFO(`💪 Scratch org succesfully claimed`));
       }
     } catch (e) {
-      throw new SfdxError(`Problems to fetch a scratch org from pool. Error: ${e}`);
+      throw new SfError(`Problems to fetch a scratch org from pool. Error: ${e}`);
     }
   }
 }

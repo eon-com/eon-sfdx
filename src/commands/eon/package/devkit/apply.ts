@@ -6,7 +6,7 @@
  */
 import * as os from 'os';
 import { flags, SfdxCommand } from '@salesforce/command';
-import { Messages, NamedPackageDir, SfdxProjectJson } from '@salesforce/core';
+import { Messages, NamedPackageDir } from '@salesforce/core';
 import { AnyJson } from '@salesforce/ts-types';
 import EONLogger, { COLOR_ERROR, COLOR_HEADER, COLOR_INFO, COLOR_NOTIFY, COLOR_TRACE } from '../../../../eon/EONLogger';
 import { LOGOBANNER } from '../../../../eon/logo';
@@ -44,7 +44,7 @@ export default class Apply extends SfdxCommand {
     EONLogger.log(COLOR_HEADER(LOGOBANNER));
     const packagename = this.flags.package;
 
-    const projectJson: SfdxProjectJson = await this.project.retrieveSfdxProjectJson();
+    const projectJson = await this.project.retrieveSfdxProjectJson();
     let packageDirs: NamedPackageDir[] = projectJson.getUniquePackageDirectories();
     const username: string = await this.org.getUsername();
     EONLogger.log(COLOR_HEADER('Applying DevKit ' + packagename + ' for ' + username));

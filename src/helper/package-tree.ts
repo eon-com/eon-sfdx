@@ -1,4 +1,4 @@
-import { NamedPackageDir, SfdxProjectJson } from '@salesforce/core';
+import { NamedPackageDir, SfProjectJson } from '@salesforce/core';
 import { PackageTree } from './types';
 
 /**
@@ -7,9 +7,9 @@ import { PackageTree } from './types';
  * @param projectjson  the full projectJson from salesforce
  */
 export default class PackageNodeTree {
-  projectJson: SfdxProjectJson;
+  projectJson: SfProjectJson;
   nodeTree: PackageTree[] = [];
-  public constructor(projectjson: SfdxProjectJson) {
+  public constructor(projectjson: SfProjectJson) {
     this.projectJson = projectjson;
   }
   /**

@@ -6,7 +6,7 @@
  */
 import * as os from 'os';
 import { flags, SfdxCommand } from '@salesforce/command';
-import { Messages, SfdxError, SfdxProjectJson } from '@salesforce/core';
+import { Messages, SfdxError, SfProject } from '@salesforce/core';
 import { AnyJson } from '@salesforce/ts-types';
 import { Listr } from 'listr2';
 const Table = require('cli-table3');
@@ -59,7 +59,7 @@ export default class Deploy extends SfdxCommand {
 
     const includedependencies = (this.flags.includedependencies || '') as boolean;
     // get packages
-    const projectJson: SfdxProjectJson = await this.project.retrieveSfdxProjectJson();
+    const projectJson = (await SfProject.resolve()).getSfProjectJson();
     const packageDependencyTree: PackageTree = getDeployUrls(projectJson, packagename);
 
     if (packageDependencyTree) {

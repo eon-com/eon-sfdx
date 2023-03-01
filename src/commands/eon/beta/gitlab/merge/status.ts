@@ -7,7 +7,7 @@
 const axios = require('axios');
 import { flags, SfdxCommand } from '@salesforce/command';
 import { AnyJson } from '@salesforce/ts-types';
-import { Messages, SfdxError, Connection, PackageDir, AuthInfo, Aliases } from '@salesforce/core';
+import { Messages, SfdxError, Connection, PackageDir, AuthInfo, StateAggregator } from '@salesforce/core';
 import { Listr } from 'listr2';
 import {
   SingleMergeRequest,
@@ -415,7 +415,8 @@ export default class GitLabStatus extends SfdxCommand {
     EONLogger.log(COLOR_TRACE(`Get package infos from org ${alias}`));
     let orgKey: string = '';
     try {
-      const username: string = await Aliases.fetch(alias);
+      const stateAggregator = await StateAggregator.getInstance();
+      const username = stateAggregator.aliases.resolveUsername(alias)
       const connection = await Connection.create({
         authInfo: await AuthInfo.create({ username: username }),
       });

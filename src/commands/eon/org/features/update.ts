@@ -2,7 +2,7 @@
 
 import * as os from 'os';
 import { flags, SfdxCommand } from '@salesforce/command';
-import { Messages, SfdxProjectJson } from '@salesforce/core';
+import { Messages } from '@salesforce/core';
 import { AnyJson } from '@salesforce/ts-types';
 import path from 'path';
 import * as fspromise from 'fs/promises';
@@ -43,7 +43,7 @@ export default class FeatureUpdate extends SfdxCommand {
 
     // parse settings file
 
-    const projectJson: SfdxProjectJson = await this.project.retrieveSfdxProjectJson();
+    const projectJson = await this.project.retrieveSfdxProjectJson();
     const configFilePath: string = path.join(path.dirname(projectJson.getPath()), this.flags.settingsfile);
     let parsedFile: featureSettingsConfigFile;
     await fspromise

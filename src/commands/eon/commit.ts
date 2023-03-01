@@ -12,7 +12,7 @@ import {
   PackageDir,
   PackageDirDependency,
   SfdxError,
-  SfdxProjectJson,
+  SfProject,
 } from '@salesforce/core';
 import { AnyJson } from '@salesforce/ts-types';
 import simplegit, { DiffResult, SimpleGit } from 'simple-git';
@@ -47,7 +47,7 @@ export default class Commit extends SfdxCommand {
   protected static requiresProject = true;
   public async run(): Promise<AnyJson> {
     // get sfdx project.json
-    const projectJson: SfdxProjectJson = await this.project.retrieveSfdxProjectJson();
+    const projectJson = (await SfProject.resolve()).getSfProjectJson();
     const settings: PluginSettings = projectJson.getContents()?.plugins['eon-sfdx'] as PluginSettings;
 
     // get all packages
