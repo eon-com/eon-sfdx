@@ -386,3 +386,8 @@ export type SubscriberPackageVersionId = {
   subscriberPackageVersionId: string;
 };
 
+export type BranchCreateResponse = {
+  commit: string;
+  version: string;
+};
+
