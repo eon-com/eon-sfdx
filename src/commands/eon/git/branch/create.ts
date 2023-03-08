@@ -70,15 +70,14 @@ export default class GitHotfixCreate extends SfdxCommand {
       message: `Confirm org 👉 ${this.org.getConnection().getAuthInfoFields().instanceUrl}:`,
       initial: 0,
       choices: [
-        { name: true, message: `Yes that's right 👍`, value: true },
-        { name: false, message: 'Ohh its the wrong org. Please let me start again', value: false },
+        { name: 'Yes', message: `Yes that's right 👍`, value: 'Yes' },
+        { name: 'No', message: `Ohh its the wrong org. Please let me start again`, value: 'No' },
       ],
     })
       .run()
       .catch(console.error);
-
     // exit if no was selected
-    if (!orgSelection) {
+    if (orgSelection === 'No') {
       EONLogger.log(COLOR_WARNING('Skip next steps and finish command. Bye 👋'));
       return {};
     }
@@ -92,15 +91,14 @@ export default class GitHotfixCreate extends SfdxCommand {
       message: `Do you like to create the branch hotfix-${this.flags.ticket}-${this.flags.package}? 🤔`,
       initial: 0,
       choices: [
-        { name: true, message: `Yes`, value: true },
-        { name: false, message: 'No ,go to the next step', value: false },
+        { name: 'Yes', message: `Yes`, value: 'Yes' },
+        { name: 'No', message: 'No ,go to next step', value: 'No' },
       ],
     })
       .run()
       .catch(console.error);
-
     // exit if no was selected
-    if (branchSelection) {
+    if (branchSelection === 'Yes') {
       await this.getBranch(orgResponse);
     }
     //update package tree
@@ -108,15 +106,14 @@ export default class GitHotfixCreate extends SfdxCommand {
       message: `Do you like to update the package tree with ignoreOnStage build flag? 🧐`,
       initial: 0,
       choices: [
-        { name: true, message: `Yes`, value: true },
-        { name: false, message: 'No ,go to the next step', value: false },
+        { name: 'Yes', message: `Yes`, value: 'Yes' },
+        { name: 'No', message: 'No ,go to next step', value: 'No' },
       ],
     })
       .run()
       .catch(console.error);
-
     // exit if no was selected
-    if (treeSelection) {
+    if (treeSelection === 'Yes') {
       await this.updatePackageTree(orgResponse);
     }
 
@@ -143,14 +140,18 @@ export default class GitHotfixCreate extends SfdxCommand {
           message: 'Choise next steps for the package version:',
           initial: 0,
           choices: [
-            { name: true, message: `Update to new patch version ${orgResponse.version} from org`, value: true },
-            { name: false, message: 'No thx. I need no update', value: false },
+            {
+              name: 'Yes',
+              message: `Update to new patch version ${orgResponse.version} from org x.x.+1`,
+              value: 'Yes',
+            },
+            { name: 'No', message: 'No thx. Go to next steps', value: 'No' },
           ],
         })
           .run()
           .catch(console.error);
-        console.log(versionSelection);
-        if (versionSelection) {
+
+        if (versionSelection === 'Yes') {
           packageDir.versionNumber = orgResponse.version;
         }
         packageTree.set(packageDir.package, packageDir);
@@ -237,8 +238,7 @@ export default class GitHotfixCreate extends SfdxCommand {
         { name: 'pretty', message: 'Run prettier on your staged changes', value: 'pretty' }, //<= choice object
         { name: 'cherry-pick', message: 'Cherry-pick a merge commit', value: 'cherry-pick' }, //<= choice object
         { name: 'push', message: 'Push your changes to the remote branch', value: 'push' }, //<= choice object
-        { name: 'manual', message: 'Manual work( like commit, local changes ...)', value: 'manual' }, //<= choice object
-        { name: 'return', message: 'No to do anymore. Let me go out from this command. Bye 👋', value: 'cherry-pick' }, //<= choice object
+        { name: 'return', message: 'Exit from this command. Bye 👋', value: 'cherry-pick' }, //<= choice object
       ],
     })
       .run()
@@ -281,10 +281,12 @@ export default class GitHotfixCreate extends SfdxCommand {
       try {
         await git.raw(['cherry-pick', inputMerge, '-m1']);
       } catch (e) {
-        EONLogger.log(COLOR_WARNING(
-          `Cherry pick failed. Please check the details: ${e.message} \n\n ${e.stderr} \n\n ${e.stdout}`
-        ));
-        EONLogger.log(COLOR_WARNING(`👆 Please check merge for merge conflicts and resolve them before the next steps`));
+        EONLogger.log(
+          COLOR_WARNING(`Cherry pick failed. Please check the details: ${e.message} \n\n ${e.stderr} \n\n ${e.stdout}`)
+        );
+        EONLogger.log(
+          COLOR_WARNING(`👆 Please check merge for merge conflicts and resolve them before the next steps`)
+        );
       }
       return true;
     }
