@@ -209,36 +209,6 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
         }
       }
     }
-    if (this.flags.missingdeps || this.flags.all) {
-      EONLogger.log(COLOR_HEADER('🔎 Start static checks for 👉 Missing dependencies'));
-      for (const value of packageMap.values()) {
-        if (!packageAliases[value.package]) {
-          EONLogger.log(COLOR_WARNING(`👆 No validation for source packages: ${value.package}`));
-          continue;
-        }
-        const singlePackageCheckList = this.checkMissingDeps(packageDirs, value);
-        if (singlePackageCheckList.length > 0) {
-          packageCheckList = [...packageCheckList, ...singlePackageCheckList];
-          ProjectValidate.publicPackageMap.set(value.package, value);
-          hasError = true;
-        }
-      }
-    }
-    if (this.flags.order || this.flags.all) {
-      EONLogger.log(COLOR_HEADER('🔎 Start static checks for 👉 Correct package order'));
-      for (const value of packageMap.values()) {
-        if (!packageAliases[value.package]) {
-          EONLogger.log(COLOR_WARNING(`👆 No validation for source packages: ${value.package}`));
-          continue;
-        }
-        const singlePackageCheckList = this.checkPackageOrder(packageDirs, value, packageAliases);
-        if (singlePackageCheckList.length > 0) {
-          packageCheckList = [...packageCheckList, ...singlePackageCheckList];
-          ProjectValidate.publicPackageMap.set(value.package, value);
-          hasError = true;
-        }
-      }
-    }
     if (this.flags.depsversion || this.flags.all) {
       EONLogger.log(COLOR_HEADER('🔎 Start static checks for 👉 Correct dependencies version'));
 
@@ -278,6 +248,37 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
         }
       }
     }
+    if (this.flags.missingdeps || this.flags.all) {
+      EONLogger.log(COLOR_HEADER('🔎 Start static checks for 👉 Missing dependencies'));
+      for (const value of packageMap.values()) {
+        if (!packageAliases[value.package]) {
+          EONLogger.log(COLOR_WARNING(`👆 No validation for source packages: ${value.package}`));
+          continue;
+        }
+        const singlePackageCheckList = this.checkMissingDeps(packageDirs, value);
+        if (singlePackageCheckList.length > 0) {
+          packageCheckList = [...packageCheckList, ...singlePackageCheckList];
+          ProjectValidate.publicPackageMap.set(value.package, value);
+          hasError = true;
+        }
+      }
+    }
+    if (this.flags.order || this.flags.all) {
+      EONLogger.log(COLOR_HEADER('🔎 Start static checks for 👉 Correct package order'));
+      for (const value of packageMap.values()) {
+        if (!packageAliases[value.package]) {
+          EONLogger.log(COLOR_WARNING(`👆 No validation for source packages: ${value.package}`));
+          continue;
+        }
+        const singlePackageCheckList = this.checkPackageOrder(packageDirs, value, packageAliases);
+        if (singlePackageCheckList.length > 0) {
+          packageCheckList = [...packageCheckList, ...singlePackageCheckList];
+          ProjectValidate.publicPackageMap.set(value.package, value);
+          hasError = true;
+        }
+      }
+    }
+
     if (hasError) {
       //console.log(tableOutput.toString());
       EONLogger.log(
@@ -759,10 +760,6 @@ The job cannot find the 'LATEST' prefix. Please check the version number ${sourc
       .sort((a, b) => (a.modifiedDate > b.modifiedDate ? -1 : 1));
     if (latestPackageVersionList.length === 0) {
       throw new SfdxError(`Found no package version for package ${pck} on the dev hub. Please check the package name.`);
-    } else {
-      EONLogger.log(
-        COLOR_TRACE(`✔️ Found version ${latestPackageVersionList[0].version} with id ${latestPackageVersionList[0].id}`)
-      );
     }
 
     let subscriberPackageResponse = await this.org
@@ -770,6 +767,7 @@ The job cannot find the 'LATEST' prefix. Please check the version number ${sourc
       .tooling.autoFetchQuery<SubscriberPackageVersion>(
         `Select Dependencies from SubscriberPackageVersion where id = '${latestPackageVersionList[0].id}'`
       );
+
     let subscriberPackageList = subscriberPackageResponse.records ? subscriberPackageResponse.records : [];
     if (subscriberPackageList.length === 0) {
       throw new SfdxError(
@@ -787,18 +785,14 @@ The job cannot find the 'LATEST' prefix. Please check the version number ${sourc
                     sensitivity: 'base',
                   }) > 0
                 ) {
-                  subscriberPackageVersionMap.set(version.name, version.version);               
+                  subscriberPackageVersionMap.set(version.name, version.version);
                 }
               } else {
-                subscriberPackageVersionMap.set(version.name, version.version);           
+                subscriberPackageVersionMap.set(version.name, version.version);
               }
             }
           }
         });
-      } else {
-        EONLogger.log(
-          COLOR_TRACE(`Found no SubscriberPackageVersion dependencies for package ${pck} and Id ${latestPackageVersionList[0].id} on the dev hub. Please check the package name.`)
-        );
       }
     }
   }

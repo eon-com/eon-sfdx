@@ -618,19 +618,20 @@ First the dependecies packages. And then this package.`
       throw new SfdxError(`System Exception: Problems to fetch results from ApexCodeCoverageAggregate`);
     }
 
-    if (coveredCounter === 0) {
-      throw new SfdxError(`This package has no covered lines. Please check the testclasses.`);
-    }
-    packageCoverage = Math.floor((coveredCounter / (coveredCounter + uncoveredCounter)) * 100);
-
-    EONLogger.log(COLOR_INFO('Check Code Coverage for Testclasses:'));
-    EONLogger.log(COLOR_INFO(table.toString()));
-    if (packageCoverage < 75) {
-      throw new SfdxError(
-        `The package has an overall coverage of ${packageCoverage}%, which does not meet the required overall coverage of 75%. Please check the testclass coverage table and fix the test classes.`
-      );
+    if (coveredCounter === 0 && uncoveredCounter === 0) {
+      EONLogger.log(COLOR_WARNING(`This package has no covered and uncovered lines. Please check the result. 👆`));
     } else {
-      EONLogger.log(COLOR_SUCCESS(`👏 Great. This package has a code coverage from ${packageCoverage}%. 😊`));
+      packageCoverage = Math.floor((coveredCounter / (coveredCounter + uncoveredCounter)) * 100);
+
+      EONLogger.log(COLOR_INFO('Check Code Coverage for Testclasses:'));
+      EONLogger.log(COLOR_INFO(table.toString()));
+      if (packageCoverage < 75) {
+        throw new SfdxError(
+          `The package has an overall coverage of ${packageCoverage}%, which does not meet the required overall coverage of 75%. Please check the testclass coverage table and fix the test classes.`
+        );
+      } else {
+        EONLogger.log(COLOR_SUCCESS(`👏 Great. This package has a code coverage from ${packageCoverage}%. 😊`));
+      }
     }
   }
 
