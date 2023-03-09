@@ -50,7 +50,7 @@ export default class GitHotfixCreate extends SfdxCommand {
     ticket: flags.string({
       char: 't',
       description: messages.getMessage('ticketFlag'),
-      required: true,
+      required: false,
     }),
   };
 
@@ -87,19 +87,21 @@ export default class GitHotfixCreate extends SfdxCommand {
     }
     EONLogger.log(COLOR_TRACE(`Found commit id ${orgResponse.commit} and new version: ${orgResponse.version} 👌`));
     //get branch
-    const branchSelection = await new Select({
-      message: `Do you like to create the branch hotfix-${this.flags.ticket}-${this.flags.package}? 🤔`,
-      initial: 0,
-      choices: [
-        { name: 'Yes', message: `Yes`, value: 'Yes' },
-        { name: 'No', message: 'No ,go to next step', value: 'No' },
-      ],
-    })
-      .run()
-      .catch(console.error);
-    // exit if no was selected
-    if (branchSelection === 'Yes') {
-      await this.getBranch(orgResponse);
+    if (this.flags.ticket) {
+      const branchSelection = await new Select({
+        message: `Do you like to create the branch hotfix-${this.flags.ticket}-${this.flags.package}? 🤔`,
+        initial: 0,
+        choices: [
+          { name: 'Yes', message: `Yes`, value: 'Yes' },
+          { name: 'No', message: 'No ,go to next step', value: 'No' },
+        ],
+      })
+        .run()
+        .catch(console.error);
+      // exit if no was selected
+      if (branchSelection === 'Yes') {
+        await this.getBranch(orgResponse);
+      }
     }
     //update package tree
     const treeSelection = await new Select({
@@ -292,8 +294,9 @@ export default class GitHotfixCreate extends SfdxCommand {
     }
 
     if (taskSelection === 'push') {
-      EONLogger.log(COLOR_TRACE(`Run command 👉 git push -u origin hotfix-${this.flags.ticket}-${this.flags.package}`));
-      await git.push(['-u', 'origin', `hotfix-${this.flags.ticket}-${this.flags.package}`]);
+      const localBranchName = await git.raw(['rev-parse', '--abbrev-ref', 'HEAD']);
+      EONLogger.log(COLOR_TRACE(`Run command 👉 git push -u origin ${localBranchName}`));
+      await git.push(['-u', 'origin', localBranchName]);
       return true;
     }
   }
