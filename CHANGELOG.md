@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.10.1](https://github.com/eon-com/eon-sfdx/compare/v1.10.0...v1.10.1) (2023-03-13)
+
+### Bug Fixes
+
+* **gitlab-create-branch:** fix(git branch create command) new prompts ([#30](https://github.com/eon-com/eon-sfdx/issues/30)) ([5f1a185](https://github.com/eon-com/eon-sfdx/commit/5f1a1858d7c947e252b15aa2bdbda7682c21d68f))
+* **project-validation:** fix(command package validate) no error when uncovered lines == 0 ([#30](https://github.com/eon-com/eon-sfdx/issues/30)) ([2fd19af5](https://github.com/eon-com/eon-sfdx/commit/2fd19af50c9ffcf28539fa7f1d100f2a49f50ae8))
+* **project-validation:** fix(command-project-validate) change order for validate stages ([#30](https://github.com/eon-com/eon-sfdx/issues/30)) ([a571a93](https://github.com/eon-com/eon-sfdx/commit/a571a934968be6b400a39fb00c01d99654f51013))
+
 ## [1.10.0](https://github.com/eon-com/eon-sfdx/compare/v1.9.4...v1.10.0) (2023-03-01)
 
 
