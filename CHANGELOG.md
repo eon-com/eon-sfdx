@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.11.0](https://github.com/eon-com/eon-sfdx/compare/v1.9.4...v1.11.0) (2023-03-13)
+
+
+### Features
+
+* **project-validation:** new logic for dep version. get versions from dev hub ([9252b45](https://github.com/eon-com/eon-sfdx/commit/9252b4557f761bf070f42983a6ee90b7aa53b3f7))
+
+
+### Bug Fixes
+
+* **project-validate:** check also dep from dep versions ([1cfdc01](https://github.com/eon-com/eon-sfdx/commit/1cfdc01063f1ea727b36db691bee39dc9f42e8cf))
+* **project-validation:** resolve output for default key string to boolean ([54f69d9](https://github.com/eon-com/eon-sfdx/commit/54f69d94a1db055123c426a6e2924fed16dceff6))
+
 ### [1.10.1](https://github.com/eon-com/eon-sfdx/compare/v1.10.0...v1.10.1) (2023-03-13)
 
 ### Bug Fixes
