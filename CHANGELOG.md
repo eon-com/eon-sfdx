@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.11.1](https://github.com/eon-com/eon-sfdx/compare/v1.11.0...v1.11.1) (2023-03-27)
+### Bug Fixes
+
+* **project-validate:** fix dev versions and git push ([4cd62b1](https://github.com/eon-com/eon-sfdx/commit/4cd62b13320d05a5a092cc8cdc10fd1bae09fa15))
+
 ## [1.11.0](https://github.com/eon-com/eon-sfdx/compare/v1.9.4...v1.11.0) (2023-03-13)
 
 
