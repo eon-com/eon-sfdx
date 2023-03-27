@@ -21,6 +21,7 @@ import EONLogger, {
   COLOR_NOTIFY,
   COLOR_SUCCESS,
   COLOR_WARNING,
+  COLOR_ERROR
 } from '../../../../eon/EONLogger';
 import path from 'path';
 import { SfpowerscriptsArtifact2, PackageDirParsed, BranchCreateResponse } from '../../../../helper/types';
@@ -296,7 +297,11 @@ export default class GitHotfixCreate extends SfdxCommand {
     if (taskSelection === 'push') {
       const localBranchName = await git.raw(['rev-parse', '--abbrev-ref', 'HEAD']);
       EONLogger.log(COLOR_TRACE(`Run command 👉 git push -u origin ${localBranchName}`));
-      await git.push(['-u', 'origin', localBranchName]);
+      try{
+      await git.raw(['push','-u','origin',`${localBranchName.trim()}`]);
+      }catch(e){
+        EONLogger.log(COLOR_ERROR(`💥 ${e.message}`))
+      }
       return true;
     }
   }
