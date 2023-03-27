@@ -661,15 +661,21 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
     // now fetch deps from dependend packages
     for (const sourcePckDep of packageTree.dependencies) {
       if (sourcePckDep?.versionNumber) {
-        await this.createSubsriberPackageVersionMap(
+       const checkResult = await this.createSubsriberPackageVersionMap(
           sourcePckDep.package,
           subscriberPackageVersionMap,
           packageVersionList
         );
+        if(checkResult) {
+         return validationResponse
+        }
       }
     }
     // first fetch package deps for unlocked package
-    await this.createSubsriberPackageVersionMap(packageTree.package, subscriberPackageVersionMap, packageVersionList);
+    const checkResult = await this.createSubsriberPackageVersionMap(packageTree.package, subscriberPackageVersionMap, packageVersionList);
+    if(checkResult) {
+      return validationResponse
+    }
 
     for (const sourcePckDep of packageTree.dependencies) {
       if (sourcePckDep?.versionNumber) {
@@ -684,9 +690,8 @@ The job cannot find the 'LATEST' prefix. Please check the version number ${sourc
     }
     for (const [key, value] of currentPackageVersionMap) {
       if (!subscriberPackageVersionMap.has(key)) {
-        throw new SfdxError(
-          `Found no SubscriberPackageVersion dependency id for package ${key} on the dev hub. Please check the SubscriberPackageVersion for version ${value}.`
-        );
+        EONLogger.log(COLOR_WARNING(`👆 Found no SubscriberPackageVersion dependency id for package ${key} on the dev hub. Please check the SubscriberPackageVersion for version ${value}.`));
+        continue;
       }
       if (
         subscriberPackageVersionMap.get(key).localeCompare(value, undefined, {
@@ -754,12 +759,16 @@ The job cannot find the 'LATEST' prefix. Please check the version number ${sourc
     pck: string,
     subscriberPackageVersionMap: Map<string, string>,
     packageVersionList: MetadataPackageVersion[]
-  ): Promise<void> {
+  ): Promise<Boolean> {
     const latestPackageVersionList = packageVersionList
       .filter((pckVersion) => pckVersion.name === pck)
-      .sort((a, b) => (a.modifiedDate > b.modifiedDate ? -1 : 1));
+      .sort((a, b) => (a.version.localeCompare(b.version, undefined, {
+        numeric: true,
+        sensitivity: 'base',
+      }) > 0) ? -1 : 1);
     if (latestPackageVersionList.length === 0) {
-      throw new SfdxError(`Found no package version for package ${pck} on the dev hub. Please check the package name.`);
+      EONLogger.log(COLOR_WARNING(`👆 Found no package version for package ${pck} on the dev hub. Please check the package name.`));
+      return true
     }
 
     let subscriberPackageResponse = await this.org
@@ -770,9 +779,8 @@ The job cannot find the 'LATEST' prefix. Please check the version number ${sourc
 
     let subscriberPackageList = subscriberPackageResponse.records ? subscriberPackageResponse.records : [];
     if (subscriberPackageList.length === 0) {
-      throw new SfdxError(
-        `Found no SubscriberPackageVersion for package ${pck} and Id ${latestPackageVersionList[0].id} on the dev hub. Please check the package name.`
-      );
+        EONLogger.log(COLOR_WARNING(`👆 Found no SubscriberPackageVersion for package ${pck} and Id ${latestPackageVersionList[0].id} on the dev hub. Please check the package name.`));
+        return true
     } else {
       if (subscriberPackageList[0].Dependencies?.ids && Array.isArray(subscriberPackageList[0].Dependencies?.ids)) {
         subscriberPackageList[0].Dependencies.ids.forEach((id) => {
@@ -795,5 +803,6 @@ The job cannot find the 'LATEST' prefix. Please check the version number ${sourc
         });
       }
     }
+    return false
   }
 }
