@@ -120,7 +120,7 @@ export default class ProjectValidate extends SfdxCommand {
     const contents = projectJson.getContents();
     let packageDirs: NamedPackageDirLarge[] = ensureArray(contents.packageDirectories);
     // get all diffs from current to target branch
-
+    
     let git: SimpleGit = simplegit(path.dirname(projectJson.getPath()));
     let packageDirsTarget: PackageDir[] = [];
     let packageCheckList: ProjectValidationOutput[] = [];
@@ -160,7 +160,7 @@ export default class ProjectValidate extends SfdxCommand {
           if (
             path
               .join(path.dirname(projectJson.getPath()), path.normalize(change.file))
-              .includes(path.normalize(pck.fullPath))
+              .includes(path.normalize(pck.path))
           ) {
             return true;
           }
