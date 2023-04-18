@@ -7,7 +7,7 @@
 import * as os from 'os';
 import { flags, SfdxCommand } from '@salesforce/command';
 import { Messages, SfdxError, SfdxProjectJson, PackageDir, PackageDirDependency } from '@salesforce/core';
-import { AnyJson } from '@salesforce/ts-types';
+import { AnyJson, ensureArray } from '@salesforce/ts-types';
 import simplegit, { DiffResult, SimpleGit } from 'simple-git';
 import {
   ProjectValidationOutput,
@@ -90,6 +90,11 @@ export default class ProjectValidate extends SfdxCommand {
       description: messages.getMessage('all'),
       required: false,
     }),
+    change: flags.boolean({
+      char: 'c',
+      description: messages.getMessage('change'),
+      required: false,
+    }),
   };
 
   // Set this to true if your command requires a project workspace; 'requiresProject' is false by default
@@ -112,7 +117,8 @@ export default class ProjectValidate extends SfdxCommand {
     const projectJson: SfdxProjectJson = await this.project.retrieveSfdxProjectJson();
     const packageAliases = projectJson.getContents().packageAliases;
     // get all packages
-    let packageDirs: NamedPackageDirLarge[] = projectJson.getUniquePackageDirectories();
+    const contents = projectJson.getContents();
+    let packageDirs: NamedPackageDirLarge[] = ensureArray(contents.packageDirectories);
     // get all diffs from current to target branch
 
     let git: SimpleGit = simplegit(path.dirname(projectJson.getPath()));
@@ -372,9 +378,14 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
         console.log(this.createTableString(publicPck), '\n');
         EONLogger.log(`${COLOR_INFO_BOLD('End of package code snippets')}: ${COLOR_INFO(publicPck.package)}\n`);
       }
-      throw new SfdxError(
-        `🔥 Static checks failed. Please fetch the new data from snippet and fix this issues from sfdx-project.json file`
-      );
+      if (this.flags.change) {
+        EONLogger.log(COLOR_HEADER(`👆 Update sfdx-project.json file with the new data 👆`));
+        await projectJson.write(contents);
+      } else {
+        throw new SfdxError(
+          `🔥 Static checks failed. Please fetch the new data from snippet and fix this issues from sfdx-project.json file`
+        );
+      }
     }
 
     EONLogger.log(COLOR_SUCCESS(`Yippiee. 🤙 Static checks finsihed without errors. Great 🤜🤛`));
@@ -661,20 +672,24 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
     // now fetch deps from dependend packages
     for (const sourcePckDep of packageTree.dependencies) {
       if (sourcePckDep?.versionNumber) {
-       const checkResult = await this.createSubsriberPackageVersionMap(
+        const checkResult = await this.createSubsriberPackageVersionMap(
           sourcePckDep.package,
           subscriberPackageVersionMap,
           packageVersionList
         );
-        if(checkResult) {
-         return validationResponse
+        if (checkResult) {
+          return validationResponse;
         }
       }
     }
     // first fetch package deps for unlocked package
-    const checkResult = await this.createSubsriberPackageVersionMap(packageTree.package, subscriberPackageVersionMap, packageVersionList);
-    if(checkResult) {
-      return validationResponse
+    const checkResult = await this.createSubsriberPackageVersionMap(
+      packageTree.package,
+      subscriberPackageVersionMap,
+      packageVersionList
+    );
+    if (checkResult) {
+      return validationResponse;
     }
 
     for (const sourcePckDep of packageTree.dependencies) {
@@ -690,7 +705,11 @@ The job cannot find the 'LATEST' prefix. Please check the version number ${sourc
     }
     for (const [key, value] of currentPackageVersionMap) {
       if (!subscriberPackageVersionMap.has(key)) {
-        EONLogger.log(COLOR_WARNING(`👆 Found no SubscriberPackageVersion dependency id for package ${key} on the dev hub. Please check the SubscriberPackageVersion for version ${value}.`));
+        EONLogger.log(
+          COLOR_WARNING(
+            `👆 Found no SubscriberPackageVersion dependency id for package ${key} on the dev hub. Please check the SubscriberPackageVersion for version ${value}.`
+          )
+        );
         continue;
       }
       if (
@@ -725,8 +744,10 @@ The job cannot find the 'LATEST' prefix. Please check the version number ${sourc
     outputString = outputString + `             "package": "${packageTree.package}",\n`;
     if (packageTree.versionName) {
       outputString = outputString + `             "versionName": "${packageTree.versionName}",\n`;
+      packageTree.versionName = stripAnsi(packageTree.versionName);
     }
     outputString = outputString + `             "versionNumber": "${packageTree.versionNumber}",\n`;
+    packageTree.versionNumber = stripAnsi(packageTree.versionNumber);
     outputString =
       outputString +
       `${
@@ -743,6 +764,8 @@ The job cannot find the 'LATEST' prefix. Please check the version number ${sourc
           : outputString + `                     "package": "${value.package}"\n`;
         if (value.versionNumber) {
           outputString = outputString + `                     "versionNumber": "${value.versionNumber}"\n`;
+          value.versionNumber = stripAnsi(value.versionNumber);
+          value.package = stripAnsi(value.package);
         }
         outputString =
           index === packageTree.dependencies.length - 1
@@ -762,13 +785,19 @@ The job cannot find the 'LATEST' prefix. Please check the version number ${sourc
   ): Promise<Boolean> {
     const latestPackageVersionList = packageVersionList
       .filter((pckVersion) => pckVersion.name === pck)
-      .sort((a, b) => (a.version.localeCompare(b.version, undefined, {
-        numeric: true,
-        sensitivity: 'base',
-      }) > 0) ? -1 : 1);
+      .sort((a, b) =>
+        a.version.localeCompare(b.version, undefined, {
+          numeric: true,
+          sensitivity: 'base',
+        }) > 0
+          ? -1
+          : 1
+      );
     if (latestPackageVersionList.length === 0) {
-      EONLogger.log(COLOR_WARNING(`👆 Found no package version for package ${pck} on the dev hub. Please check the package name.`));
-      return true
+      EONLogger.log(
+        COLOR_WARNING(`👆 Found no package version for package ${pck} on the dev hub. Please check the package name.`)
+      );
+      return true;
     }
 
     let subscriberPackageResponse = await this.org
@@ -779,8 +808,12 @@ The job cannot find the 'LATEST' prefix. Please check the version number ${sourc
 
     let subscriberPackageList = subscriberPackageResponse.records ? subscriberPackageResponse.records : [];
     if (subscriberPackageList.length === 0) {
-        EONLogger.log(COLOR_WARNING(`👆 Found no SubscriberPackageVersion for package ${pck} and Id ${latestPackageVersionList[0].id} on the dev hub. Please check the package name.`));
-        return true
+      EONLogger.log(
+        COLOR_WARNING(
+          `👆 Found no SubscriberPackageVersion for package ${pck} and Id ${latestPackageVersionList[0].id} on the dev hub. Please check the package name.`
+        )
+      );
+      return true;
     } else {
       if (subscriberPackageList[0].Dependencies?.ids && Array.isArray(subscriberPackageList[0].Dependencies?.ids)) {
         subscriberPackageList[0].Dependencies.ids.forEach((id) => {
@@ -803,6 +836,6 @@ The job cannot find the 'LATEST' prefix. Please check the version number ${sourc
         });
       }
     }
-    return false
+    return false;
   }
 }
