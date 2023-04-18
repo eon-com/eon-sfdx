@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.13.0](https://github.com/eon-com/eon-sfdx/compare/v1.11.2...v1.13.0) (2023-04-18)
+
+
+### Features
+
+* (project-validation) add change flag to command ([a86d8c0](https://github.com/eon-com/eon-sfdx/commit/a86d8c0d8381e6b88fff2d61b2e7f926156a37e6))
+
 ## [1.12.0](https://github.com/eon-com/eon-sfdx/compare/v1.11.2...v1.12.0) (2023-04-18)
 ### Features
 
