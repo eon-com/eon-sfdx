@@ -127,6 +127,8 @@ export interface PluginSettings {
   awsRegion?: string;
   awsSecretFormat?: string;
   metadataPlaceholderFormat?: string;
+  featureFlagDefaultPackage?: string;
+  sourceSubdir?: string;
 }
 
 export interface PackagePermissionset {

@@ -107,18 +107,18 @@ export default class Create extends SfdxCommand {
       message: 'Enter Feature Flag Category'
     }).run();
 
-    const packageName = 'deprecated-components'  // hardcoded for dev purposes
+    // const packageName = 'deprecated-components'  // hardcoded for dev purposes
 
-    // const packageName = await new AutoComplete({
-    //   name: 'package',
-    //   message: 'Select your package',
-    //   limit: 15,
-    //   initial: 2,
-    //   choices: packageNames,
-    //   footer() {
-    //     return chalk.dim('(Scroll up and down to reveal more choices)');
-    //   }
-    // }).run()
+    const packageName = await new AutoComplete({
+      name: 'package',
+      message: 'Select your package',
+      limit: 15,
+      initial: 2,
+      choices: packageNames,
+      footer() {
+        return chalk.dim('(Scroll up and down to reveal more choices)');
+      }
+    }).run()
 
     const type = await new Select({
       name: 'type',
@@ -175,7 +175,7 @@ export default class Create extends SfdxCommand {
     return { content, filePath, dirPath };
   }
 
-  generateCustomSettingsObject = ({ object, packageDir }) => {
+  generateCustomSettingsObject = ({ object, defaultDir }) => {
     let content = '<?xml version="1.0" encoding="UTF-8"?>';
     content += '<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">';
     content += '    <customSettingsType>Hierarchy</customSettingsType>';
@@ -183,9 +183,9 @@ export default class Create extends SfdxCommand {
     content += `    <label>${object}</label>`;
     content += '    <visibility>Public</visibility>';
     content += '</CustomObject>';
-    const dirPath = `${packageDir}objects\\${object}__c\\`;
+    const dirPath = `${defaultDir}objects\\${object}__c\\`;
     const filePath = `${dirPath}${object}__c.object-meta.xml`;
-    return { content, filePath };
+    return { content, filePath, dirPath };
   }
 
   deployFeatureFlag = async ({ object, name, sourcesToDeploy }) => {
@@ -237,10 +237,14 @@ export default class Create extends SfdxCommand {
     const projectJson: SfdxProjectJson = await this.project.retrieveSfdxProjectJson();
     const packageDirs: NamedPackageDir[] = projectJson.getUniquePackageDirectories();
     const packageNames = packageDirs.map(dir => dir.package).sort();
-
+    const settings: PluginSettings = projectJson.getContents()?.plugins['eon-sfdx'] as PluginSettings;
+    const defaultPackage = settings.featureFlagDefaultPackage;
+    const sourceSubdir = settings.sourceSubdir;
+    
     const { name, label, packageName, category, type, shouldDeploy } = await this.getInfoFromUser(packageNames);
 
-    const packageDir = packageDirs.find(dir => dir.package === packageName).fullPath;
+    const packageDir = `${packageDirs.find(dir => dir.package === packageName).fullPath}${sourceSubdir}\\`;
+    const defaultDir = `${packageDirs.find(dir => dir.package === defaultPackage).fullPath}${sourceSubdir}\\`;
     const object = 'Feature1';
 
     const {
@@ -263,11 +267,13 @@ export default class Create extends SfdxCommand {
 
     const {
       content: objContent,
-      filePath: objFilePath
-    } = this.generateCustomSettingsObject({ object, packageDir });
+      filePath: objFilePath,
+      dirPath: objDirPath
+    } = this.generateCustomSettingsObject({ object, defaultDir });
     try {
       await fs.access(objFilePath);
     } catch (_) {
+      await fs.mkdir(objDirPath, { recursive: true })
       await fs.writeFile(objFilePath, objContent);
       sourcesToDeploy.push(objFilePath);
     };
