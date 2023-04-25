@@ -35,11 +35,9 @@ import {
 } from '../../../helper/featureflag-categories';
 import { COLOR_WARNING } from '../../../eon/EONLogger';
 // Initialize Messages with the current plugin directory
-Messages.importMessagesDirectory(__dirname);
 
 // Load the specific messages for this file. Messages from @salesforce/command, @salesforce/core,
 // or any library that is using the messages framework can also be loaded this way.
-const messages = Messages.loadMessages('@eon-com/eon-sfdx', 'commit');
 
 
 
@@ -51,14 +49,13 @@ export default class Create extends SfdxCommand {
     SAVE_NOW: chalk.dim(' * (finish entering category)')
   };
 
-  public static description = messages.getMessage('commandDescription');
-
-  public static examples = messages.getMessage('examples').split(os.EOL);
 
   public static args = [{ name: 'file' }];
 
   // Set this to true if your command requires a project workspace; 'requiresProject' is false by default
   protected static requiresProject = true;
+  static requiresUsername = true;
+
   private categoriesItemsSet: string[];
   private categoriesTree: object;
 
@@ -274,8 +271,9 @@ export default class Create extends SfdxCommand {
     const deployRes = await deploy.pollStatus();
     if (!deployRes.response.success) {
       this.ux.stopSpinner('Deployment failed.');
+      console.log(JSON.stringify(deployRes.response))
 
-      throw new SfdxError(messages.getMessage('errorDeployFailed', ['Deployment failed. Check errors.']));
+      throw new SfdxError('Deployment failed');
     } else {
       this.ux.stopSpinner('Deployment done.');
     }
