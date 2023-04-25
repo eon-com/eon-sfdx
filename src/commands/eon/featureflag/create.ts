@@ -6,6 +6,7 @@
  */
 import { SfdxCommand } from '@salesforce/command';
 import {
+  Connection,
   Messages,
   NamedPackageDir,
   SfdxError,
@@ -49,6 +50,10 @@ export default class Create extends SfdxCommand {
     SAVE_NOW: chalk.dim(' * (finish entering category)')
   };
 
+  private TYPE = {
+    CUSTOM_SETTING: 'Custom Setting',
+    CUSTOM_PERMISSION: 'Custom Permission'
+  }
 
   public static args = [{ name: 'file' }];
 
@@ -58,6 +63,30 @@ export default class Create extends SfdxCommand {
 
   private categoriesItemsSet: string[];
   private categoriesTree: object;
+  private conn: Connection;
+
+  private async checkCustomSettingsInstanceExists({ object, name }): Promise<Boolean> {
+    interface Settings {
+      Id?: string;
+      [key: string]: any;
+    }
+    this.conn = this.org.getConnection();
+    const query = `select id, ${name}__c, SetupOwnerId from ${object}__c`;
+    const result = await this.conn.query<Settings>(query);
+    const queryRes = result.records.find((record) => record.SetupOwnerId.substring(0, 3) == '00D');
+    return !!queryRes;
+  }
+
+  private async createCustomSettingsInstance({object, name}): Promise<void> {
+    this.ux.startSpinner('Setting does not exist yet. Initializing new...');
+    const newRecord = { [`${name}__c`]: false };
+    const newSetting = await this.conn.sobject(`${object}__c`).create(newRecord);
+    if (!newSetting.success) {
+      this.ux.stopSpinner(`Update not successfully. Please try again`);
+    } else {
+      this.ux.stopSpinner(`update custom settings successfully`);
+    }
+  }
 
   private getEntries(categoriesTree: object, path: Array<PathItem>) {
     let tempObj = categoriesTree;
@@ -189,7 +218,7 @@ export default class Create extends SfdxCommand {
     const type = await new Select({
       name: 'type',
       message: 'Select Feature Flag type',
-      choices: ['Custom Setting', 'Custom Permission']
+      choices: Object.values(this.TYPE)
     }).run();
 
     const shouldDeploy = await new Toggle({
@@ -206,12 +235,12 @@ export default class Create extends SfdxCommand {
   private generateCustomSettingField({ object, name, label, packageDir }): MetadataFile {
     let content = '<?xml version="1.0" encoding="UTF-8"?>\n';
     content += '<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">\n';
-    content += `<fullName>${name}__c</fullName>\n`;
-    content += '<defaultValue>false</defaultValue>\n';
-    content += '<externalId>false</externalId>\n';
-    content += `<label>${label}</label>\n`;
-    content += '<trackTrending>false</trackTrending>\n';
-    content += '<type>Checkbox</type>\n';
+    content += `    <fullName>${name}__c</fullName>\n`;
+    content += '    <defaultValue>false</defaultValue>\n';
+    content += '    <externalId>false</externalId>\n';
+    content += `    <label>${label}</label>\n`;
+    content += '    <trackTrending>false</trackTrending>\n';
+    content += '    <type>Checkbox</type>\n';
     content += '</CustomField>';
     const dirPath = `${packageDir}objects\\${object}__c\\fields\\`
     const filePath = `${dirPath}${name}__c.field-meta.xml`;
@@ -221,20 +250,20 @@ export default class Create extends SfdxCommand {
   private generateCustomMetadataRecord({ label, object, category, type, name, packageDir }): MetadataFile {
     let content = '<?xml version="1.0" encoding="UTF-8"?>\n';
     content += '<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">\n';
-    content += `<label>${label}</label>\n`;
-    content += '<protected>false</protected>\n';
-    content += '<values>\n';
-    content += '<field>Category__c</field>\n';
-    content += `<value xsi:type="xsd:string">${category}</value>\n`;
-    content += '</values>\n';
-    content += '<values>\n';
-    content += '<field>Setting__c</field>\n';
-    content += `<value xsi:type="xsd:string">${object}__c.${name}__c</value>\n`;
-    content += '</values>\n';
-    content += '<values>\n';
-    content += '<field>Type__c</field>\n';
-    content += `<value xsi:type="xsd:string">${type}</value>\n`;
-    content += '</values>\n';
+    content += `    <label>${label}</label>\n`;
+    content += '    <protected>false</protected>\n';
+    content += '    <values>\n';
+    content += '        <field>Category__c</field>\n';
+    content += `        <value xsi:type="xsd:string">${category}</value>\n`;
+    content += '    </values>\n';
+    content += '    <values>\n';
+    content += '        <field>Setting__c</field>\n';
+    content += `        <value xsi:type="xsd:string">${object}__c.${name}__c</value>\n`;
+    content += '    </values>\n';
+    content += '    <values>\n';
+    content += '        <field>Type__c</field>\n';
+    content += `        <value xsi:type="xsd:string">${type}</value>\n`;
+    content += '    </values>\n';
     content += '</CustomMetadata>';
     const dirPath = `${packageDir}customMetadata\\`;
     const filePath = `${dirPath}Feature_Flag.${name}.md-meta.xml`;
@@ -242,23 +271,31 @@ export default class Create extends SfdxCommand {
   }
 
   private generateCustomSettingsObject({ object, defaultDir }): MetadataFile {
-    let content = '<?xml version="1.0" encoding="UTF-8"?>';
-    content += '<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">';
-    content += '    <customSettingsType>Hierarchy</customSettingsType>';
-    content += '    <enableFeeds>false</enableFeeds>';
-    content += `    <label>${object}</label>`;
-    content += '    <visibility>Public</visibility>';
-    content += '</CustomObject>';
+    let content = '<?xml version="1.0" encoding="UTF-8"?>\n';
+    content += '<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">\n';
+    content += '    <customSettingsType>Hierarchy</customSettingsType>\n';
+    content += '    <enableFeeds>false</enableFeeds>\n';
+    content += `    <label>${object}</label>\n`;
+    content += '    <visibility>Public</visibility>\n';
+    content += '</CustomObject>\n';
     const dirPath = `${defaultDir}objects\\${object}__c\\`;
     const filePath = `${dirPath}${object}__c.object-meta.xml`;
     return { content, filePath, dirPath };
   }
 
-  private async deployFeatureFlag({ object, name, sourcesToDeploy }) {
-    interface Settings {
-      Id?: string;
-      [key: string]: any;
-    }
+  private generateCustomPermission({ label, name, packageDir }): MetadataFile {
+    let content = '<?xml version="1.0" encoding="UTF-8"?>\n';
+    content += '<CustomPermission xmlns="http://soap.sforce.com/2006/04/metadata">\n';
+    content += '    <isLicensed>false</isLicensed>\n';
+    content += `    <label>${label}</label>\n`;
+    content += '</CustomPermission>\n';
+    const dirPath = `${packageDir}customPermissions\\`;
+    const filePath = `${dirPath}${name}.customPermission-meta.xml`;
+    return { content, dirPath, filePath };
+  }
+
+  private async deployFeatureFlag({ object, name, sourcesToDeploy, type }) {
+
     const deploy: MetadataApiDeploy = await ComponentSet.fromSource(sourcesToDeploy).deploy({
       usernameOrConnection: this.org.getConnection().getUsername(),
     });
@@ -278,24 +315,15 @@ export default class Create extends SfdxCommand {
       this.ux.stopSpinner('Deployment done.');
     }
 
-    const conn = this.org.getConnection();
-    const query = `select id, ${name}__c, SetupOwnerId from ${object}__c`;
-    const result = await conn.query<Settings>(query);
-    const queryRes = result.records.find((record) => record.SetupOwnerId.substring(0, 3) == '00D');
-
-    if (!queryRes) {
-      this.ux.startSpinner('Setting does not exist yet. Initializing new...');
-      const newRecord = { [`${name}__c`]: false };
-      const newSetting = await conn.sobject(`${object}__c`).create(newRecord);
-      if (!newSetting.success) {
-        this.ux.stopSpinner(`Update not successfully. Please try again`);
-      } else {
-        this.ux.stopSpinner(`update custom settings successfully`);
+    if (type === this.TYPE.CUSTOM_SETTING) {
+      const isCsExists = await this.checkCustomSettingsInstanceExists({object, name});
+      if (isCsExists) {
+        this.createCustomSettingsInstance({object, name})
       }
     }
   }
 
-  private async saveFile({directory, fileName, fileContent}): Promise<void> {
+  private async saveFile({ directory, fileName, fileContent }): Promise<void> {
     await fs.mkdir(directory, { recursive: true })
     await fs.writeFile(fileName, fileContent);
   }
@@ -321,22 +349,33 @@ export default class Create extends SfdxCommand {
     const packageDir = `${packageDirs.find(dir => dir.package === packageName).fullPath}${sourceSubdir}\\`;
     const defaultDir = `${packageDirs.find(dir => dir.package === defaultPackage).fullPath}${sourceSubdir}\\`;
     const object = 'Feature1';
+    const sourcesToDeploy = [];
 
-    const {
-      content: csContent,
-      filePath: csFilePath,
-      dirPath: csDirPath
-    } = this.generateCustomSettingField({ object, name, label, packageDir })
-    await this.saveFile({directory: csDirPath, fileName: csFilePath, fileContent: csContent})
+    if (type === this.TYPE.CUSTOM_SETTING) {
+      const {
+        content: csContent,
+        filePath: csFilePath,
+        dirPath: csDirPath
+      } = this.generateCustomSettingField({ object, name, label, packageDir })
+      await this.saveFile({ directory: csDirPath, fileName: csFilePath, fileContent: csContent })
+      sourcesToDeploy.push(csFilePath);
+    } else if (type === this.TYPE.CUSTOM_PERMISSION) {
+      const {
+        content: cpContent,
+        filePath: cpFilePath,
+        dirPath: cpDirPath
+      } = this.generateCustomPermission({ label, name, packageDir });
+      await this.saveFile({ directory: cpDirPath, fileName: cpFilePath, fileContent: cpContent });
+      sourcesToDeploy.push(cpFilePath);
+    }
 
     const {
       content: mdContent,
       filePath: mdFilePath,
       dirPath: mdDirPath
     } = this.generateCustomMetadataRecord({ label, object, category, type, name, packageDir });
-    await this.saveFile({directory: mdDirPath, fileName: mdFilePath, fileContent: mdContent})
-
-    const sourcesToDeploy = [mdFilePath, csFilePath];
+    await this.saveFile({ directory: mdDirPath, fileName: mdFilePath, fileContent: mdContent })
+    sourcesToDeploy.push(mdFilePath);
 
     const {
       content: objContent,
@@ -346,12 +385,12 @@ export default class Create extends SfdxCommand {
     try {
       await fs.access(objFilePath);
     } catch (_) {
-      await this.saveFile({directory: objDirPath, fileName: objFilePath, fileContent: objContent})
+      await this.saveFile({ directory: objDirPath, fileName: objFilePath, fileContent: objContent })
       sourcesToDeploy.push(objFilePath);
     };
 
     if (shouldDeploy) {
-      this.deployFeatureFlag({ name, object, sourcesToDeploy });
+      this.deployFeatureFlag({ name, object, sourcesToDeploy, type });
     } else {
       EONLogger.log('To deploy freshly created Feature Flag use following command:');
       EONLogger.log(chalk.inverse(`sfdx force:source:deploy -p "${sourcesToDeploy.join(',')}"`))
