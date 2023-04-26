@@ -140,6 +140,12 @@ export interface PackagePermissionset {
 export interface SfdxPermissionSet {
   PermissionSet: PackagePermissionset;
 }
+
+export interface CustomPermission {
+  enabled: string;
+  name: string;
+}
+
 export interface readme {
   body?: string;
   path?: string;

@@ -15,7 +15,8 @@ import {
 import { AnyJson, toAnyJson } from '@salesforce/ts-types';
 import fs from 'fs/promises';
 import * as os from 'os';
-import { PluginSettings } from '../../../helper/types';
+import { PackageDirParsed, PackagePermissionset, PackageTree, PluginSettings } from '../../../helper/types';
+import getPermissionsets from '../../../helper/package-permissionsets';
 // @ts-ignore
 import {
   ComponentSet,
@@ -32,9 +33,12 @@ import {
   MetadataFile,
   PathItem,
   fetchCategories,
-  getCategoriesItemsSet
+  getCategoriesItemsSet,
+  getPermsetWithPaths
 } from '../../../helper/featureflag-categories';
 import { COLOR_WARNING } from '../../../eon/EONLogger';
+import { getDeployUrls } from '../../../helper/get-packages';
+import { addCustomPermission } from '../../../helper/package-custompermission';
 // Initialize Messages with the current plugin directory
 
 // Load the specific messages for this file. Messages from @salesforce/command, @salesforce/core,
@@ -55,6 +59,12 @@ export default class Create extends SfdxCommand {
     CUSTOM_PERMISSION: 'Custom Permission'
   }
 
+  private PERMSET_OPTION = {
+    ADD: 'Add to existing',
+    NEW: 'Create a new one',
+    SKIP: 'skip'
+  }
+
   public static args = [{ name: 'file' }];
 
   // Set this to true if your command requires a project workspace; 'requiresProject' is false by default
@@ -64,6 +74,8 @@ export default class Create extends SfdxCommand {
   private categoriesItemsSet: string[];
   private categoriesTree: object;
   private conn: Connection;
+  private projectJson: SfdxProjectJson;
+  private packageDependencyTree: PackageTree;
 
   private async checkCustomSettingsInstanceExists({ object, name }): Promise<Boolean> {
     interface Settings {
@@ -77,7 +89,7 @@ export default class Create extends SfdxCommand {
     return !!queryRes;
   }
 
-  private async createCustomSettingsInstance({object, name}): Promise<void> {
+  private async createCustomSettingsInstance({ object, name }): Promise<void> {
     this.ux.startSpinner('Setting does not exist yet. Initializing new...');
     const newRecord = { [`${name}__c`]: false };
     const newSetting = await this.conn.sobject(`${object}__c`).create(newRecord);
@@ -221,6 +233,11 @@ export default class Create extends SfdxCommand {
       choices: Object.values(this.TYPE)
     }).run();
 
+    if (type === this.TYPE.CUSTOM_PERMISSION) {
+      const xx = await this.handlePermissionSet({ name, packageName });
+      console.log('❤️', xx);
+    }
+
     const shouldDeploy = await new Toggle({
       name: 'shouldDeploy',
       message: 'Deploy Metadata after creating?',
@@ -230,6 +247,73 @@ export default class Create extends SfdxCommand {
     }).run()
 
     return { name, label, packageName, category, type, shouldDeploy }
+  }
+
+  private async handlePermissionSet({ name, packageName }): Promise<MetadataFile> {
+    const handlePermSet = await new Select({
+      name: 'handlePermSet',
+      message: 'Do you want to add Custom Permission to existing Permission Set or create a new one?',
+      choices: Object.values(this.PERMSET_OPTION)
+    }).run();
+
+    if (handlePermSet === this.PERMSET_OPTION.SKIP) {
+      return {
+        content: null,
+        filePath: null,
+        dirPath: null
+      }
+    }
+
+    this.packageDependencyTree = getDeployUrls(this.projectJson, packageName);
+
+
+    if (handlePermSet === this.PERMSET_OPTION.ADD) {
+      return await this.addToPermissionSet({ name, packageName })
+    }
+  }
+
+  private async addToPermissionSet({ name, packageName }): Promise<MetadataFile> {
+
+    const packageDependencyTree: PackageTree = getDeployUrls(this.projectJson, packageName)
+    const packageDirsParsed = packageDependencyTree.dependency
+      .filter(dep => dep.path && dep.path !== '')
+
+    let allPermsets = []
+    for (const pkg of packageDirsParsed) {
+      try {
+        const pkgPermsets = await getPermsetWithPaths(pkg);
+        allPermsets = [...allPermsets, ...pkgPermsets];
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    allPermsets.sort((a, b) => a.label.localeCompare(b.label));
+    const choices = allPermsets.map(ps => `${ps.label} (${ps.package} package)`)
+
+    const prompt = await new AutoComplete({
+      name: 'SelectedPermset',
+      message: 'Select Permission Set. ' + chalk.dim('Displayed are Permission Sets from related packages, if you want to add Permission Set from another package, update sfdx-config.json first.'),
+      limit: 15,
+      choices
+    })
+
+    let selectedPermsetLabel: string;
+    try {
+      const answer = await prompt.run();
+      selectedPermsetLabel = answer.replace(/(^.+)(\s{1}\(.+)/gi, '$1');
+
+    } catch (error) {
+      console.error('🚀', error);
+    }
+
+    const selectedPermSet = allPermsets.find(ps => ps.label === selectedPermsetLabel);
+    const newContent = addCustomPermission(selectedPermSet.content, name);
+    selectedPermSet.content = newContent;
+
+    return selectedPermSet;
+
+
   }
 
   private generateCustomSettingField({ object, name, label, packageDir }): MetadataFile {
@@ -316,9 +400,9 @@ export default class Create extends SfdxCommand {
     }
 
     if (type === this.TYPE.CUSTOM_SETTING) {
-      const isCsExists = await this.checkCustomSettingsInstanceExists({object, name});
+      const isCsExists = await this.checkCustomSettingsInstanceExists({ object, name });
       if (isCsExists) {
-        this.createCustomSettingsInstance({object, name})
+        this.createCustomSettingsInstance({ object, name })
       }
     }
   }
@@ -327,17 +411,30 @@ export default class Create extends SfdxCommand {
     await fs.mkdir(directory, { recursive: true })
     await fs.writeFile(fileName, fileContent);
   }
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
   public async run(): Promise<AnyJson> {
     console.clear();
     EONLogger.log(COLOR_HEADER(LOGOBANNER));
 
-    const projectJson: SfdxProjectJson = await this.project.retrieveSfdxProjectJson();
-    const packageDirs: NamedPackageDir[] = projectJson.getUniquePackageDirectories();
+    this.projectJson = await this.project.retrieveSfdxProjectJson();
+    const packageDirs: NamedPackageDir[] = this.projectJson.getUniquePackageDirectories();
     const packageNames = packageDirs.map(dir => dir.package).sort();
-    const settings: PluginSettings = projectJson.getContents()?.plugins['eon-sfdx'] as PluginSettings;
+    const settings: PluginSettings = this.projectJson.getContents()?.plugins['eon-sfdx'] as PluginSettings;
     const defaultPackage = settings.featureFlagDefaultPackage;
     const sourceSubdir = settings.sourceSubdir;
-    const rootDir: string = `${path.dirname(projectJson.getPath())}`;
+    const rootDir: string = `${path.dirname(this.projectJson.getPath())}`;
 
     this.ux.startSpinner('Fetching Feature Flag Categories');
     this.categoriesTree = await fetchCategories(rootDir);
@@ -359,6 +456,19 @@ export default class Create extends SfdxCommand {
       } = this.generateCustomSettingField({ object, name, label, packageDir })
       await this.saveFile({ directory: csDirPath, fileName: csFilePath, fileContent: csContent })
       sourcesToDeploy.push(csFilePath);
+
+      const {
+        content: objContent,
+        filePath: objFilePath,
+        dirPath: objDirPath
+      } = this.generateCustomSettingsObject({ object, defaultDir });
+      try {
+        await fs.access(objFilePath);
+      } catch (_) {
+        await this.saveFile({ directory: objDirPath, fileName: objFilePath, fileContent: objContent })
+        sourcesToDeploy.push(objFilePath);
+      };
+
     } else if (type === this.TYPE.CUSTOM_PERMISSION) {
       const {
         content: cpContent,
@@ -377,17 +487,7 @@ export default class Create extends SfdxCommand {
     await this.saveFile({ directory: mdDirPath, fileName: mdFilePath, fileContent: mdContent })
     sourcesToDeploy.push(mdFilePath);
 
-    const {
-      content: objContent,
-      filePath: objFilePath,
-      dirPath: objDirPath
-    } = this.generateCustomSettingsObject({ object, defaultDir });
-    try {
-      await fs.access(objFilePath);
-    } catch (_) {
-      await this.saveFile({ directory: objDirPath, fileName: objFilePath, fileContent: objContent })
-      sourcesToDeploy.push(objFilePath);
-    };
+
 
     if (shouldDeploy) {
       this.deployFeatureFlag({ name, object, sourcesToDeploy, type });

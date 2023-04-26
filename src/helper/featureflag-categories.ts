@@ -1,20 +1,44 @@
 import fs from "fs/promises";
 import { MetadataResolver } from "@salesforce/source-deploy-retrieve";
 import { parseSourceComponent } from "./xml";
+import { PackageDirParsed, PackageTree, SfdxPermissionSet } from "./types";
+import { getAllFiles } from "./package-permissionsets";
+import { PackageDir } from "@salesforce/core";
 
-type PathItem = {
+export type PathItem = {
   name: string,
   isCustom: boolean
 };
 
-type MetadataFile = {
+export type MetadataFile = {
   content: string;
   filePath: string;
   dirPath: string;
 }
 
+export const getPermsetWithPaths = async (pck: PackageTree): Promise<object[]> => {
+  const permissionSetPaths: string[] = getAllFiles(pck.path)
+    .filter((file) =>
+      file.includes('permissionset-meta.xml')
+    );
+  const permissionSets = [];
+  for (const path of permissionSetPaths) {
+    const rawPs = await fs.readFile(path);
+    const content = rawPs.toString();
+    const label = parseSourceComponent(content).PermissionSet.label;
+    permissionSets.push({
+      label,
+      content,
+      path,
+      package: pck.packagename
+    })
+  }
 
-const parseComponents = async (paths: string[]): Promise<Array<string>> => {
+  return permissionSets;
+}
+
+
+export const parseComponents = async (paths: string[]): Promise<Array<string>> => {
   const categories = [];
   for await (const path of paths) {
     const xmlString = (await fs.readFile(path)).toString();
@@ -27,7 +51,7 @@ const parseComponents = async (paths: string[]): Promise<Array<string>> => {
   return categories;
 }
 
-const parseCategoriesToTree = (categoriesList: string[]): object => {
+export const parseCategoriesToTree = (categoriesList: string[]): object => {
   const objects = categoriesList.reduce((acc, val) => {
     const valArr = val.split('.');
 
@@ -66,7 +90,7 @@ const parseCategoriesToTree = (categoriesList: string[]): object => {
   return tree;
 }
 
-const fetchCategories = async (rootDir: string): Promise<object> => {
+export const fetchCategories = async (rootDir: string): Promise<object> => {
   const resolver: MetadataResolver = new MetadataResolver();
 
   const featureFlagRecordsPaths: string[] = resolver.getComponentsFromPath(rootDir)
@@ -78,10 +102,8 @@ const fetchCategories = async (rootDir: string): Promise<object> => {
   return categoriesTree;
 }
 
-const getCategoriesItemsSet = (categoriesTree: object): string[] => {
+export const getCategoriesItemsSet = (categoriesTree: object): string[] => {
   const string = JSON.stringify(categoriesTree);
   const regex = /[^\w]/gi;
   return string.split(regex).filter(i => i);
 }
-
-export { fetchCategories, getCategoriesItemsSet, PathItem, MetadataFile };
