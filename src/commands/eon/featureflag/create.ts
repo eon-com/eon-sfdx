@@ -190,65 +190,6 @@ export default class Create extends SfdxCommand {
 
   }
 
-  private async getInfoFromUser(packageNames: string[]) {
-    const label = await new Input({
-      name: 'Label',
-      message: 'Enter Feature Flag Label'
-    }).run();
-
-    const defaultName = label.replaceAll(/[^a-zA-Z0-9_]/gi, '_')
-      .replaceAll(/_{2,}/g, '_')
-      .replace(/^(_)(.*)$/, '$2')
-      .replace(/(^[^a-z].*$)/i, 'X$1')
-      .replace(/^(.*)(_)$/, '$1');
-
-    const name = await new Input({
-      name: 'Name',
-      message: 'Enter Feature Flag Name (enter to confirm default)',
-      initial: defaultName,
-      validate(value: string) {
-        if (/(^[^a-z].*$|^.*_$|^.*__.*$|[^a-z0-9_])/i.test(value)) {
-          return chalk.red(`The custom field name you provided ${value} on object Feature1 can only contain alphanumeric characters, must begin with a letter, cannot end with an underscore or contain two consecutive underscore characters, and must be unique across all Feature1 fields.`)
-        }
-        return true;
-      }
-    }).run();
-
-    const category = await this.getCategoryFromUser();
-
-    const packageName = await new AutoComplete({
-      name: 'package',
-      message: 'Select your package',
-      limit: 15,
-      initial: 2,
-      choices: packageNames,
-      footer() {
-        return chalk.dim('(Scroll up and down to reveal more choices)');
-      }
-    }).run()
-
-    const type = await new Select({
-      name: 'type',
-      message: 'Select Feature Flag type',
-      choices: Object.values(this.TYPE)
-    }).run();
-
-    if (type === this.TYPE.CUSTOM_PERMISSION) {
-      const xx = await this.handlePermissionSet({ name, packageName });
-      console.log('❤️', xx);
-    }
-
-    const shouldDeploy = await new Toggle({
-      name: 'shouldDeploy',
-      message: 'Deploy Metadata after creating?',
-      enabled: 'Yes',
-      disabled: 'No',
-      initial: 'Yes'
-    }).run()
-
-    return { name, label, packageName, category, type, shouldDeploy }
-  }
-
   private async handlePermissionSet({ name, packageName }): Promise<MetadataFile> {
     const handlePermSet = await new Select({
       name: 'handlePermSet',
@@ -434,21 +375,78 @@ export default class Create extends SfdxCommand {
     const settings: PluginSettings = this.projectJson.getContents()?.plugins['eon-sfdx'] as PluginSettings;
     const defaultPackage = settings.featureFlagDefaultPackage;
     const sourceSubdir = settings.sourceSubdir;
-    const rootDir: string = `${path.dirname(this.projectJson.getPath())}`;
+    const absolutePath: string = `${path.dirname(this.projectJson.getPath())}`;
 
     this.ux.startSpinner('Fetching Feature Flag Categories');
-    this.categoriesTree = await fetchCategories(rootDir);
+    this.categoriesTree = await fetchCategories(absolutePath);
     this.ux.stopSpinner('Success!');
     this.categoriesItemsSet = getCategoriesItemsSet(this.categoriesTree);
-
-    const { name, label, packageName, category, type, shouldDeploy } = await this.getInfoFromUser(packageNames);
 
     const packageDir = `${packageDirs.find(dir => dir.package === packageName).fullPath}${sourceSubdir}\\`;
     const defaultDir = `${packageDirs.find(dir => dir.package === defaultPackage).fullPath}${sourceSubdir}\\`;
     const object = 'Feature1';
     const sourcesToDeploy = [];
 
-    if (type === this.TYPE.CUSTOM_SETTING) {
+    //const { name, label, packageName, category, type, shouldDeploy } = await this.getInfoFromUser(packageNames);
+
+    const label = await new Input({
+      name: 'Label',
+      message: 'Enter Feature Flag Label'
+    }).run();
+
+    const defaultName = label.replaceAll(/[^a-zA-Z0-9_]/gi, '_')
+      .replaceAll(/_{2,}/g, '_')
+      .replace(/^(_)(.*)$/, '$2')
+      .replace(/(^[^a-z].*$)/i, 'X$1')
+      .replace(/^(.*)(_)$/, '$1');
+
+    const name = await new Input({
+      name: 'Name',
+      message: 'Enter Feature Flag Name (enter to confirm default)',
+      initial: defaultName,
+      validate(value: string) {
+        if (/(^[^a-z].*$|^.*_$|^.*__.*$|[^a-z0-9_])/i.test(value)) {
+          return chalk.red(`The custom field name you provided ${value} on object Feature1 can only contain alphanumeric characters, must begin with a letter, cannot end with an underscore or contain two consecutive underscore characters, and must be unique across all Feature1 fields.`)
+        }
+        return true;
+      }
+    }).run();
+
+    const category = await this.getCategoryFromUser();
+
+    const packageName = await new AutoComplete({
+      name: 'package',
+      message: 'Select your package',
+      limit: 15,
+      initial: 2,
+      choices: packageNames,
+      footer() {
+        return chalk.dim('(Scroll up and down to reveal more choices)');
+      }
+    }).run()
+
+    const type = await new Select({
+      name: 'type',
+      message: 'Select Feature Flag type',
+      choices: Object.values(this.TYPE)
+    }).run();
+
+    if (type === this.TYPE.CUSTOM_PERMISSION) {
+      const {
+        content: psContent,
+        filePath: psFilePath,
+        dirPath: psDirPath
+      } = await this.handlePermissionSet({ name, packageName });
+
+      const {
+        content: cpContent,
+        filePath: cpFilePath,
+        dirPath: cpDirPath
+      } = this.generateCustomPermission({ label, name, packageDir });
+      await this.saveFile({ directory: cpDirPath, fileName: cpFilePath, fileContent: cpContent });
+      await this.saveFile({ directory: psDirPath, fileName: psFilePath, fileContent: psContent });
+      sourcesToDeploy.push(...[cpFilePath, psFilePath]);
+    } else if (type === this.TYPE.CUSTOM_SETTING) {
       const {
         content: csContent,
         filePath: csFilePath,
@@ -468,15 +466,6 @@ export default class Create extends SfdxCommand {
         await this.saveFile({ directory: objDirPath, fileName: objFilePath, fileContent: objContent })
         sourcesToDeploy.push(objFilePath);
       };
-
-    } else if (type === this.TYPE.CUSTOM_PERMISSION) {
-      const {
-        content: cpContent,
-        filePath: cpFilePath,
-        dirPath: cpDirPath
-      } = this.generateCustomPermission({ label, name, packageDir });
-      await this.saveFile({ directory: cpDirPath, fileName: cpFilePath, fileContent: cpContent });
-      sourcesToDeploy.push(cpFilePath);
     }
 
     const {
@@ -487,7 +476,13 @@ export default class Create extends SfdxCommand {
     await this.saveFile({ directory: mdDirPath, fileName: mdFilePath, fileContent: mdContent })
     sourcesToDeploy.push(mdFilePath);
 
-
+    const shouldDeploy = await new Toggle({
+      name: 'shouldDeploy',
+      message: 'Deploy Metadata after creating?',
+      enabled: 'Yes',
+      disabled: 'No',
+      initial: 'Yes'
+    }).run()
 
     if (shouldDeploy) {
       this.deployFeatureFlag({ name, object, sourcesToDeploy, type });
