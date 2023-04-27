@@ -37,7 +37,7 @@ import {
   getPermsetWithPaths
 } from '../../../helper/featureflag-categories';
 import { COLOR_WARNING } from '../../../eon/EONLogger';
-import { getDeployUrls } from '../../../helper/get-packages';
+import { getDeployUrls, getParentPackages } from '../../../helper/get-packages';
 import { addCustomPermission } from '../../../helper/package-custompermission';
 // Initialize Messages with the current plugin directory
 
@@ -76,6 +76,8 @@ export default class Create extends SfdxCommand {
   private conn: Connection;
   private projectJson: SfdxProjectJson;
   private packageDependencyTree: PackageTree;
+  private packageDirs: NamedPackageDir[];
+  private sourceSubdir: string;
 
   private async checkCustomSettingsInstanceExists({ object, name }): Promise<Boolean> {
     interface Settings {
@@ -205,22 +207,28 @@ export default class Create extends SfdxCommand {
       }
     }
 
-    this.packageDependencyTree = getDeployUrls(this.projectJson, packageName);
+    const availablePackages = await getParentPackages(this.projectJson, packageName, true);
 
+    let ps: any;
 
     if (handlePermSet === this.PERMSET_OPTION.ADD) {
-      return await this.addToPermissionSet({ name, packageName })
+
+      ps = await this.addToPermissionSet({ name, packageName, availablePackages })
+
+
     }
+    const content = ps.content;
+    const dirPath = `${this.getPackagesAbsolutePath(ps.package)}permissionsets\\`;
+    const fileName = path.basename(ps.path);
+    const filePath = `${dirPath}${fileName}`;
+
+    return { content, dirPath, filePath };
   }
 
-  private async addToPermissionSet({ name, packageName }): Promise<MetadataFile> {
-
-    const packageDependencyTree: PackageTree = getDeployUrls(this.projectJson, packageName)
-    const packageDirsParsed = packageDependencyTree.dependency
-      .filter(dep => dep.path && dep.path !== '')
+  private async addToPermissionSet({ name, packageName, availablePackages }): Promise<MetadataFile> {
 
     let allPermsets = []
-    for (const pkg of packageDirsParsed) {
+    for (const pkg of availablePackages) {
       try {
         const pkgPermsets = await getPermsetWithPaths(pkg);
         allPermsets = [...allPermsets, ...pkgPermsets];
@@ -230,20 +238,27 @@ export default class Create extends SfdxCommand {
     }
 
     allPermsets.sort((a, b) => a.label.localeCompare(b.label));
-    const choices = allPermsets.map(ps => `${ps.label} (${ps.package} package)`)
+    const maxLength = allPermsets.reduce((max, ps) => Math.max(max, ps.label.length), 0);
+    const choices = allPermsets.map(ps => {
+      const spaces = ' '.repeat(maxLength - ps.label.length + 2);
+      return `${ps.label}${spaces}${ps.package}`
+    })
+    const messageLine2 = `PermSet${' '.repeat(maxLength - 5)}package`;
 
     const prompt = await new AutoComplete({
       name: 'SelectedPermset',
-      message: 'Select Permission Set. ' + chalk.dim('Displayed are Permission Sets from related packages, if you want to add Permission Set from another package, update sfdx-config.json first.'),
+      message: 'Select Permission Set. ' + chalk.dim('Displayed are Permission Sets from related packages, if you want to add Permission Set from another package, update sfdx-config.json first.\n' + messageLine2),
       limit: 15,
       choices
     })
 
     let selectedPermsetLabel: string;
+    let selectedPermsetPkg: string;
     try {
       const answer = await prompt.run();
-      selectedPermsetLabel = answer.replace(/(^.+)(\s{1}\(.+)/gi, '$1');
-
+      const match = answer.match(/(\S+(\s\S+)?)( {2,})(\S+(\s\S+)?|\S+)/);
+      selectedPermsetLabel = match[1];
+      selectedPermsetPkg = match[4]
     } catch (error) {
       console.error('🚀', error);
     }
@@ -353,6 +368,11 @@ export default class Create extends SfdxCommand {
     await fs.writeFile(fileName, fileContent);
   }
 
+  private getPackagesAbsolutePath(packageName: string): string {
+    return `${this.packageDirs.find(dir => dir.package === packageName).fullPath}${this.sourceSubdir}\\`;
+
+  }
+
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -370,24 +390,18 @@ export default class Create extends SfdxCommand {
     EONLogger.log(COLOR_HEADER(LOGOBANNER));
 
     this.projectJson = await this.project.retrieveSfdxProjectJson();
-    const packageDirs: NamedPackageDir[] = this.projectJson.getUniquePackageDirectories();
-    const packageNames = packageDirs.map(dir => dir.package).sort();
+    this.packageDirs = this.projectJson.getUniquePackageDirectories();
+    const packageNames = this.packageDirs.map(dir => dir.package).sort();
     const settings: PluginSettings = this.projectJson.getContents()?.plugins['eon-sfdx'] as PluginSettings;
     const defaultPackage = settings.featureFlagDefaultPackage;
-    const sourceSubdir = settings.sourceSubdir;
-    const absolutePath: string = `${path.dirname(this.projectJson.getPath())}`;
+    this.sourceSubdir = settings.sourceSubdir;
+    const absolutePath: string = path.dirname(this.projectJson.getPath());
+    console.log("🚀 ~ run ~ absolutePath:", absolutePath)
 
     this.ux.startSpinner('Fetching Feature Flag Categories');
     this.categoriesTree = await fetchCategories(absolutePath);
     this.ux.stopSpinner('Success!');
     this.categoriesItemsSet = getCategoriesItemsSet(this.categoriesTree);
-
-    const packageDir = `${packageDirs.find(dir => dir.package === packageName).fullPath}${sourceSubdir}\\`;
-    const defaultDir = `${packageDirs.find(dir => dir.package === defaultPackage).fullPath}${sourceSubdir}\\`;
-    const object = 'Feature1';
-    const sourcesToDeploy = [];
-
-    //const { name, label, packageName, category, type, shouldDeploy } = await this.getInfoFromUser(packageNames);
 
     const label = await new Input({
       name: 'Label',
@@ -423,7 +437,13 @@ export default class Create extends SfdxCommand {
       footer() {
         return chalk.dim('(Scroll up and down to reveal more choices)');
       }
-    }).run()
+    }).run();
+
+    const packageDir = this.getPackagesAbsolutePath(packageName);
+    const defaultDir = this.getPackagesAbsolutePath(defaultPackage);
+
+    const object = 'Feature1';
+    const sourcesToDeploy = [];
 
     const type = await new Select({
       name: 'type',
@@ -437,6 +457,7 @@ export default class Create extends SfdxCommand {
         filePath: psFilePath,
         dirPath: psDirPath
       } = await this.handlePermissionSet({ name, packageName });
+      console.log({ psFilePath, psDirPath })
 
       const {
         content: cpContent,
