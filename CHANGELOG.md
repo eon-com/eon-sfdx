@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.13.3](https://github.com/eon-com/eon-sfdx/compare/v1.13.2...v1.13.3) (2023-04-27)
+
+
+### Bug Fixes
+
+* (update-metadata) parameter for artifatcs path ([271296f](https://github.com/eon-com/eon-sfdx/commit/271296f9956ff34a3a3364bea5be0480a54792be))
+
 ### [1.13.2](https://github.com/eon-com/eon-sfdx/compare/v1.13.0...v1.13.2) (2023-04-19)
 
 
