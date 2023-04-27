@@ -7,27 +7,23 @@
 import { SfdxCommand } from '@salesforce/command';
 import {
   Connection,
-  Messages,
   NamedPackageDir,
   SfdxError,
   SfdxProjectJson
 } from '@salesforce/core';
-import { AnyJson, toAnyJson } from '@salesforce/ts-types';
-import fs from 'fs/promises';
-import * as os from 'os';
-import { PackageDirParsed, PackagePermissionset, PackageTree, PluginSettings } from '../../../helper/types';
-import getPermissionsets from '../../../helper/package-permissionsets';
-// @ts-ignore
 import {
   ComponentSet,
   MetadataApiDeploy
 } from '@salesforce/source-deploy-retrieve';
+import { AnyJson, toAnyJson } from '@salesforce/ts-types';
+import fs from 'fs/promises';
+import { PluginSettings } from '../../../helper/types';
 // @ts-ignore
 import { AutoComplete, Input, Select, Toggle } from 'enquirer';
 import path from 'path';
 
 import chalk from 'chalk';
-import EONLogger, { COLOR_HEADER } from '../../../eon/EONLogger';
+import EONLogger, { COLOR_HEADER, COLOR_WARNING } from '../../../eon/EONLogger';
 import { LOGOBANNER } from '../../../eon/logo';
 import {
   MetadataFile,
@@ -36,19 +32,13 @@ import {
   getCategoriesItemsSet,
   getPermsetWithPaths
 } from '../../../helper/featureflag-categories';
-import { COLOR_WARNING } from '../../../eon/EONLogger';
-import { getDeployUrls, getParentPackages } from '../../../helper/get-packages';
+import { getParentPackages } from '../../../helper/get-packages';
 import { addCustomPermission } from '../../../helper/package-custompermission';
-// Initialize Messages with the current plugin directory
-
-// Load the specific messages for this file. Messages from @salesforce/command, @salesforce/core,
-// or any library that is using the messages framework can also be loaded this way.
-
 
 
 export default class Create extends SfdxCommand {
 
-  private ANSWER = {
+  private CATEGORY_ANSWER = {
     GO_BACK: chalk.dim(' - (go one level back)'),
     ADD_NEW: chalk.dim(' + (add new entry)'),
     SAVE_NOW: chalk.dim(' * (finish entering category)')
@@ -59,6 +49,11 @@ export default class Create extends SfdxCommand {
     CUSTOM_PERMISSION: 'Custom Permission'
   }
 
+  private REGEX = {
+    APINAME_VALIDATE: /(^[^a-z].*$|^.*_$|^.*__.*$|[^a-z0-9_])/i,
+    SPLIT_WITH_SPACES: /(\S+(\s\S+)?)( {2,})(\S+(\s\S+)?|\S+)/
+  }
+
   private PERMSET_OPTION = {
     ADD: 'Add to existing',
     NEW: 'Create a new one',
@@ -67,15 +62,13 @@ export default class Create extends SfdxCommand {
 
   public static args = [{ name: 'file' }];
 
-  // Set this to true if your command requires a project workspace; 'requiresProject' is false by default
   protected static requiresProject = true;
-  static requiresUsername = true;
+  protected static requiresUsername = true;
 
   private categoriesItemsSet: string[];
   private categoriesTree: object;
   private conn: Connection;
   private projectJson: SfdxProjectJson;
-  private packageDependencyTree: PackageTree;
   private packageDirs: NamedPackageDir[];
   private sourceSubdir: string;
 
@@ -118,9 +111,9 @@ export default class Create extends SfdxCommand {
 
   private getDisplayChoices(choices: Array<string>, level: number): string[] {
     return [
-      ...(choices.length > 0 ? [...choices] : [this.ANSWER.SAVE_NOW]),
-      ...(level > 1 ? [this.ANSWER.GO_BACK] : []),
-      ...[this.ANSWER.ADD_NEW]
+      ...(choices.length > 0 ? [...choices] : [this.CATEGORY_ANSWER.SAVE_NOW]),
+      ...(level > 1 ? [this.CATEGORY_ANSWER.GO_BACK] : []),
+      ...[this.CATEGORY_ANSWER.ADD_NEW]
     ];
   }
 
@@ -157,12 +150,12 @@ export default class Create extends SfdxCommand {
         console.error('🚀', error);
       }
 
-      if (answer === this.ANSWER.GO_BACK) {
+      if (answer === this.CATEGORY_ANSWER.GO_BACK) {
         const lastItem = choicePath.pop();
         if (lastItem.isCustom) {
           this.categoriesItemsSet = this.categoriesItemsSet.filter(setItem => setItem !== lastItem.name)
         }
-      } else if (answer === this.ANSWER.ADD_NEW) {
+      } else if (answer === this.CATEGORY_ANSWER.ADD_NEW) {
         let newItem: string;
         let isItemUnique: boolean;
         do {
@@ -179,7 +172,7 @@ export default class Create extends SfdxCommand {
         choicePath.push({ name: newItem, isCustom: true });
         this.categoriesItemsSet.push(newItem)
 
-      } else if (answer === this.ANSWER.SAVE_NOW) {
+      } else if (answer === this.CATEGORY_ANSWER.SAVE_NOW) {
         isChoiceMade = true;
       }
       else {
@@ -206,10 +199,21 @@ export default class Create extends SfdxCommand {
     const availablePackages = await getParentPackages(this.projectJson, packageName, true);
 
     if (handlePermSet === this.PERMSET_OPTION.ADD) {
-      return await this.addToPermissionSet({ name, packageName, availablePackages });
+      return await this.addToPermissionSet({ name, availablePackages });
     } else if (handlePermSet === this.PERMSET_OPTION.NEW) {
       return await this.createPermissionSet({ name, packageName });
     }
+  }
+
+  private convertLabelToApiName(label: string): string {
+    let name = label
+      .replace(/^[^a-zA-Z0-9_]|[^a-zA-Z0-9_]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+
+    if (!/^[a-zA-Z]/.test(name)) {
+      name = "X" + name;
+    }
+    return name;
   }
 
   private async createPermissionSet({ name, packageName }): Promise<MetadataFile> {
@@ -218,18 +222,14 @@ export default class Create extends SfdxCommand {
       message: 'Enter Permission Set Label'
     }).run();
 
-    const defaultName = psLabel.replaceAll(/[^a-zA-Z0-9_]/gi, '_')
-      .replaceAll(/_{2,}/g, '_')
-      .replace(/^(_)(.*)$/, '$2')
-      .replace(/(^[^a-z].*$)/i, 'X$1')
-      .replace(/^(.*)(_)$/, '$1');
+    const defaultName = this.convertLabelToApiName(psLabel);
 
     const psName = await new Input({
       name: 'Name',
       message: 'Enter Feature Label (enter to confirm default)',
       initial: defaultName,
       validate(value: string) {
-        if (/(^[^a-z].*$|^.*_$|^.*__.*$|[^a-z0-9_])/i.test(value)) {
+        if (this.REGEX.APINAME_VALIDATE.test(value)) {
           return chalk.red(`The API name must begin with a letter and use only alphanumeric characters and underscores. It can't include spaces, end with an underscore, or have two consecutive underscores.`)
         }
         return true;
@@ -240,7 +240,7 @@ export default class Create extends SfdxCommand {
     return this.generatePermissionSetWithCustomPermission({ psName, psLabel, packageDir, cpName: name })
   }
 
-  private async addToPermissionSet({ name, packageName, availablePackages }): Promise<MetadataFile> {
+  private async addToPermissionSet({ name, availablePackages }): Promise<MetadataFile> {
 
     let allPermsets = []
     for (const pkg of availablePackages) {
@@ -271,7 +271,7 @@ export default class Create extends SfdxCommand {
     let selectedPermsetPkg: string;
     try {
       const answer = await prompt.run();
-      const match = answer.match(/(\S+(\s\S+)?)( {2,})(\S+(\s\S+)?|\S+)/);
+      const match = answer.match(this.REGEX.SPLIT_WITH_SPACES);
       selectedPermsetLabel = match[1];
       selectedPermsetPkg = match[4]
     } catch (error) {
@@ -431,7 +431,6 @@ export default class Create extends SfdxCommand {
     const defaultPackage = settings.featureFlagDefaultPackage;
     this.sourceSubdir = settings.sourceSubdir;
     const absolutePath: string = path.dirname(this.projectJson.getPath());
-    console.log("🚀 ~ run ~ absolutePath:", absolutePath)
 
     this.ux.startSpinner('Fetching Feature Flag Categories');
     this.categoriesTree = await fetchCategories(absolutePath);
@@ -443,18 +442,14 @@ export default class Create extends SfdxCommand {
       message: 'Enter Feature Flag Label'
     }).run();
 
-    const defaultName = label.replaceAll(/[^a-zA-Z0-9_]/gi, '_')
-      .replaceAll(/_{2,}/g, '_')
-      .replace(/^(_)(.*)$/, '$2')
-      .replace(/(^[^a-z].*$)/i, 'X$1')
-      .replace(/^(.*)(_)$/, '$1');
+    const defaultName = this.convertLabelToApiName(label);
 
     const name = await new Input({
       name: 'Name',
       message: 'Enter Feature Flag Name (enter to confirm default)',
       initial: defaultName,
       validate(value: string) {
-        if (/(^[^a-z].*$|^.*_$|^.*__.*$|[^a-z0-9_])/i.test(value)) {
+        if (this.REGEX.APINAME_VALIDATE.test(value)) {
           return chalk.red(`The custom field name you provided ${value} on object Feature1 can only contain alphanumeric characters, must begin with a letter, cannot end with an underscore or contain two consecutive underscore characters, and must be unique across all Feature1 fields.`)
         }
         return true;
