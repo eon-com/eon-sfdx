@@ -73,7 +73,10 @@ export default class Metadata extends SfdxCommand {
       ? settings.metadataPlaceholderFormat.replace('placeholder', this.flags.placeholder)
       : `{[${this.flags.placeholder}]}`;
 
-    const targetdir = path.normalize(path.join(process.cwd(),this.flags.directory))
+      const targetdir = this.flags.artifactdirectory
+      ? path.join(this.flags.artifactdirectory,this.flags.directory)
+      : this.flags.directory;
+
     try {
       const dirStat = await fspromise.stat(targetdir);
       let updatedFiles: string[] = [];
