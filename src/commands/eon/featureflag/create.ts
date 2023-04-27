@@ -200,29 +200,44 @@ export default class Create extends SfdxCommand {
     }).run();
 
     if (handlePermSet === this.PERMSET_OPTION.SKIP) {
-      return {
-        content: null,
-        filePath: null,
-        dirPath: null
-      }
+      return null;
     }
 
     const availablePackages = await getParentPackages(this.projectJson, packageName, true);
 
-    let ps: any;
-
     if (handlePermSet === this.PERMSET_OPTION.ADD) {
-
-      ps = await this.addToPermissionSet({ name, packageName, availablePackages })
-
-
+      return await this.addToPermissionSet({ name, packageName, availablePackages });
+    } else if (handlePermSet === this.PERMSET_OPTION.NEW) {
+      return await this.createPermissionSet({ name, packageName });
     }
-    const content = ps.content;
-    const dirPath = `${this.getPackagesAbsolutePath(ps.package)}permissionsets\\`;
-    const fileName = path.basename(ps.path);
-    const filePath = `${dirPath}${fileName}`;
+  }
 
-    return { content, dirPath, filePath };
+  private async createPermissionSet({ name, packageName }): Promise<MetadataFile> {
+    const psLabel = await new Input({
+      name: 'Label',
+      message: 'Enter Permission Set Label'
+    }).run();
+
+    const defaultName = psLabel.replaceAll(/[^a-zA-Z0-9_]/gi, '_')
+      .replaceAll(/_{2,}/g, '_')
+      .replace(/^(_)(.*)$/, '$2')
+      .replace(/(^[^a-z].*$)/i, 'X$1')
+      .replace(/^(.*)(_)$/, '$1');
+
+    const psName = await new Input({
+      name: 'Name',
+      message: 'Enter Feature Label (enter to confirm default)',
+      initial: defaultName,
+      validate(value: string) {
+        if (/(^[^a-z].*$|^.*_$|^.*__.*$|[^a-z0-9_])/i.test(value)) {
+          return chalk.red(`The API name must begin with a letter and use only alphanumeric characters and underscores. It can't include spaces, end with an underscore, or have two consecutive underscores.`)
+        }
+        return true;
+      }
+    }).run();
+
+    const packageDir = this.getPackagesAbsolutePath(packageName);
+    return this.generatePermissionSetWithCustomPermission({ psName, psLabel, packageDir, cpName: name })
   }
 
   private async addToPermissionSet({ name, packageName, availablePackages }): Promise<MetadataFile> {
@@ -267,8 +282,28 @@ export default class Create extends SfdxCommand {
     const newContent = addCustomPermission(selectedPermSet.content, name);
     selectedPermSet.content = newContent;
 
-    return selectedPermSet;
+    const content = selectedPermSet.content;
+    const dirPath = `${this.getPackagesAbsolutePath(selectedPermSet.package)}permissionsets\\`;
+    const fileName = path.basename(selectedPermSet.path);
+    const filePath = `${dirPath}${fileName}`;
 
+    return { content, dirPath, filePath } as MetadataFile;
+  }
+
+  private generatePermissionSetWithCustomPermission({ psName, psLabel, cpName, packageDir }): MetadataFile {
+    let content = '<?xml version="1.0" encoding="UTF-8"?>\n';
+    content += '<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">\n';
+    content += '    <customPermissions>\n';
+    content += '        <enabled>true</enabled>\n';
+    content += `        <name>${cpName}</name>\n`;
+    content += '    </customPermissions>\n';
+    content += '    <hasActivationRequired>false</hasActivationRequired>\n';
+    content += `    <label>${psLabel}</label>\n`;
+    content += '    <license>Salesforce</license>\n';
+    content += '</PermissionSet>\n';
+    const dirPath = `${packageDir}permissionsets\\`;
+    const filePath = `${dirPath}${psName}.permissionset-meta.xml`;
+    return { content, dirPath, filePath };
 
   }
 
@@ -452,21 +487,25 @@ export default class Create extends SfdxCommand {
     }).run();
 
     if (type === this.TYPE.CUSTOM_PERMISSION) {
-      const {
-        content: psContent,
-        filePath: psFilePath,
-        dirPath: psDirPath
-      } = await this.handlePermissionSet({ name, packageName });
-      console.log({ psFilePath, psDirPath })
-
+      const permissionSetData = await this.handlePermissionSet({ name, packageName });
+      if (permissionSetData) {
+        const {
+          content: psContent,
+          filePath: psFilePath,
+          dirPath: psDirPath
+        } = permissionSetData;
+        await this.saveFile({ directory: psDirPath, fileName: psFilePath, fileContent: psContent });
+        sourcesToDeploy.push(psFilePath);
+      }
       const {
         content: cpContent,
         filePath: cpFilePath,
         dirPath: cpDirPath
       } = this.generateCustomPermission({ label, name, packageDir });
       await this.saveFile({ directory: cpDirPath, fileName: cpFilePath, fileContent: cpContent });
-      await this.saveFile({ directory: psDirPath, fileName: psFilePath, fileContent: psContent });
-      sourcesToDeploy.push(...[cpFilePath, psFilePath]);
+      sourcesToDeploy.push(cpFilePath);
+
+
     } else if (type === this.TYPE.CUSTOM_SETTING) {
       const {
         content: csContent,
