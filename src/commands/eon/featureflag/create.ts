@@ -6,6 +6,7 @@
  */
 import { SfdxCommand } from '@salesforce/command';
 import {
+  Messages,
   NamedPackageDir,
   SfdxError,
   SfdxProjectJson
@@ -16,26 +17,27 @@ import {
 } from '@salesforce/source-deploy-retrieve';
 import { AnyJson, toAnyJson } from '@salesforce/ts-types';
 import fs from 'fs/promises';
+import * as os from 'os';
 import { PluginSettings } from '../../../helper/types';
+import chalk from 'chalk';
 // @ts-ignore
 import { AutoComplete, Input, Select, Toggle } from 'enquirer';
 import path from 'path';
-
-import chalk from 'chalk';
 import EONLogger, { COLOR_HEADER, COLOR_WARNING } from '../../../eon/EONLogger';
 import { LOGOBANNER } from '../../../eon/logo';
 import {
-  getPermsetWithPaths,
-  getFeatureFlagComponents,
   MetadataFile,
   PathItem,
   getCategoriesItemsSet,
+  getFeatureFlagComponents,
+  getPermsetWithPaths,
   readCategoriesFromFFs,
   readLabelsFromFFs
 } from '../../../helper/featureflags';
 import { getParentPackages } from '../../../helper/get-packages';
 import { addCustomPermission } from '../../../helper/package-custompermission';
-
+Messages.importMessagesDirectory(__dirname);
+const messages = Messages.loadMessages('@eon-com/eon-sfdx', 'featureflags');
 
 export default class Create extends SfdxCommand {
 
@@ -66,6 +68,9 @@ export default class Create extends SfdxCommand {
   protected static requiresProject = true;
   protected static requiresUsername = true;
 
+  public static description = messages.getMessage('commandDescription');
+  public static examples = messages.getMessage('examples').split(os.EOL);
+
   private categoriesItemsSet: string[];
   private featureFlagLabels: string[];
   private categoriesTree: object;
@@ -86,7 +91,7 @@ export default class Create extends SfdxCommand {
     return !!queryRes;
   }
 
-  private async createCustomSettingsInstance(name): Promise<void> {
+  private async createCustomSettingsInstance(name: string): Promise<void> {
     this.ux.startSpinner('Setting does not exist yet. Initializing new...');
     const conn = this.org.getConnection();
     const newRecord = { [`${name}__c`]: false };

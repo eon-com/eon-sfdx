@@ -1,0 +1,4 @@
+{
+  "commandDescription": "Creates new Feature Flag",
+  "examples": ["sfdx eon:featureflag:create"]
+}
