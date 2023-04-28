@@ -6,7 +6,6 @@
  */
 import { SfdxCommand } from '@salesforce/command';
 import {
-  Connection,
   NamedPackageDir,
   SfdxError,
   SfdxProjectJson
@@ -26,12 +25,14 @@ import chalk from 'chalk';
 import EONLogger, { COLOR_HEADER, COLOR_WARNING } from '../../../eon/EONLogger';
 import { LOGOBANNER } from '../../../eon/logo';
 import {
+  getPermsetWithPaths,
+  getFeatureFlagComponents,
   MetadataFile,
   PathItem,
-  fetchCategories,
   getCategoriesItemsSet,
-  getPermsetWithPaths
-} from '../../../helper/featureflag-categories';
+  readCategoriesFromFFs,
+  readLabelsFromFFs
+} from '../../../helper/featureflags';
 import { getParentPackages } from '../../../helper/get-packages';
 import { addCustomPermission } from '../../../helper/package-custompermission';
 
@@ -66,6 +67,7 @@ export default class Create extends SfdxCommand {
   protected static requiresUsername = true;
 
   private categoriesItemsSet: string[];
+  private featureFlagLabels: string[];
   private categoriesTree: object;
   private projectJson: SfdxProjectJson;
   private packageDirs: NamedPackageDir[];
@@ -472,14 +474,24 @@ export default class Create extends SfdxCommand {
     this.sourceSubdir = settings.sourceSubdir;
     const absolutePath: string = path.dirname(this.projectJson.getPath());
 
-    this.ux.startSpinner('Fetching Feature Flag Categories');
-    this.categoriesTree = await fetchCategories(absolutePath);
+    this.ux.startSpinner('Fetching existing Feature Flags');
+    const ffComponents = await getFeatureFlagComponents(absolutePath);
     this.ux.stopSpinner('Success!');
+    
+    this.categoriesTree = readCategoriesFromFFs(ffComponents);
+    this.featureFlagLabels = readLabelsFromFFs(ffComponents);
+    console.log("🚀 ~ run ~ this.featureFlagLabels:", this.featureFlagLabels)
     this.categoriesItemsSet = getCategoriesItemsSet(this.categoriesTree);
 
     const label = await new Input({
       name: 'Label',
-      message: 'Enter Feature Flag Label'
+      message: 'Enter Feature Flag Label',
+      validate: (value: string) => {
+        if (this.featureFlagLabels.includes(value)) {
+          return chalk.red('Feature Flag Label must be unique.')
+        }
+        return true;
+      }
     }).run();
 
     const defaultName = this.convertLabelToApiName(label);
@@ -490,7 +502,7 @@ export default class Create extends SfdxCommand {
       initial: defaultName,
       validate: (value: string) => {
         if (this.REGEX.APINAME_VALIDATE.test(value)) {
-          return chalk.red(`The custom field name you provided ${value} on object Feature1 can only contain alphanumeric characters, must begin with a letter, cannot end with an underscore or contain two consecutive underscore characters, and must be unique across all Feature1 fields.`)
+          return chalk.red(`The custom field name you provided ${value} can only contain alphanumeric characters, must begin with a letter, cannot end with an underscore or contain two consecutive underscore characters.`)
         }
         return true;
       }

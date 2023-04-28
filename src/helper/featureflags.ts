@@ -1,9 +1,8 @@
-import fs from "fs/promises";
 import { MetadataResolver, SourceComponent } from "@salesforce/source-deploy-retrieve";
-import { parseSourceComponent } from "./xml";
-import { PackageDirParsed, PackageTree, SfdxPermissionSet } from "./types";
+import fs from "fs/promises";
 import { getAllFiles } from "./package-permissionsets";
-import { PackageDir } from "@salesforce/core";
+import { PackageTree } from "./types";
+import { parseSourceComponent } from "./xml";
 
 export type PathItem = {
   name: string,
@@ -35,6 +34,16 @@ export const getPermsetWithPaths = async (pck: PackageTree): Promise<object[]> =
   }
 
   return permissionSets;
+}
+
+export const getParsedComponents = async (paths: string[]): Promise<Array<any>> => {
+  const components = [];
+  for await (const path of paths) {
+    const xmlString = (await fs.readFile(path)).toString();
+    const parsedComponent = parseSourceComponent(xmlString);
+    components.push(parsedComponent);
+  }
+  return components;
 }
 
 
@@ -90,15 +99,32 @@ export const parseCategoriesToTree = (categoriesList: string[]): object => {
   return tree;
 }
 
-export const fetchCategories = async (rootDir: string): Promise<object> => {
-  const resolver: MetadataResolver = new MetadataResolver();
-
-  const featureFlagContents: string[] = getFeatureFlags(rootDir)
+export const getFeatureFlagComponents = async (rootDir: string): Promise<any> => {
+  const featureFlagPaths: string[] = getFeatureFlags(rootDir)
     .map(component => component.xml);
 
-  const categoriesList = await parseComponents(featureFlagContents);
-  const categoriesTree = parseCategoriesToTree(categoriesList);
-  return categoriesTree;
+  return getParsedComponents(featureFlagPaths);
+}
+
+export const readCategoriesFromFFs = (ffComponents: Array<any>): Array<string> => {
+  const categories = [];
+  for (const component of ffComponents) {
+    const fields = component.CustomMetadata.values;
+    const category = fields.find((field: { field: string; }) => field.field === 'Category__c').value['#text'];
+
+    category && categories.push(category);
+
+  }
+  return categories;
+}
+
+export const readLabelsFromFFs = (ffComponents: Array<any>): Array<string> => {
+  const labels = [];
+  for (const component of ffComponents) {
+    const label = component.CustomMetadata.label;
+    label && labels.push(label);
+  }
+  return labels;
 }
 
 export const getCategoriesItemsSet = (categoriesTree: object): string[] => {
@@ -114,11 +140,4 @@ export const getFeatureFlags = (rootDir: string): SourceComponent[] => {
     .filter(component => component.type.id === 'custommetadata' && /Feature_Flag\./.test(component.name));
 
   return featureFlagComponents;
-}
-
-export const getFeatureFlagNames = (rootDir: string): string[] => {
-  return getFeatureFlags(rootDir)
-    .map(flag => flag.name)
-
-  return [];
 }
