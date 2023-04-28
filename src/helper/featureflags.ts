@@ -1,5 +1,5 @@
 import fs from "fs/promises";
-import { MetadataResolver } from "@salesforce/source-deploy-retrieve";
+import { MetadataResolver, SourceComponent } from "@salesforce/source-deploy-retrieve";
 import { parseSourceComponent } from "./xml";
 import { PackageDirParsed, PackageTree, SfdxPermissionSet } from "./types";
 import { getAllFiles } from "./package-permissionsets";
@@ -93,11 +93,10 @@ export const parseCategoriesToTree = (categoriesList: string[]): object => {
 export const fetchCategories = async (rootDir: string): Promise<object> => {
   const resolver: MetadataResolver = new MetadataResolver();
 
-  const featureFlagRecordsPaths: string[] = resolver.getComponentsFromPath(rootDir)
-    .filter(component => component.type.id === 'custommetadata' && /Feature_Flag\./.test(component.name))
-    .map(component => component.xml)
+  const featureFlagContents: string[] = getFeatureFlags(rootDir)
+    .map(component => component.xml);
 
-  const categoriesList = await parseComponents(featureFlagRecordsPaths);
+  const categoriesList = await parseComponents(featureFlagContents);
   const categoriesTree = parseCategoriesToTree(categoriesList);
   return categoriesTree;
 }
@@ -106,4 +105,20 @@ export const getCategoriesItemsSet = (categoriesTree: object): string[] => {
   const string = JSON.stringify(categoriesTree);
   const regex = /[^\w]/gi;
   return string.split(regex).filter(i => i);
+}
+
+export const getFeatureFlags = (rootDir: string): SourceComponent[] => {
+  const resolver: MetadataResolver = new MetadataResolver();
+
+  const featureFlagComponents: SourceComponent[] = resolver.getComponentsFromPath(rootDir)
+    .filter(component => component.type.id === 'custommetadata' && /Feature_Flag\./.test(component.name));
+
+  return featureFlagComponents;
+}
+
+export const getFeatureFlagNames = (rootDir: string): string[] => {
+  return getFeatureFlags(rootDir)
+    .map(flag => flag.name)
+
+  return [];
 }
