@@ -67,27 +67,28 @@ export default class Create extends SfdxCommand {
 
   private categoriesItemsSet: string[];
   private categoriesTree: object;
-  private conn: Connection;
   private projectJson: SfdxProjectJson;
   private packageDirs: NamedPackageDir[];
   private sourceSubdir: string;
+  private customSettingsObject: string;
 
-  private async checkCustomSettingsInstanceExists({ object, name }): Promise<Boolean> {
+  private async checkCustomSettingsInstanceExists(): Promise<Boolean> {
     interface Settings {
       Id?: string;
       [key: string]: any;
     }
-    this.conn = this.org.getConnection();
-    const query = `select id, ${name}__c, SetupOwnerId from ${object}__c`;
-    const result = await this.conn.query<Settings>(query);
+    const conn = this.org.getConnection();
+    const query = `select id,  SetupOwnerId from ${this.customSettingsObject}__c`;
+    const result = await conn.query<Settings>(query);
     const queryRes = result.records.find((record) => record.SetupOwnerId.substring(0, 3) == '00D');
     return !!queryRes;
   }
 
-  private async createCustomSettingsInstance({ object, name }): Promise<void> {
+  private async createCustomSettingsInstance(name): Promise<void> {
     this.ux.startSpinner('Setting does not exist yet. Initializing new...');
+    const conn = this.org.getConnection();
     const newRecord = { [`${name}__c`]: false };
-    const newSetting = await this.conn.sobject(`${object}__c`).create(newRecord);
+    const newSetting = await conn.sobject(`${this.customSettingsObject}__c`).create(newRecord);
     if (!newSetting.success) {
       this.ux.stopSpinner(`Update not successfully. Please try again`);
     } else {
@@ -228,7 +229,7 @@ export default class Create extends SfdxCommand {
       name: 'Name',
       message: 'Enter Feature Label (enter to confirm default)',
       initial: defaultName,
-      validate(value: string) {
+      validate: (value: string) => {
         if (this.REGEX.APINAME_VALIDATE.test(value)) {
           return chalk.red(`The API name must begin with a letter and use only alphanumeric characters and underscores. It can't include spaces, end with an underscore, or have two consecutive underscores.`)
         }
@@ -391,9 +392,9 @@ export default class Create extends SfdxCommand {
     }
 
     if (type === this.TYPE.CUSTOM_SETTING) {
-      const isCsExists = await this.checkCustomSettingsInstanceExists({ object, name });
-      if (isCsExists) {
-        this.createCustomSettingsInstance({ object, name })
+      const isCsExists = await this.checkCustomSettingsInstanceExists();
+      if (!isCsExists) {
+        this.createCustomSettingsInstance(name)
       }
     }
   }
@@ -405,7 +406,46 @@ export default class Create extends SfdxCommand {
 
   private getPackagesAbsolutePath(packageName: string): string {
     return `${this.packageDirs.find(dir => dir.package === packageName).fullPath}${this.sourceSubdir}\\`;
+  }
 
+  private async getCustomSettingsObjectName(): Promise<void> {
+    let index = 0;
+    const conn = this.org.getConnection();
+    let objectName: string;
+
+    do {
+      index++;
+      const name = `Feature${index}__c`;
+      try {
+        const object = await conn.describe(name);
+        const customFieldsCount = (object.fields.filter(field => /__c$/.test(field.name))).length;
+        if (customFieldsCount < 5) {
+          objectName = name;
+        }
+
+      } catch (error) {
+        objectName = await this.createNewCustomSettingsObject(name);
+      }
+
+    } while (!objectName);
+    this.customSettingsObject = objectName;
+  }
+
+  private async createNewCustomSettingsObject(name: string) {
+    const conn = this.org.getConnection();
+    const objectMetadata = {
+      fullName: name,
+      label: name.replace('__c', ''),
+      customSettingsType: 'Hierarchy',
+    }
+    try {
+
+      await conn.metadata.create('CustomObject', objectMetadata);
+    } catch (e) {
+      console.error(e);
+    }
+
+    return name
   }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -448,7 +488,7 @@ export default class Create extends SfdxCommand {
       name: 'Name',
       message: 'Enter Feature Flag Name (enter to confirm default)',
       initial: defaultName,
-      validate(value: string) {
+      validate: (value: string) => {
         if (this.REGEX.APINAME_VALIDATE.test(value)) {
           return chalk.red(`The custom field name you provided ${value} on object Feature1 can only contain alphanumeric characters, must begin with a letter, cannot end with an underscore or contain two consecutive underscore characters, and must be unique across all Feature1 fields.`)
         }
@@ -472,7 +512,6 @@ export default class Create extends SfdxCommand {
     const packageDir = this.getPackagesAbsolutePath(packageName);
     const defaultDir = this.getPackagesAbsolutePath(defaultPackage);
 
-    const object = 'Feature1';
     const sourcesToDeploy = [];
 
     const type = await new Select({
@@ -502,11 +541,13 @@ export default class Create extends SfdxCommand {
 
 
     } else if (type === this.TYPE.CUSTOM_SETTING) {
+      await this.getCustomSettingsObjectName();
+
       const {
         content: csContent,
         filePath: csFilePath,
         dirPath: csDirPath
-      } = this.generateCustomSettingField({ object, name, label, packageDir })
+      } = this.generateCustomSettingField({ object: this.customSettingsObject, name, label, packageDir })
       await this.saveFile({ directory: csDirPath, fileName: csFilePath, fileContent: csContent })
       sourcesToDeploy.push(csFilePath);
 
@@ -514,7 +555,7 @@ export default class Create extends SfdxCommand {
         content: objContent,
         filePath: objFilePath,
         dirPath: objDirPath
-      } = this.generateCustomSettingsObject({ object, defaultDir });
+      } = this.generateCustomSettingsObject({ object: this.customSettingsObject, defaultDir });
       try {
         await fs.access(objFilePath);
       } catch (_) {
@@ -527,7 +568,7 @@ export default class Create extends SfdxCommand {
       content: mdContent,
       filePath: mdFilePath,
       dirPath: mdDirPath
-    } = this.generateCustomMetadataRecord({ label, object, category, type, name, packageDir });
+    } = this.generateCustomMetadataRecord({ label, object: this.customSettingsObject, category, type, name, packageDir });
     await this.saveFile({ directory: mdDirPath, fileName: mdFilePath, fileContent: mdContent })
     sourcesToDeploy.push(mdFilePath);
 
@@ -540,7 +581,7 @@ export default class Create extends SfdxCommand {
     }).run()
 
     if (shouldDeploy) {
-      this.deployFeatureFlag({ name, object, sourcesToDeploy, type });
+      this.deployFeatureFlag({ name, object: this.customSettingsObject, sourcesToDeploy, type });
     } else {
       EONLogger.log('To deploy freshly created Feature Flag use following command:');
       EONLogger.log(chalk.inverse(`sfdx force:source:deploy -p "${sourcesToDeploy.join(',')}"`))
