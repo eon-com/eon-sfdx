@@ -330,7 +330,7 @@ export default class Create extends SfdxCommand {
     return { content, dirPath, filePath };
   }
 
-  private generateCustomMetadataRecord({ label, object, category, type, name, packageDir }): MetadataFile {
+  private generateCustomMetadataRecord({ label, setting, category, type, name, packageDir }): MetadataFile {
     let content = '<?xml version="1.0" encoding="UTF-8"?>\n';
     content += '<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">\n';
     content += `    <label>${label}</label>\n`;
@@ -341,7 +341,7 @@ export default class Create extends SfdxCommand {
     content += '    </values>\n';
     content += '    <values>\n';
     content += '        <field>Setting__c</field>\n';
-    content += `        <value xsi:type="xsd:string">${object}__c.${name}__c</value>\n`;
+    content += `        <value xsi:type="xsd:string">${setting}</value>\n`;
     content += '    </values>\n';
     content += '    <values>\n';
     content += '        <field>Type__c</field>\n';
@@ -538,8 +538,8 @@ export default class Create extends SfdxCommand {
         choices: Object.values(this.TYPE)
       }).run();
 
+      let permissionSetData: MetadataFile;
       if (type === this.TYPE.CUSTOM_PERMISSION) {
-        let permissionSetData: MetadataFile;
         try {
           permissionSetData = await this.handlePermissionSet({ name, packageName });
         } catch (e) {
@@ -572,7 +572,19 @@ export default class Create extends SfdxCommand {
         };
       }
 
-      const customMdtRecordData = this.generateCustomMetadataRecord({ label, object: this.customSettingsObject, category, type, name, packageDir });
+      const setting =
+        (type === this.TYPE.CUSTOM_SETTING) ?
+          `${this.customSettingsObject}__c.${name}__c` :
+          this.permissionSetLabel
+
+      const customMdtRecordData = this.generateCustomMetadataRecord({
+        label,
+        setting,
+        category,
+        type,
+        name,
+        packageDir
+      });
       this.newComponents.push(customMdtRecordData);
 
       const dot = chalk.gray(' · ');
