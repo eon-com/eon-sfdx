@@ -22,8 +22,9 @@ import * as os from 'os';
 import { PluginSettings } from '../../../helper/types';
 // @ts-ignore
 import { AutoComplete, Input, Select, Toggle } from 'enquirer';
+import { Connection } from 'jsforce';
 import path from 'path';
-import EONLogger, { COLOR_HEADER, COLOR_WARNING } from '../../../eon/EONLogger';
+import EONLogger, { COLOR_HEADER, COLOR_INFO, COLOR_KEY_MESSAGE, COLOR_WARNING } from '../../../eon/EONLogger';
 import { LOGOBANNER } from '../../../eon/logo';
 import {
   MetadataFile,
@@ -37,7 +38,6 @@ import {
 } from '../../../helper/featureflags';
 import { getParentPackages } from '../../../helper/get-packages';
 import { addCustomPermission } from '../../../helper/package-custompermission';
-import { Connection } from 'jsforce';
 Messages.importMessagesDirectory(__dirname);
 const messages = Messages.loadMessages('@eon-com/eon-sfdx', 'featureflags');
 
@@ -62,7 +62,6 @@ export default class Create extends SfdxCommand {
   private PERMSET_OPTION = {
     ADD: 'Add to existing',
     NEW: 'Create a new one',
-    SKIP: 'skip'
   }
 
   public static args = [{ name: 'file' }];
@@ -82,6 +81,8 @@ export default class Create extends SfdxCommand {
   private absolutePath: string;
   private customSettingsObject: string;
   private conn: Connection;
+  private permissionSetOption: string;
+  private permissionSetLabel: string;
 
   private async checkCustomSettingsInstanceExists(): Promise<Boolean> {
     interface Settings {
@@ -92,7 +93,7 @@ export default class Create extends SfdxCommand {
     const query = `select id,  SetupOwnerId from ${this.customSettingsObject}__c`;
     const result = await conn.query<Settings>(query);
     const queryRes = result.records.find((record) => record.SetupOwnerId.substring(0, 3) == '00D');
-    return !!queryRes;
+    return Boolean(queryRes);
   }
 
   private async createCustomSettingsInstance(name: string): Promise<void> {
@@ -125,7 +126,7 @@ export default class Create extends SfdxCommand {
     return [
       ...choices,
       ...(level > 1 ? [this.CATEGORY_ANSWER.SAVE_NOW, this.CATEGORY_ANSWER.GO_BACK] : []),
-      ...[this.CATEGORY_ANSWER.ADD_NEW]
+      this.CATEGORY_ANSWER.ADD_NEW
     ];
   }
 
@@ -137,7 +138,6 @@ export default class Create extends SfdxCommand {
     while (!isChoiceMade) {
       const level = choicePath.length + 1;
       const displayChoices = this.getDisplayChoices(choices, level);
-      console.clear();
 
       let message: string;
       if (level === 0) {
@@ -145,7 +145,7 @@ export default class Create extends SfdxCommand {
       } else if (level === 1) {
         message = 'Select top-level category'
       } else {
-        message = `Select subcategory\nYour choices: ${choicePath.map(item => item.name).join(' => ')} => `;
+        message = `Select subcategory${os.EOL}Your choices: ${choicePath.map(item => item.name).join(' => ')} => `;
       }
 
       const prompt = new AutoComplete({
@@ -198,21 +198,17 @@ export default class Create extends SfdxCommand {
   }
 
   private async handlePermissionSet({ name, packageName }): Promise<MetadataFile | undefined> {
-    const handlePermSet = await new Select({
+    this.permissionSetOption = await new Select({
       name: 'handlePermSet',
       message: 'Do you want to add Custom Permission to existing Permission Set or create a new one?',
       choices: Object.values(this.PERMSET_OPTION)
     }).run();
 
-    if (handlePermSet === this.PERMSET_OPTION.SKIP) {
-      return undefined;
-    }
-
     const availablePackages = await getParentPackages(this.projectJson, packageName, true);
 
-    if (handlePermSet === this.PERMSET_OPTION.ADD) {
+    if (this.permissionSetOption === this.PERMSET_OPTION.ADD) {
       return await this.addToPermissionSet({ name, availablePackages });
-    } else if (handlePermSet === this.PERMSET_OPTION.NEW) {
+    } else if (this.permissionSetOption === this.PERMSET_OPTION.NEW) {
       return await this.createPermissionSet({ name, packageName });
     }
   }
@@ -233,7 +229,7 @@ export default class Create extends SfdxCommand {
       name: 'Label',
       message: 'Enter Permission Set Label'
     }).run();
-
+    this.permissionSetLabel = psLabel;
     const defaultName = this.convertLabelToApiName(psLabel);
 
     const psName = await new Input({
@@ -279,16 +275,15 @@ export default class Create extends SfdxCommand {
       choices
     })
 
-    let selectedPermsetLabel: string;
     try {
       const answer = await prompt.run();
       const match = answer.match(this.REGEX.SPLIT_WITH_SPACES);
-      selectedPermsetLabel = match[1];
+      this.permissionSetLabel = match[1];
     } catch (error) {
       console.error('🚀', error);
     }
 
-    const selectedPermSet = allPermsets.find(ps => ps.label === selectedPermsetLabel);
+    const selectedPermSet = allPermsets.find(ps => ps.label === this.permissionSetLabel);
     const newContent = addCustomPermission(selectedPermSet.content, name);
     selectedPermSet.content = newContent;
 
@@ -454,10 +449,9 @@ export default class Create extends SfdxCommand {
     return name
   }
 
+
   public async run(): Promise<AnyJson> {
 
-    console.clear();
-    EONLogger.log(COLOR_HEADER(LOGOBANNER));
     this.conn = this.org.getConnection();
     this.projectJson = await this.project.retrieveSfdxProjectJson();
     this.packageDirs = this.projectJson.getUniquePackageDirectories();
@@ -475,127 +469,157 @@ export default class Create extends SfdxCommand {
     this.categoriesTree = parseCategoriesToTree(readCategoriesFromFFs(ffComponents));
     this.featureFlagLabels = readLabelsFromFFs(ffComponents);
     this.categoriesItemsSet = getCategoriesItemsSet(this.categoriesTree);
+    let confirmed = false;
 
-    const label = await new Input({
-      name: 'Label',
-      message: 'Enter Feature Flag Label',
-      validate: (value: string) => {
-        if (this.featureFlagLabels.includes(value)) {
-          return chalk.red('Feature Flag Label must be unique.')
+    do {
+      console.clear();
+      EONLogger.log(COLOR_HEADER(LOGOBANNER));
+
+      const label = await new Input({
+        name: 'Label',
+        message: 'Enter Feature Flag Label',
+        validate: (value: string) => {
+          if (this.featureFlagLabels.includes(value)) {
+            return chalk.red('Feature Flag Label must be unique.')
+          }
+          return true;
         }
-        return true;
-      }
-    }).run();
+      }).run();
 
-    const defaultName = this.convertLabelToApiName(label);
+      const defaultName = this.convertLabelToApiName(label);
 
-    const name = await new Input({
-      name: 'Name',
-      message: 'Enter Feature Flag Name (enter to confirm default)',
-      initial: defaultName,
-      validate: (value: string) => {
-        if (this.REGEX.APINAME_VALIDATE.test(value)) {
-          return chalk.red(`The custom field name you provided ${value} can only contain alphanumeric characters, must begin with a letter, cannot end with an underscore or contain two consecutive underscore characters.`)
+      const name = await new Input({
+        name: 'Name',
+        message: 'Enter Feature Flag Name (enter to confirm default)',
+        initial: defaultName,
+        validate: (value: string) => {
+          if (this.REGEX.APINAME_VALIDATE.test(value)) {
+            return chalk.red(`The custom field name you provided ${value} can only contain alphanumeric characters, must begin with a letter, cannot end with an underscore or contain two consecutive underscore characters.`)
+          }
+          return true;
         }
-        return true;
-      }
-    }).run();
+      }).run();
 
-    const category = await this.getCategoryFromUser();
+      const category = await this.getCategoryFromUser();
 
-    const packageName = await new AutoComplete({
-      name: 'package',
-      message: 'Select your package',
-      limit: 15,
-      initial: 2,
-      choices: packageNames,
-      footer() {
-        return chalk.dim('(Scroll up and down to reveal more choices)');
-      }
-    }).run();
+      const packageName = await new AutoComplete({
+        name: 'package',
+        message: 'Select your package',
+        limit: 15,
+        initial: 2,
+        choices: packageNames,
+        footer() {
+          return chalk.dim('(Scroll up and down to reveal more choices)');
+        }
+      }).run();
 
-    const packageDir = this.getPackagesAbsolutePath(packageName);
-    const defaultDir = this.getPackagesAbsolutePath(defaultPackage);
+      const packageDir = this.getPackagesAbsolutePath(packageName);
+      const defaultDir = this.getPackagesAbsolutePath(defaultPackage);
 
-    const sourcesToDeploy = [];
+      const sourcesToDeploy = [];
 
-    const type = await new Select({
-      name: 'type',
-      message: 'Select Feature Flag type',
-      choices: Object.values(this.TYPE)
-    }).run();
+      const type = await new Select({
+        name: 'type',
+        message: 'Select Feature Flag type',
+        choices: Object.values(this.TYPE)
+      }).run();
 
-    if (type === this.TYPE.CUSTOM_PERMISSION) {
-      let permissionSetData: MetadataFile;
-      try {
-        permissionSetData = await this.handlePermissionSet({ name, packageName });
-      } catch (e) {
-        console.error(e)
-      }
-      if (permissionSetData) {
+      if (type === this.TYPE.CUSTOM_PERMISSION) {
+        let permissionSetData: MetadataFile;
+        try {
+          permissionSetData = await this.handlePermissionSet({ name, packageName });
+        } catch (e) {
+          console.error(e)
+        }
+        if (permissionSetData) {
+          const {
+            content: psContent,
+            filePath: psFilePath,
+            dirPath: psDirPath
+          } = permissionSetData;
+          await this.saveFile({ directory: psDirPath, fileName: psFilePath, fileContent: psContent });
+          sourcesToDeploy.push(psFilePath);
+        }
         const {
-          content: psContent,
-          filePath: psFilePath,
-          dirPath: psDirPath
-        } = permissionSetData;
-        await this.saveFile({ directory: psDirPath, fileName: psFilePath, fileContent: psContent });
-        sourcesToDeploy.push(psFilePath);
+          content: cpContent,
+          filePath: cpFilePath,
+          dirPath: cpDirPath
+        } = this.generateCustomPermission({ label, name, packageDir });
+        await this.saveFile({ directory: cpDirPath, fileName: cpFilePath, fileContent: cpContent });
+        sourcesToDeploy.push(cpFilePath);
+
+
+      } else if (type === this.TYPE.CUSTOM_SETTING) {
+        await this.getCustomSettingsObjectName();
+
+        const {
+          content: csContent,
+          filePath: csFilePath,
+          dirPath: csDirPath
+        } = this.generateCustomSettingField({ object: this.customSettingsObject, name, label, packageDir })
+        await this.saveFile({ directory: csDirPath, fileName: csFilePath, fileContent: csContent })
+        sourcesToDeploy.push(csFilePath);
+
+        const {
+          content: objContent,
+          filePath: objFilePath,
+          dirPath: objDirPath
+        } = this.generateCustomSettingsObject({ object: this.customSettingsObject, defaultDir });
+        try {
+          await fs.access(objFilePath);
+        } catch (_) {
+          await this.saveFile({ directory: objDirPath, fileName: objFilePath, fileContent: objContent })
+          sourcesToDeploy.push(objFilePath);
+        };
       }
-      const {
-        content: cpContent,
-        filePath: cpFilePath,
-        dirPath: cpDirPath
-      } = this.generateCustomPermission({ label, name, packageDir });
-      await this.saveFile({ directory: cpDirPath, fileName: cpFilePath, fileContent: cpContent });
-      sourcesToDeploy.push(cpFilePath);
-
-
-    } else if (type === this.TYPE.CUSTOM_SETTING) {
-      await this.getCustomSettingsObjectName();
 
       const {
-        content: csContent,
-        filePath: csFilePath,
-        dirPath: csDirPath
-      } = this.generateCustomSettingField({ object: this.customSettingsObject, name, label, packageDir })
-      await this.saveFile({ directory: csDirPath, fileName: csFilePath, fileContent: csContent })
-      sourcesToDeploy.push(csFilePath);
+        content: mdContent,
+        filePath: mdFilePath,
+        dirPath: mdDirPath
+      } = this.generateCustomMetadataRecord({ label, object: this.customSettingsObject, category, type, name, packageDir });
+      await this.saveFile({ directory: mdDirPath, fileName: mdFilePath, fileContent: mdContent })
+      sourcesToDeploy.push(mdFilePath);
 
-      const {
-        content: objContent,
-        filePath: objFilePath,
-        dirPath: objDirPath
-      } = this.generateCustomSettingsObject({ object: this.customSettingsObject, defaultDir });
-      try {
-        await fs.access(objFilePath);
-      } catch (_) {
-        await this.saveFile({ directory: objDirPath, fileName: objFilePath, fileContent: objContent })
-        sourcesToDeploy.push(objFilePath);
-      };
-    }
+      const dot = chalk.gray(' · ');
+      EONLogger.log(COLOR_HEADER(`${os.EOL}Please confirm:`))
+      EONLogger.log(COLOR_INFO(`${dot}Feature Flag Name${dot}`) + COLOR_KEY_MESSAGE(label));
+      EONLogger.log(COLOR_INFO(`${dot}Feature Flag Category${dot}`) + COLOR_KEY_MESSAGE(category));
+      EONLogger.log(COLOR_INFO(`${dot}Add to package${dot}`) + COLOR_KEY_MESSAGE(packageName));
+      EONLogger.log(COLOR_INFO(`${dot}Feature Flag Type${dot}`) + COLOR_KEY_MESSAGE(type));
+      if (type === this.TYPE.CUSTOM_PERMISSION) {
+        if (this.permissionSetOption === this.PERMSET_OPTION.NEW) {
+          EONLogger.log(COLOR_INFO(`${dot}Create new Permission Set${dot}`) + COLOR_KEY_MESSAGE(this.permissionSetLabel));
+        } else if (this.permissionSetOption === this.PERMSET_OPTION.ADD) {
+          EONLogger.log(COLOR_INFO(`${dot}Update existing Permission Set${dot}`) + COLOR_KEY_MESSAGE(this.permissionSetLabel));
+        }
+      }
 
-    const {
-      content: mdContent,
-      filePath: mdFilePath,
-      dirPath: mdDirPath
-    } = this.generateCustomMetadataRecord({ label, object: this.customSettingsObject, category, type, name, packageDir });
-    await this.saveFile({ directory: mdDirPath, fileName: mdFilePath, fileContent: mdContent })
-    sourcesToDeploy.push(mdFilePath);
+      confirmed = await new Toggle({
+        name: 'confirm',
+        message: 'Is data correct?',
+        enabled: 'Yes',
+        disabled: 'No',
+        initial: 'Yes'
+      }).run();
 
-    const shouldDeploy = await new Toggle({
-      name: 'shouldDeploy',
-      message: 'Deploy Metadata after creating?',
-      enabled: 'Yes',
-      disabled: 'No',
-      initial: 'Yes'
-    }).run()
+      if (confirmed) {
+        const shouldDeploy = await new Toggle({
+          name: 'shouldDeploy',
+          message: 'Deploy Metadata after creating?',
+          enabled: 'Yes',
+          disabled: 'No',
+          initial: 'Yes'
+        }).run();
 
-    if (shouldDeploy) {
-      this.deployFeatureFlag({ name, sourcesToDeploy, type });
-    } else {
-      EONLogger.log('To deploy freshly created Feature Flag use following command:');
-      EONLogger.log(chalk.inverse(`sfdx force:source:deploy -p "${sourcesToDeploy.join(',')}"`))
-    }
+        if (shouldDeploy) {
+          this.deployFeatureFlag({ name, sourcesToDeploy, type });
+        } else {
+          EONLogger.log('To deploy freshly created Feature Flag use following command:');
+          EONLogger.log(chalk.inverse(`sfdx force:source:deploy -p "${sourcesToDeploy.join(',')}"`))
+        }
+      }
+    } while (confirmed === false)
     return toAnyJson({});
   }
 }
