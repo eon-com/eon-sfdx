@@ -64,6 +64,8 @@ export default class Create extends SfdxCommand {
     NEW: 'Create a new one',
   }
 
+  private MAX_CUSTOM_FEATURE_FIELDS = 275;
+
   public static args = [{ name: 'file' }];
 
   protected static requiresProject = true;
@@ -83,6 +85,8 @@ export default class Create extends SfdxCommand {
   private conn: Connection;
   private permissionSetOption: string;
   private permissionSetLabel: string;
+  private newComponents: MetadataFile[];
+  private defaultDir: string;
 
   private async checkCustomSettingsInstanceExists(): Promise<Boolean> {
     interface Settings {
@@ -373,6 +377,13 @@ export default class Create extends SfdxCommand {
     return { content, dirPath, filePath };
   }
 
+  private async saveNewMetadataFiles(): Promise<void> {
+    for (const { dirPath, filePath, content } of this.newComponents) {
+      await fs.mkdir(dirPath, { recursive: true })
+      await fs.writeFile(filePath, content);
+    }
+  }
+
   private async deployFeatureFlag({ name, sourcesToDeploy, type }) {
     const deploy: MetadataApiDeploy = await ComponentSet.fromSource(sourcesToDeploy).deploy({
       usernameOrConnection: this.org.getConnection().getUsername(),
@@ -400,11 +411,6 @@ export default class Create extends SfdxCommand {
     }
   }
 
-  private async saveFile({ directory, fileName, fileContent }): Promise<void> {
-    await fs.mkdir(directory, { recursive: true })
-    await fs.writeFile(fileName, fileContent);
-  }
-
   private getPackagesAbsolutePath(packageName: string): string {
     return `${this.packageDirs.find(dir => dir.package === packageName).fullPath}${this.sourceSubdir}\\`;
   }
@@ -420,34 +426,43 @@ export default class Create extends SfdxCommand {
       try {
         const object = await conn.describe(`${name}__c`);
         const customFieldsCount = (object.fields.filter(field => /__c$/.test(field.name))).length;
-        if (customFieldsCount < 5) {
+        if (customFieldsCount < this.MAX_CUSTOM_FEATURE_FIELDS) {
           objectName = name;
         }
 
       } catch (error) {
-        objectName = await this.createNewCustomSettingsObject(name);
+        const customSettingsObjectData = this.generateCustomSettingsObject({
+          object: `${name}`,
+          defaultDir: this.defaultDir
+        })
+        try {
+          await fs.access(customSettingsObjectData.filePath);
+        } catch (_) {
+          this.newComponents.push(customSettingsObjectData);
+        };
+        objectName = name;
       }
 
     } while (!objectName);
     this.customSettingsObject = objectName;
   }
 
-  private async createNewCustomSettingsObject(name: string) {
-    const conn = this.conn;
-    const objectMetadata = {
-      fullName: name,
-      label: name.replace('__c', ''),
-      customSettingsType: 'Hierarchy',
-    }
-    try {
+  // private async createNewCustomSettingsObject(name: string) {
+  //   const conn = this.conn;
+  //   const objectMetadata = {
+  //     fullName: name,
+  //     label: name.replace('__c', ''),
+  //     customSettingsType: 'Hierarchy',
+  //   }
+  //   try {
 
-      await conn.metadata.create('CustomObject', objectMetadata);
-    } catch (e) {
-      console.error(e);
-    }
+  //     await conn.metadata.create('CustomObject', objectMetadata);
+  //   } catch (e) {
+  //     console.error(e);
+  //   }
 
-    return name
-  }
+  //   return name
+  // }
 
 
   public async run(): Promise<AnyJson> {
@@ -472,6 +487,7 @@ export default class Create extends SfdxCommand {
     let confirmed = false;
 
     do {
+      this.newComponents = [];
       console.clear();
       EONLogger.log(COLOR_HEADER(LOGOBANNER));
 
@@ -514,9 +530,7 @@ export default class Create extends SfdxCommand {
       }).run();
 
       const packageDir = this.getPackagesAbsolutePath(packageName);
-      const defaultDir = this.getPackagesAbsolutePath(defaultPackage);
-
-      const sourcesToDeploy = [];
+      this.defaultDir = this.getPackagesAbsolutePath(defaultPackage);
 
       const type = await new Select({
         name: 'type',
@@ -532,54 +546,34 @@ export default class Create extends SfdxCommand {
           console.error(e)
         }
         if (permissionSetData) {
-          const {
-            content: psContent,
-            filePath: psFilePath,
-            dirPath: psDirPath
-          } = permissionSetData;
-          await this.saveFile({ directory: psDirPath, fileName: psFilePath, fileContent: psContent });
-          sourcesToDeploy.push(psFilePath);
+
+          this.newComponents.push(permissionSetData);
         }
-        const {
-          content: cpContent,
-          filePath: cpFilePath,
-          dirPath: cpDirPath
-        } = this.generateCustomPermission({ label, name, packageDir });
-        await this.saveFile({ directory: cpDirPath, fileName: cpFilePath, fileContent: cpContent });
-        sourcesToDeploy.push(cpFilePath);
+        const customPermissionData = this.generateCustomPermission({ label, name, packageDir });
+        this.newComponents.push(customPermissionData);
 
 
       } else if (type === this.TYPE.CUSTOM_SETTING) {
         await this.getCustomSettingsObjectName();
 
-        const {
-          content: csContent,
-          filePath: csFilePath,
-          dirPath: csDirPath
-        } = this.generateCustomSettingField({ object: this.customSettingsObject, name, label, packageDir })
-        await this.saveFile({ directory: csDirPath, fileName: csFilePath, fileContent: csContent })
-        sourcesToDeploy.push(csFilePath);
+        const customSettingsFieldData = this.generateCustomSettingField({ object: this.customSettingsObject, name, label, packageDir })
+        this.newComponents.push(customSettingsFieldData);
 
-        const {
-          content: objContent,
-          filePath: objFilePath,
-          dirPath: objDirPath
-        } = this.generateCustomSettingsObject({ object: this.customSettingsObject, defaultDir });
+        // const {
+        //   content: objContent,
+        //   filePath: objFilePath,
+        //   dirPath: objDirPath
+        // } = this.generateCustomSettingsObject({ object: this.customSettingsObject, defaultDir });
+        const customSettingsObjectData = this.generateCustomSettingsObject({ object: this.customSettingsObject, defaultDir: this.defaultDir });
         try {
-          await fs.access(objFilePath);
+          await fs.access(customSettingsObjectData.filePath);
         } catch (_) {
-          await this.saveFile({ directory: objDirPath, fileName: objFilePath, fileContent: objContent })
-          sourcesToDeploy.push(objFilePath);
+          this.newComponents.push(customSettingsObjectData);
         };
       }
 
-      const {
-        content: mdContent,
-        filePath: mdFilePath,
-        dirPath: mdDirPath
-      } = this.generateCustomMetadataRecord({ label, object: this.customSettingsObject, category, type, name, packageDir });
-      await this.saveFile({ directory: mdDirPath, fileName: mdFilePath, fileContent: mdContent })
-      sourcesToDeploy.push(mdFilePath);
+      const customMdtRecordData = this.generateCustomMetadataRecord({ label, object: this.customSettingsObject, category, type, name, packageDir });
+      this.newComponents.push(customMdtRecordData);
 
       const dot = chalk.gray(' · ');
       EONLogger.log(COLOR_HEADER(`${os.EOL}Please confirm:`))
@@ -611,6 +605,10 @@ export default class Create extends SfdxCommand {
           disabled: 'No',
           initial: 'Yes'
         }).run();
+
+        await this.saveNewMetadataFiles();
+
+        const sourcesToDeploy = this.newComponents.map(component => component.filePath);
 
         if (shouldDeploy) {
           this.deployFeatureFlag({ name, sourcesToDeploy, type });
