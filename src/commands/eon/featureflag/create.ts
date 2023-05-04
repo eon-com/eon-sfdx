@@ -13,6 +13,7 @@ import {
 } from '@salesforce/core';
 import {
   ComponentSet,
+  DeployResult,
   MetadataApiDeploy
 } from '@salesforce/source-deploy-retrieve';
 import { AnyJson, toAnyJson } from '@salesforce/ts-types';
@@ -202,16 +203,23 @@ export default class Create extends SfdxCommand {
   }
 
   private async handlePermissionSet({ name, packageName }): Promise<MetadataFile | undefined> {
-    this.permissionSetOption = await new Select({
-      name: 'handlePermSet',
-      message: 'Do you want to add Custom Permission to existing Permission Set or create a new one?',
-      choices: Object.values(this.PERMSET_OPTION)
-    }).run();
-
     const availablePackages = await getParentPackages(this.projectJson, packageName, true);
+    const availablePermsets = await this.getAvailablePermsets(availablePackages);
+    
+    if (availablePermsets?.length) {
+      this.permissionSetOption = await new Select({
+        name: 'handlePermSet',
+        message: 'Do you want to add Custom Permission to existing Permission Set or create a new one?',
+        choices: Object.values(this.PERMSET_OPTION)
+      }).run();
+      
+    } else {
+      EONLogger.log(COLOR_WARNING('There are no available Permission Sets, create a new one.'));
+      this.permissionSetOption = this.PERMSET_OPTION.NEW
+    }
 
     if (this.permissionSetOption === this.PERMSET_OPTION.ADD) {
-      return await this.addToPermissionSet({ name, availablePackages });
+      return await this.addToPermissionSet({ name, availablePermsets });
     } else if (this.permissionSetOption === this.PERMSET_OPTION.NEW) {
       return await this.createPermissionSet({ name, packageName });
     }
@@ -252,8 +260,7 @@ export default class Create extends SfdxCommand {
     return this.generatePermissionSetWithCustomPermission({ psName, psLabel, packageDir, cpName: name })
   }
 
-  private async addToPermissionSet({ name, availablePackages }): Promise<MetadataFile> {
-
+  private async getAvailablePermsets(availablePackages): Promise<Array<any>> {
     let allPermsets: Array<any> = [];
     for (const pkg of availablePackages) {
       try {
@@ -265,8 +272,14 @@ export default class Create extends SfdxCommand {
     }
 
     allPermsets.sort((a, b) => a.label.localeCompare(b.label));
-    const maxLength = allPermsets.reduce((max, ps) => Math.max(max, ps.label.length), 0);
-    const choices = allPermsets.map(ps => {
+    return allPermsets;
+  }
+
+  private async addToPermissionSet({ name, availablePermsets }): Promise<MetadataFile> {
+
+
+    const maxLength = availablePermsets.reduce((max: number, ps: { label: string | any[]; }) => Math.max(max, ps.label.length), 0);
+    const choices = availablePermsets.map((ps: { label: string | any[]; package: any; }) => {
       const spaces = ' '.repeat(maxLength - ps.label.length + 2);
       return `${ps.label}${spaces}${ps.package}`
     })
@@ -287,7 +300,7 @@ export default class Create extends SfdxCommand {
       console.error('🚀', error);
     }
 
-    const selectedPermSet = allPermsets.find(ps => ps.label === this.permissionSetLabel);
+    const selectedPermSet = availablePermsets.find(ps => ps.label === this.permissionSetLabel);
     const newContent = addCustomPermission(selectedPermSet.content, name);
     selectedPermSet.content = newContent;
 
@@ -330,7 +343,7 @@ export default class Create extends SfdxCommand {
     return { content, dirPath, filePath };
   }
 
-  private generateCustomMetadataRecord({ label, setting, category, type, name, packageDir }): MetadataFile {
+  private generateCustomMetadataRecord({ label, setting, category, type, name, description, packageDir }): MetadataFile {
     let content = '<?xml version="1.0" encoding="UTF-8"?>\n';
     content += '<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">\n';
     content += `    <label>${label}</label>\n`;
@@ -338,6 +351,10 @@ export default class Create extends SfdxCommand {
     content += '    <values>\n';
     content += '        <field>Category__c</field>\n';
     content += `        <value xsi:type="xsd:string">${category}</value>\n`;
+    content += '    </values>\n';
+    content += '    <values>\n';
+    content += '    <field>Description__c</field>\n';
+    content += `    <value xsi:type="xsd:string">${description}</value>\n`;
     content += '    </values>\n';
     content += '    <values>\n';
     content += '        <field>Setting__c</field>\n';
@@ -389,12 +406,21 @@ export default class Create extends SfdxCommand {
       usernameOrConnection: this.org.getConnection().getUsername(),
     });
     this.ux.startSpinner('Deploying...');
-    deploy.onUpdate((response) => {
-      const { status } = response;
-      this.ux.setSpinnerStatus(status);
+    deploy
+      .onUpdate((response) => {
+        const { status } = response;
+        this.ux.setSpinnerStatus(status);
+      })
+    deploy.onError(error => {
+      console.error('Error during deployment. ' + error);
     });
 
-    const deployRes = await deploy.pollStatus();
+    let deployRes: DeployResult;
+    try {
+      deployRes = await deploy.pollStatus();
+    } catch (e) {
+      console.error('Deployment error ' + this.error)
+    }
     if (!deployRes.response.success) {
       this.ux.stopSpinner('Deployment failed.');
 
@@ -447,24 +473,6 @@ export default class Create extends SfdxCommand {
     this.customSettingsObject = objectName;
   }
 
-  // private async createNewCustomSettingsObject(name: string) {
-  //   const conn = this.conn;
-  //   const objectMetadata = {
-  //     fullName: name,
-  //     label: name.replace('__c', ''),
-  //     customSettingsType: 'Hierarchy',
-  //   }
-  //   try {
-
-  //     await conn.metadata.create('CustomObject', objectMetadata);
-  //   } catch (e) {
-  //     console.error(e);
-  //   }
-
-  //   return name
-  // }
-
-
   public async run(): Promise<AnyJson> {
 
     this.conn = this.org.getConnection();
@@ -498,6 +506,9 @@ export default class Create extends SfdxCommand {
           if (this.featureFlagLabels.includes(value)) {
             return chalk.red('Feature Flag Label must be unique.')
           }
+          if (!value) {
+            return chalk.red('This field is required and cannot be empty.')
+          }
           return true;
         }
       }).run();
@@ -516,17 +527,25 @@ export default class Create extends SfdxCommand {
         }
       }).run();
 
+      const description = await new Input({
+        name: 'Description',
+        message: 'Give a brief summary of what does your feature do.',
+        validate: (value: string) => {
+          if (!value) {
+            return chalk.red('This field is required and cannot be empty.')
+          }
+          return true;
+        }
+      }).run();
+
       const category = await this.getCategoryFromUser();
 
       const packageName = await new AutoComplete({
         name: 'package',
-        message: 'Select your package',
+        message: 'Select your package ' + chalk.dim('(Scroll up/down or type to search)'),
         limit: 15,
         initial: 2,
         choices: packageNames,
-        footer() {
-          return chalk.dim('(Scroll up and down to reveal more choices)');
-        }
       }).run();
 
       const packageDir = this.getPackagesAbsolutePath(packageName);
@@ -558,24 +577,12 @@ export default class Create extends SfdxCommand {
 
         const customSettingsFieldData = this.generateCustomSettingField({ object: this.customSettingsObject, name, label, packageDir })
         this.newComponents.push(customSettingsFieldData);
-
-        // const {
-        //   content: objContent,
-        //   filePath: objFilePath,
-        //   dirPath: objDirPath
-        // } = this.generateCustomSettingsObject({ object: this.customSettingsObject, defaultDir });
-        const customSettingsObjectData = this.generateCustomSettingsObject({ object: this.customSettingsObject, defaultDir: this.defaultDir });
-        try {
-          await fs.access(customSettingsObjectData.filePath);
-        } catch (_) {
-          this.newComponents.push(customSettingsObjectData);
-        };
       }
 
       const setting =
         (type === this.TYPE.CUSTOM_SETTING) ?
           `${this.customSettingsObject}__c.${name}__c` :
-          this.permissionSetLabel
+          name;
 
       const customMdtRecordData = this.generateCustomMetadataRecord({
         label,
@@ -583,6 +590,7 @@ export default class Create extends SfdxCommand {
         category,
         type,
         name,
+        description,
         packageDir
       });
       this.newComponents.push(customMdtRecordData);
