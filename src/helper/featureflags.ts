@@ -137,7 +137,7 @@ export const getFeatureFlags = (rootDir: string): SourceComponent[] => {
   const resolver: MetadataResolver = new MetadataResolver();
 
   const featureFlagComponents: SourceComponent[] = resolver.getComponentsFromPath(rootDir)
-    .filter(component => component.type.id === 'custommetadata' && /Feature_Flag\./.test(component.name));
+    .filter(component => component.type.id === 'custommetadata' && /^Feature_Flag\.(?!Test_)[^.]+$/gm.test(component.name));
 
   return featureFlagComponents;
 }
