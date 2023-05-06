@@ -57,7 +57,6 @@ export default class Create extends SfdxCommand {
 
   private REGEX = {
     APINAME_VALIDATE: /(^[^a-z].*$|^.*_$|^.*__.*$|[^a-z0-9_])/i,
-    SPLIT_WITH_SPACES: /(\S+(\s\S+)?)( {2,})(\S+(\s\S+)?|\S+)/
   }
 
   private PERMSET_OPTION = {
@@ -276,8 +275,6 @@ export default class Create extends SfdxCommand {
   }
 
   private async addToPermissionSet({ name, availablePermsets }): Promise<MetadataFile> {
-
-
     const maxLength = availablePermsets.reduce((max: number, ps: { label: string | any[]; }) => Math.max(max, ps.label.length), 0);
     const choices = availablePermsets.map((ps: { label: string | any[]; package: any; }) => {
       const spaces = ' '.repeat(maxLength - ps.label.length + 2);
@@ -294,8 +291,7 @@ export default class Create extends SfdxCommand {
 
     try {
       const answer = await prompt.run();
-      const match = answer.match(this.REGEX.SPLIT_WITH_SPACES);
-      this.permissionSetLabel = match[1];
+      this.permissionSetLabel = (answer.split(/\s{2,}/))[0];
     } catch (error) {
       console.error('🚀', error);
     }
