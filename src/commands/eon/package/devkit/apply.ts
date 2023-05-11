@@ -64,7 +64,7 @@ export default class Apply extends SfdxCommand {
         task: async () => {
           const permissionsets: string = devkit.permissionsets.join(',');
           try {
-            await execa('sfdx', ['force:user:permset:assign', '--permsetname',  permissionsets, '--json']);
+            await execa('sfdx', ['force:user:permset:assign', '--permsetname', permissionsets, '--json']);
           } catch (error) {
             EONLogger.log(COLOR_NOTIFY('Assigning Permissionset finished with following message(s):'));
             console.log(error?.stdout);
@@ -78,7 +78,7 @@ export default class Apply extends SfdxCommand {
           title: `Executing Apex: ${devkit.anonymous_apex}`,
           task: async () => {
             try {
-              await execa('sfdx', ['force:apex:execute', '-f ', script]);
+              await execa('sfdx', ['apex:execute', '-f ', script]);
               EONLogger.log(COLOR_TRACE('Script executed'));
             } catch (error) {
               EONLogger.log(COLOR_NOTIFY('Executing Anonymous Apex finished with following message:'));
