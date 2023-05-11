@@ -78,7 +78,7 @@ export default class Apply extends SfdxCommand {
           title: `Executing Apex: ${devkit.anonymous_apex}`,
           task: async () => {
             try {
-              await execa('sfdx', ['apex:execute', '-f ', script]);
+              await execa('sfdx', ['apex:run', '-f ', script]);
               EONLogger.log(COLOR_TRACE('Script executed'));
             } catch (error) {
               EONLogger.log(COLOR_NOTIFY('Executing Anonymous Apex finished with following message:'));
