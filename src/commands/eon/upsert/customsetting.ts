@@ -62,7 +62,7 @@ export default class CustomSetting extends SfdxCommand {
 
     // The type we are querying for
     interface Settings {
-      Id?: string;
+      Id: string;
       [key: string]: any;
     }
 

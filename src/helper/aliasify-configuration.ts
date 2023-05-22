@@ -26,7 +26,7 @@ export default async function getSettingValue(
   }
 
   // get sfdx project.json
-  const projectJson: SfdxProjectJson = await project.retrieveSfdxProjectJson();
+  const projectJson: SfdxProjectJson = await project.retrieveSfProjectJson();
   const settings: PluginSettings = projectJson.getContents()?.plugins['eon-sfdx'] as PluginSettings;
   const configFilePath: string = path.join(
     path.dirname(projectJson.getPath()),

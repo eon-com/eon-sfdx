@@ -108,7 +108,7 @@ export default class Validate extends SfdxCommand {
     await this.toggleParallelApexTesting();
     EONLogger.log(COLOR_HEADER('Search for unlocked package changes'));
     // get sfdx project.json
-    const projectJson: SfdxProjectJson = await this.project.retrieveSfdxProjectJson();
+    const projectJson: SfdxProjectJson = await this.project.retrieveSfProjectJson();
     const packageAliases = projectJson.getContents().packageAliases;
     if (this.flags.target && this.flags.package) {
       throw new SfdxError(`Either package or target flag can be used, not both`);
@@ -235,7 +235,7 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
 
     const packageSingleMap = new Map<string, PackageInfo>();
     // get packages
-    const projectJson: SfdxProjectJson = await this.project.retrieveSfdxProjectJson();
+    const projectJson: SfdxProjectJson = await this.project.retrieveSfProjectJson();
 
     const packageDependencyTree: PackageTree = getDeployUrls(projectJson, pck);
     packageDependencyTree.dependency.forEach((dep) => {

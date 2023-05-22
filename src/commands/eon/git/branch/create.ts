@@ -171,12 +171,12 @@ export default class GitHotfixCreate extends SfdxCommand {
     if (packageTree.size === 0) {
       throw new SfdxError(`Package ${this.flags.package} not found in sfdx-project.json`);
     }
-    await this.project.getSfdxProjectJson().write(parsedResponseJson);
+    await this.project.getSfProjectJson().write(parsedResponseJson);
   }
 
   private async getBranch(orgResponse: BranchCreateResponse): Promise<void> {
     EONLogger.log(COLOR_TRACE('Start git tasks...'));
-    const projectJson: SfdxProjectJson = await this.project.retrieveSfdxProjectJson();
+    const projectJson: SfdxProjectJson = await this.project.retrieveSfProjectJson();
     let git: SimpleGit = simplegit(path.dirname(projectJson.getPath()));
     await git.fetch();
     EONLogger.log(COLOR_TRACE(`Check if the branch hotfix-${this.flags.ticket}-${this.flags.package} exist`));

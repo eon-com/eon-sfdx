@@ -59,7 +59,7 @@ export default class Deploy extends SfdxCommand {
 
     const includedependencies = (this.flags.includedependencies || '') as boolean;
     // get packages
-    const projectJson: SfdxProjectJson = await this.project.retrieveSfdxProjectJson();
+    const projectJson: SfdxProjectJson = await this.project.retrieveSfProjectJson();
     const packageDependencyTree: PackageTree = getDeployUrls(projectJson, packagename);
 
     if (packageDependencyTree) {

@@ -44,7 +44,7 @@ export default class Apply extends SfdxCommand {
     EONLogger.log(COLOR_HEADER(LOGOBANNER));
     const packagename = this.flags.package;
 
-    const projectJson: SfdxProjectJson = await this.project.retrieveSfdxProjectJson();
+    const projectJson: SfdxProjectJson = await this.project.retrieveSfProjectJson();
     let packageDirs: NamedPackageDir[] = projectJson.getUniquePackageDirectories();
     const username: string = await this.org.getUsername();
     EONLogger.log(COLOR_HEADER('Applying DevKit ' + packagename + ' for ' + username));

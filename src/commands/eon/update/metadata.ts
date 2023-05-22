@@ -7,7 +7,7 @@
  */
 import * as os from 'os';
 import { flags, SfdxCommand } from '@salesforce/command';
-import { Messages, SfdxError, SfdxProjectJson } from '@salesforce/core';
+import { Messages, SfdxError, SfProjectJson } from '@salesforce/core';
 import EONLogger, { COLOR_HEADER, COLOR_NOTIFY, COLOR_SUCCESS, COLOR_WARNING } from '../../../eon/EONLogger';
 import { LOGOBANNER } from '../../../eon/logo';
 import getSettingValue from '../../../helper/aliasify-configuration';
@@ -64,7 +64,7 @@ export default class Metadata extends SfdxCommand {
     EONLogger.log(COLOR_HEADER(LOGOBANNER));
 
     // get sfdx project.json
-    const projectJson: SfdxProjectJson = await this.project.retrieveSfdxProjectJson();
+    const projectJson: SfProjectJson = await this.project.retrieveSfProjectJson();
     const settings: PluginSettings = projectJson.getContents()?.plugins['eon-sfdx'] as PluginSettings;
 
     // prepare values and settings
