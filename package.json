@@ -1,7 +1,7 @@
 {
   "name": "@eon-com/eon-sfdx",
   "description": "Salesforce DX (SFDX) commands to support salesforce developments & deployments",
-  "version": "1.13.3",
+  "version": "1.14.0",
   "author": {
     "email": "eon-sfdx@eon.com",
     "name": "Constantin Schlusche"
