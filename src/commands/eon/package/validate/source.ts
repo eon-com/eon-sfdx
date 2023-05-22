@@ -6,7 +6,7 @@
  */
 import * as os from 'os';
 import { flags, SfdxCommand } from '@salesforce/command';
-import { Messages, SfdxError, SfdxProjectJson, Aliases } from '@salesforce/core';
+import { Messages, SfdxError, SfdxProjectJson, StateAggregator } from '@salesforce/core';
 import { ComponentSet, MetadataApiDeploy, MetadataResolver, DeployDetails } from '@salesforce/source-deploy-retrieve';
 import { DeployError } from '../../../../interfaces/package-interfaces';
 import { AnyJson } from '@salesforce/ts-types';
@@ -82,7 +82,7 @@ export default class Validate extends SfdxCommand {
     EONLogger.log(COLOR_KEY_MESSAGE('Validating source package(s)...'));
     EONLogger.log(COLOR_HEADER('Search for source package changes'));
     // get sfdx project.json
-    const projectJson: SfdxProjectJson = await this.project.retrieveSfdxProjectJson();
+    const projectJson: SfdxProjectJson = await this.project.retrieveSfProjectJson();
     const packageAliases = projectJson.getContents().packageAliases;
 
     // get all packages
@@ -319,7 +319,8 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
     EONLogger.log(COLOR_HEADER(`💪 Start Deployment and Tests for source package.`));
     let username = this.org.getConnection().getUsername();
     if (this.flags.alias) {
-      username = await Aliases.fetch(this.flags.alias);
+      const stateAggregator = await StateAggregator.getInstance();
+      username = stateAggregator.aliases.resolveUsername(this.flags.alias); 
     }
     const sourceComps = await this.getApexClassesForSource(path);
     const testLevel = sourceComps.apexTestclassNames.length > 0 ? 'RunSpecifiedTests' : 'NoTestRun';

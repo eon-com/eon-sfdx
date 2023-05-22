@@ -43,7 +43,7 @@ export default class FeatureUpdate extends SfdxCommand {
 
     // parse settings file
 
-    const projectJson: SfdxProjectJson = await this.project.retrieveSfdxProjectJson();
+    const projectJson: SfdxProjectJson = await this.project.retrieveSfProjectJson();
     const configFilePath: string = path.join(path.dirname(projectJson.getPath()), this.flags.settingsfile);
     let parsedFile: featureSettingsConfigFile;
     await fspromise
@@ -113,7 +113,7 @@ export default class FeatureUpdate extends SfdxCommand {
 
     const conn = this.org.getConnection();
     interface Settings {
-      Id?: string;
+      Id: string;
       [key: string]: any;
     }
     const describeObjects = await conn.tooling.query<Settings>(describeObjectQuery);

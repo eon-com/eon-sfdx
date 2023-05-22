@@ -1,6 +1,38 @@
 import { PackageDir, NamedPackageDir } from '@salesforce/core';
 import { MetadataInfo,QueryResult } from 'jsforce';
 
+export declare type DateString = string & {
+  __DateBrand: never;
+};
+export declare type BlobString = string & {
+  __BlobBrand: never;
+};
+export declare type Address = {
+  city: string | null;
+  country: string | null;
+  geocodeAccuracy: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  postalCode: string | null;
+  state: string | null;
+  street: string | null;
+};
+
+export declare type SObjectFieldType = number | boolean | DateString | BlobString | string | Address;
+
+export interface SObjectDefinition<N extends string = string> {
+  Name: N;
+  Fields: {
+      [name: string]: SObjectFieldType | null;
+  };
+  ParentReferences: {
+      [name: string]: SObjectDefinition | null;
+  };
+  ChildRelationships: {
+      [name: string]: SObjectDefinition;
+  };
+}
+
 export enum ComponentStatus {
   Created = 'Created',
   Changed = 'Changed',
@@ -202,7 +234,6 @@ export interface ApexClass {
 }
 
 export interface ApexTestQueueItem {
-  attributes: [Object];
   Id?: string;
   ApexClass?: ApexClass;
   ApexClassId?: string;
@@ -213,14 +244,12 @@ export interface ApexTestQueueItem {
 }
 
 export interface ApexCodeCoverageAggregate {
-  attributes: [Object];
   ApexClassOrTrigger?: ApexClassOrTrigger;
   NumLinesCovered?: number;
   NumLinesUncovered?: number;
 }
 
 export interface ApexTestResult {
-  attributes: [Object];
   ApexClass?: ApexClass;
   Outcome?: string;
   MethodName?: string;
@@ -363,6 +392,9 @@ export type MetadataPackageVersions = {
 }
 
 export type MetadataPackage = {
+  SObjects: {
+    [name: string]: SObjectDefinition;
+  };
   Name: string;
   MetadataPackageVersions: QueryResult<MetadataPackageVersions>;
 }

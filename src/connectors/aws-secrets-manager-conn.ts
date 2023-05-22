@@ -18,7 +18,7 @@ export default async function getSecretAWS(secretname: string, tag: string, proj
   }
 
   // get sfdx project.json
-  const projectJson: SfdxProjectJson = await project.retrieveSfdxProjectJson();
+  const projectJson: SfdxProjectJson = await project.retrieveSfProjectJson();
   const settings: PluginSettings = projectJson.getContents()?.plugins['eon-sfdx'] as PluginSettings;
   let secretNameAliasified = '';
   if (settings.awsSecretFormat) {

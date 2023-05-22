@@ -114,7 +114,7 @@ export default class ProjectValidate extends SfdxCommand {
     EONLogger.log(COLOR_KEY_MESSAGE('Static checks on sfdx-project.json file...'));
     let hasError = false;
     // get sfdx project.json
-    const projectJson: SfdxProjectJson = await this.project.retrieveSfdxProjectJson();
+    const projectJson: SfdxProjectJson = await this.project.retrieveSfProjectJson();
     const packageAliases = projectJson.getContents().packageAliases;
     // get all packages
     const contents = projectJson.getContents();
@@ -802,7 +802,7 @@ The job cannot find the 'LATEST' prefix. Please check the version number ${sourc
 
     let subscriberPackageResponse = await this.org
       .getConnection()
-      .tooling.autoFetchQuery<SubscriberPackageVersion>(
+      .tooling.query<SubscriberPackageVersion>(
         `Select Dependencies from SubscriberPackageVersion where id = '${latestPackageVersionList[0].id}'`
       );
 
