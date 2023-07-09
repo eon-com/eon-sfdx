@@ -1,4 +1,4 @@
-import { NamedPackageDir, SfdxProjectJson } from '@salesforce/core';
+import { NamedPackageDir, PackageDir, SfdxProjectJson } from '@salesforce/core';
 import { PackageTree } from '../helper/types';
 
 export function getDeployUrls(projectJson: SfdxProjectJson, packagename: string): PackageTree {
@@ -26,4 +26,27 @@ export function getDeployUrls(projectJson: SfdxProjectJson, packagename: string)
   }
 
   return packageTree;
+}
+
+export async function getParentPackages(projectJson: SfdxProjectJson, packagename: string, includeself?: boolean): Promise<PackageDir[]> {
+  const packageDirectories = await projectJson.getPackageDirectories();
+  const parents = packageDirectories.reduce((parents, pkg) => {
+    if (includeself) {
+      if (pkg.package === packagename) {
+        return [...parents, {
+          path: pkg.path,
+          packagename: pkg.package
+        }]
+      }
+    }
+    const isDependency = pkg.dependencies?.find(dep => dep.package === packagename);
+    if (isDependency) {
+      return [...parents, {
+        path: pkg.path,
+        packagename: pkg.package
+      }]
+    }
+    return parents;
+  }, []);
+  return parents;
 }

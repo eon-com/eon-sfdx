@@ -159,6 +159,8 @@ export interface PluginSettings {
   awsRegion?: string;
   awsSecretFormat?: string;
   metadataPlaceholderFormat?: string;
+  featureFlagDefaultPackage?: string;
+  sourceSubdir?: string;
 }
 
 export interface PackagePermissionset {
@@ -170,6 +172,12 @@ export interface PackagePermissionset {
 export interface SfdxPermissionSet {
   PermissionSet: PackagePermissionset;
 }
+
+export interface CustomPermission {
+  enabled: string;
+  name: string;
+}
+
 export interface readme {
   body?: string;
   path?: string;
