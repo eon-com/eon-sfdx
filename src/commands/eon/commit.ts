@@ -19,6 +19,7 @@ import simplegit, { DiffResult, SimpleGit } from 'simple-git';
 import { PackageTree, PluginSettings, ProjectJsonParsed } from '../../helper/types';
 import EONLogger, {
   COLOR_SUCCESS,
+  COLOR_WARNING,
   COLOR_INFO,
   COLOR_KEY_MESSAGE,
   COLOR_NOTIFY,
@@ -148,7 +149,7 @@ export default class Commit extends SfdxCommand {
     // ask, if dependencies should be updated
     const dependencyPrompt = await new Confirm({
       name: 'updateDependencyConfirm',
-      message: 'Update dependencies of changed package to latest versions?',
+      message: 'Update dependency versions of changed package?',
     })
       .run()
       .catch(console.error);
@@ -195,7 +196,7 @@ export default class Commit extends SfdxCommand {
       table.push([packageName, `${oldVer} ==> ${newVer}`]);
 
       // update dependencies
-      if (dependencyPrompt && pck.dependencies) {
+      /*if (dependencyPrompt && pck.dependencies) {
         for (let dep of pck.dependencies) {
           if (dep.versionNumber) {
             dep.versionNumber = packageDirs
@@ -203,7 +204,9 @@ export default class Commit extends SfdxCommand {
               .versionNumber.replace('.NEXT', '.LATEST');
           }
         }
-      }
+      }*/
+      EONLogger.log(COLOR_NOTIFY(`Please update **only** the desired dependencies manually before carrying out the next step 👆`));
+      EONLogger.log(COLOR_WARNING(`Only those dependencies that contain the necessary changes should be updated. ❗️`));
       updatedPackages = [...updatedPackages, pck];
     }
 

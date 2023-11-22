@@ -199,7 +199,7 @@ export default class Validate extends SfdxCommand {
 
     if (packageMap.size === 0 && includeForceApp) {
       throw new SfdxError(
-        `Validation failed. This merge request contains only data from the force-app folder. This folder is not part of the deployment. 
+        `Validation failed. This merge request contains only data from the force-app folder. This folder is not part of the deployment.
 Please put your changes in a (new) unlocked package or a (new) source package. THX`
       );
     }
@@ -291,7 +291,7 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
       // deploy dependencies
     } else {
       throw new SfdxError(
-        `Found no package tree information for package: ${pck} and path ${path}. Please check the order for this package and his dependecies in the sfdx-project.json. 
+        `Found no package tree information for package: ${pck} and path ${path}. Please check the order for this package and his dependecies in the sfdx-project.json.
 First the dependecies packages. And then this package.`
       );
     }
@@ -514,7 +514,7 @@ First the dependecies packages. And then this package.`
     try {
       EONLogger.log(COLOR_NOTIFY('Update Apex Metadata Settings in Scratch'));
       const connection: Connection = this.org.getConnection();
-      let apexSettingMetadata = { fullName: 'ApexSettings', enableDisableParallelApexTesting: false };
+      let apexSettingMetadata = { fullName: 'ApexSettings', enableDisableParallelApexTesting: true };
       let result: UpsertResult | UpsertResult[] = await connection.metadata.upsert('ApexSettings', apexSettingMetadata);
       if ((result as UpsertResult).success) {
         EONLogger.log(COLOR_INFO('Successfully updated apex testing setting'));
