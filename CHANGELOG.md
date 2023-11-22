@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.15.0](https://github.com/eon-com/eon-sfdx/compare/v1.13.2...v1.15.0) (2023-11-22)
+
+
+### Features
+
+* **chore:** update salesforce core to latest ([df334ec](https://github.com/eon-com/eon-sfdx/commit/df334ecd44c6f07864935c182e72f31653b3c1c2))
+
+
+### Bug Fixes
+
+* (update-metadata) parameter for artifatcs path ([271296f](https://github.com/eon-com/eon-sfdx/commit/271296f9956ff34a3a3364bea5be0480a54792be))
+* (validation commands) change testclass execution ([8c330f5](https://github.com/eon-com/eon-sfdx/commit/8c330f572389bf262035dae15a7e4d3d55fe0404))
+
 ## [1.14.0](https://github.com/eon-com/eon-sfdx/compare/v1.13.2...v1.14.0) (2023-05-22)
 
 
