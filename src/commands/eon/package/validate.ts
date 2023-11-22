@@ -476,8 +476,8 @@ First the dependecies packages. And then this package.`
       );
       await new Promise((resolve) => setTimeout(resolve, 10000));
       _i++;
-      if (_i > 180) {
-        throw new Error('Apex test run timeout after 30 minutes');
+      if (_i > 360) {
+        throw new Error('Apex test run timeout after 60 minutes');
       }
     } while (testRunResult.QueuedList.length > 0 || testRunResult.ProcessingList.length > 0);
 
