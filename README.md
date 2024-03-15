@@ -1,4 +1,4 @@
-# SFDX EON Plugin
+# EON Plugin
 
 Salesforce DX (SFDX) commands to support salesforce developments &amp; deployments
 
@@ -7,752 +7,458 @@ Salesforce DX (SFDX) commands to support salesforce developments &amp; deploymen
 [![License](https://img.shields.io/npm/l/@eon-com/eon-sfdx.svg)](https://github.com/eon-com/eon-sfdx/blob/master/package.json)
 
 <!-- toc -->
-* [SFDX EON Plugin](#sfdx-eon-plugin)
+* [EON Plugin](#eon-plugin)
 <!-- tocstop -->
 <!-- install -->
 <!-- usage -->
 ```sh-session
 $ npm install -g @eon-com/eon-sfdx
-$ sfdx COMMAND
+$ eon COMMAND
 running command...
-$ sfdx (-v|--version|version)
-@eon-com/eon-sfdx/1.11.2 darwin-x64 node-v18.12.1
-$ sfdx --help [COMMAND]
+$ eon (--version)
+@eon-com/eon-sfdx/1.16.0 darwin-x64 node-v20.5.1
+$ eon --help [COMMAND]
 USAGE
-  $ sfdx COMMAND
+  $ eon COMMAND
 ...
 ```
 <!-- usagestop -->
 
 <!-- commands -->
-* [`sfdx eon:activate:bot -v <number> -d <string> [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-eonactivatebot--v-number--d-string--u-string---apiversion-string---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
-* [`sfdx eon:beta:gitlab:merge:status -t <string> -m <integer> -a <string> -u <string> [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-eonbetagitlabmergestatus--t-string--m-integer--a-string--u-string---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
-* [`sfdx eon:commit [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-eoncommit---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
-* [`sfdx eon:deactivate:bot -d <string> [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-eondeactivatebot--d-string--u-string---apiversion-string---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
-* [`sfdx eon:git:branch:create -p <string> [-t <string>] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-eongitbranchcreate--p-string--t-string--u-string---apiversion-string---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
-* [`sfdx eon:org:features:update -f <string> [-a <string>] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-eonorgfeaturesupdate--f-string--a-string--u-string---apiversion-string---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
-* [`sfdx eon:org:gettype [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-eonorggettype--u-string---apiversion-string---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
-* [`sfdx eon:package:deploy [-p <string>] [-i] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-eonpackagedeploy--p-string--i--u-string---apiversion-string---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
-* [`sfdx eon:package:devkit:apply -p <string> [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-eonpackagedevkitapply--p-string--u-string---apiversion-string---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
-* [`sfdx eon:package:devkit:create -p <string> [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-eonpackagedevkitcreate--p-string---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
-* [`sfdx eon:package:devkit:testdata:retrieve -p <string> [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-eonpackagedevkittestdataretrieve--p-string--u-string---apiversion-string---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
-* [`sfdx eon:package:validate [-t <string>] [-s <string>] [-d] [-p <string>] [-g <string>] [-a <string>] [-o] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-eonpackagevalidate--t-string--s-string--d--p-string--g-string--a-string--o--u-string---apiversion-string---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
-* [`sfdx eon:package:validate:source [-t <string>] [-s <string>] [-d] [-p <string>] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-eonpackagevalidatesource--t-string--s-string--d--p-string--u-string---apiversion-string---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
-* [`sfdx eon:project:validate [-t <string>] [-s <string>] [-v] [-m] [-o] [-d] [-p <string>] [-a] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-eonprojectvalidate--t-string--s-string--v--m--o--d--p-string--a--u-string---apiversion-string---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
-* [`sfdx eon:unassign:packagemember [-p <string> -t <string> -c <string>] [-f <string>] [-o <string>] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-eonunassignpackagemember--p-string--t-string--c-string--f-string--o-string--u-string---apiversion-string---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
-* [`sfdx eon:update:customlabel -n <string> -c <string> [-a <string>] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-eonupdatecustomlabel--n-string--c-string--a-string--u-string---apiversion-string---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
-* [`sfdx eon:update:externaldatasource -n <string> [-e <string>] [-a <string>] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-eonupdateexternaldatasource--n-string--e-string--a-string--u-string---apiversion-string---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
-* [`sfdx eon:update:metadata -d <string> -p <string> -v <string> [-k <string>] [-a <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-eonupdatemetadata--d-string--p-string--v-string--k-string--a-string---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
-* [`sfdx eon:update:namedcredential -n <string> [-e <string>] [-p <string>] [-s <string>] [-a <string>] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-eonupdatenamedcredential--n-string--e-string--p-string--s-string--a-string--u-string---apiversion-string---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
-* [`sfdx eon:upsert:customsetting -n <string> -k <string> -v <string> [-a <string>] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-eonupsertcustomsetting--n-string--k-string--v-string--a-string--u-string---apiversion-string---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
+* [`eon beta:gitlab:merge:status`](#eon-betagitlabmergestatus)
+* [`eon commit`](#eon-commit)
+* [`eon org:features:update`](#eon-orgfeaturesupdate)
+* [`eon org:gettype`](#eon-orggettype)
+* [`eon package:deploy [FILE]`](#eon-packagedeploy-file)
+* [`eon package:devkit:apply`](#eon-packagedevkitapply)
+* [`eon package:devkit:create`](#eon-packagedevkitcreate)
+* [`eon package:devkit:testdata:retrieve`](#eon-packagedevkittestdataretrieve)
+* [`eon package:validate`](#eon-packagevalidate)
+* [`eon package:validate:source`](#eon-packagevalidatesource)
+* [`eon project:validate`](#eon-projectvalidate)
+* [`eon update:customlabel`](#eon-updatecustomlabel)
+* [`eon update:externaldatasource`](#eon-updateexternaldatasource)
+* [`eon update:metadata`](#eon-updatemetadata)
+* [`eon update:namedcredential`](#eon-updatenamedcredential)
+* [`eon upsert:customsetting`](#eon-upsertcustomsetting)
 
-## `sfdx eon:activate:bot -v <number> -d <string> [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
-
-Activate a bot after deployment is finished
-
-```
-USAGE
-  $ sfdx eon:activate:bot -v <number> -d <string> [-u <string>] [--apiversion <string>] [--json] [--loglevel 
-  trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
-
-OPTIONS
-  -d, --developername=developername                                                 (required) Bot developer name to
-                                                                                    activate
-
-  -u, --targetusername=targetusername                                               username or alias for the target
-                                                                                    org; overrides default target org
-
-  -v, --version=version                                                             (required) Bot Version to activate
-
-  --apiversion=apiversion                                                           override the api version used for
-                                                                                    api requests made by this command
-
-  --json                                                                            format output as json
-
-  --loglevel=(trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL)  [default: warn] logging level for
-                                                                                    this command invocation
-
-EXAMPLE
-  sfdx eon:activate:bot --version 15 --developername chat
-```
-
-_See code: [src/commands/eon/activate/bot.ts](https://github.com/eon-com/eon-sfdx/blob/v1.11.2/src/commands/eon/activate/bot.ts)_
-
-## `sfdx eon:beta:gitlab:merge:status -t <string> -m <integer> -a <string> -u <string> [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
+## `eon beta:gitlab:merge:status`
 
 This command fetch the current deployment status for a merge request
 
 ```
 USAGE
-  $ sfdx eon:beta:gitlab:merge:status -t <string> -m <integer> -a <string> -u <string> [--json] [--loglevel 
-  trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
+  $ eon beta:gitlab:merge:status -t <value> -m <value> -a <value> -u <value>
 
-OPTIONS
-  -a, --aliases=aliases                                                             (required) Orgs Alias for deplyoment
-                                                                                    status
+FLAGS
+  -a, --aliases=<value>  (required) Orgs Alias for deplyoment status
+  -m, --mergeid=<value>  (required) Merge Request Id
+  -t, --token=<value>    (required) User Token from GitLab Repository
+  -u, --url=<value>      (required) GitLab API Url
 
-  -m, --mergeid=mergeid                                                             (required) Merge Request Id
-
-  -t, --token=token                                                                 (required) User Token from GitLab
-                                                                                    Repository
-
-  -u, --url=url                                                                     (required) GitLab API Url
-
-  --json                                                                            format output as json
-
-  --loglevel=(trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL)  [default: warn] logging level for
-                                                                                    this command invocation
+DESCRIPTION
+  This command fetch the current deployment status for a merge request
 
 EXAMPLES
   sfdx eon:gitlab:merge:status --token gitlabxxxxx --url gitlab.com --aliases dev,ft,sit --mergeid 1523
+
   sfdx eon:gitlab:merge:status -t gitlabxxxxx -u gitlab.com -a dev,ft,sit -m 1523
 ```
 
-_See code: [src/commands/eon/beta/gitlab/merge/status.ts](https://github.com/eon-com/eon-sfdx/blob/v1.11.2/src/commands/eon/beta/gitlab/merge/status.ts)_
+_See code: [src/commands/beta/gitlab/merge/status.ts](https://github.com/eon-com/eon-sfdx/blob/v1.16.0/src/commands/beta/gitlab/merge/status.ts)_
 
-## `sfdx eon:commit [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
+## `eon commit`
 
 Commit changes to a package while maintaining versions
 
 ```
 USAGE
-  $ sfdx eon:commit [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
+  $ eon commit
 
-OPTIONS
-  --json                                                                            format output as json
+DESCRIPTION
+  Commit changes to a package while maintaining versions
 
-  --loglevel=(trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL)  [default: warn] logging level for
-                                                                                    this command invocation
-
-EXAMPLE
+EXAMPLES
   sfdx eon:commit
 ```
 
-_See code: [src/commands/eon/commit.ts](https://github.com/eon-com/eon-sfdx/blob/v1.11.2/src/commands/eon/commit.ts)_
+_See code: [src/commands/commit.ts](https://github.com/eon-com/eon-sfdx/blob/v1.16.0/src/commands/commit.ts)_
 
-## `sfdx eon:deactivate:bot -d <string> [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
-
-Search active version and deactivate the bot before deployment
-
-```
-USAGE
-  $ sfdx eon:deactivate:bot -d <string> [-u <string>] [--apiversion <string>] [--json] [--loglevel 
-  trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
-
-OPTIONS
-  -d, --developername=developername                                                 (required) Bot developer name to
-                                                                                    deactivate
-
-  -u, --targetusername=targetusername                                               username or alias for the target
-                                                                                    org; overrides default target org
-
-  --apiversion=apiversion                                                           override the api version used for
-                                                                                    api requests made by this command
-
-  --json                                                                            format output as json
-
-  --loglevel=(trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL)  [default: warn] logging level for
-                                                                                    this command invocation
-
-EXAMPLE
-  sfdx eon:deactivate:bot --developername chat
-```
-
-_See code: [src/commands/eon/deactivate/bot.ts](https://github.com/eon-com/eon-sfdx/blob/v1.11.2/src/commands/eon/deactivate/bot.ts)_
-
-## `sfdx eon:git:branch:create -p <string> [-t <string>] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
-
-Job to create a hotfix brnach for the selected package
-
-```
-USAGE
-  $ sfdx eon:git:branch:create -p <string> [-t <string>] [-u <string>] [--apiversion <string>] [--json] [--loglevel 
-  trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
-
-OPTIONS
-  -p, --package=package                                                             (required) Package for create the
-                                                                                    hotfix branch
-
-  -t, --ticket=ticket                                                               Jira ticket number to create the
-                                                                                    correct branch name
-
-  -u, --targetusername=targetusername                                               username or alias for the target
-                                                                                    org; overrides default target org
-
-  --apiversion=apiversion                                                           override the api version used for
-                                                                                    api requests made by this command
-
-  --json                                                                            format output as json
-
-  --loglevel=(trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL)  [default: warn] logging level for
-                                                                                    this command invocation
-
-EXAMPLE
-  sfdx eon:git:branch:create -t DAOPS-xxxx -p eon-core -m 1234567890abcdef1234567890abcdef12345678
-```
-
-_See code: [src/commands/eon/git/branch/create.ts](https://github.com/eon-com/eon-sfdx/blob/v1.11.2/src/commands/eon/git/branch/create.ts)_
-
-## `sfdx eon:org:features:update -f <string> [-a <string>] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
+## `eon org:features:update`
 
 Updates all custom settings for features with org specific values
 
 ```
 USAGE
-  $ sfdx eon:org:features:update -f <string> [-a <string>] [-u <string>] [--apiversion <string>] [--json] [--loglevel 
-  trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
+  $ eon org:features:update -f <value> -o <value> [-a <value>]
 
-OPTIONS
-  -a, --alias=alias                                                                 Environment Alias matching the
-                                                                                    target Org and the settings file
+FLAGS
+  -a, --alias=<value>         Environment Alias matching the target Org and the settings file
+  -f, --settingsfile=<value>  (required) Path to file that contains the feature settings
+  -o, --target-org=<value>    (required) Login username or alias for the target org.
 
-  -f, --settingsfile=settingsfile                                                   (required) Path to file that
-                                                                                    contains the feature settings
+DESCRIPTION
+  Updates all custom settings for features with org specific values
 
-  -u, --targetusername=targetusername                                               username or alias for the target
-                                                                                    org; overrides default target org
-
-  --apiversion=apiversion                                                           override the api version used for
-                                                                                    api requests made by this command
-
-  --json                                                                            format output as json
-
-  --loglevel=(trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL)  [default: warn] logging level for
-                                                                                    this command invocation
-
-EXAMPLE
+EXAMPLES
   sfdx eon:org:features:update -f feature-settings.yml -a production
 ```
 
-_See code: [src/commands/eon/org/features/update.ts](https://github.com/eon-com/eon-sfdx/blob/v1.11.2/src/commands/eon/org/features/update.ts)_
+_See code: [src/commands/org/features/update.ts](https://github.com/eon-com/eon-sfdx/blob/v1.16.0/src/commands/org/features/update.ts)_
 
-## `sfdx eon:org:gettype [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
+## `eon org:gettype`
 
 Returns the type of the target org
 
 ```
 USAGE
-  $ sfdx eon:org:gettype [-u <string>] [--apiversion <string>] [--json] [--loglevel 
-  trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
+  $ eon org:gettype
 
-OPTIONS
-  -u, --targetusername=targetusername                                               username or alias for the target
-                                                                                    org; overrides default target org
+DESCRIPTION
+  Returns the type of the target org
 
-  --apiversion=apiversion                                                           override the api version used for
-                                                                                    api requests made by this command
-
-  --json                                                                            format output as json
-
-  --loglevel=(trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL)  [default: warn] logging level for
-                                                                                    this command invocation
-
-EXAMPLE
+EXAMPLES
   sfdx eon:org:type
 ```
 
-_See code: [src/commands/eon/org/gettype.ts](https://github.com/eon-com/eon-sfdx/blob/v1.11.2/src/commands/eon/org/gettype.ts)_
+_See code: [src/commands/org/gettype.ts](https://github.com/eon-com/eon-sfdx/blob/v1.16.0/src/commands/org/gettype.ts)_
 
-## `sfdx eon:package:deploy [-p <string>] [-i] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
+## `eon package:deploy [FILE]`
 
 deploy package source files by package name
 
 ```
 USAGE
-  $ sfdx eon:package:deploy [-p <string>] [-i] [-u <string>] [--apiversion <string>] [--json] [--loglevel 
-  trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
+  $ eon package:deploy [FILE] -o <value> [-p <value>] [-i] [-s <value>]
 
-OPTIONS
-  -i, --includedependencies                                                         set true to deploy dependencies
-  -p, --packagename=packagename                                                     Name of Package to be deployed
+FLAGS
+  -i, --includedependencies  set true to deploy dependencies
+  -o, --target-org=<value>   (required) Login username or alias for the target org.
+  -p, --packagename=<value>  Name of Package to be deployed
+  -s, --start=<value>        Start deployment at the point of this package name
 
-  -u, --targetusername=targetusername                                               username or alias for the target
-                                                                                    org; overrides default target org
-
-  --apiversion=apiversion                                                           override the api version used for
-                                                                                    api requests made by this command
-
-  --json                                                                            format output as json
-
-  --loglevel=(trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL)  [default: warn] logging level for
-                                                                                    this command invocation
+DESCRIPTION
+  deploy package source files by package name
 
 EXAMPLES
   sfdx eon:deploy:package --packagename api-gateway --includedependencies
+
   sfdx eon:deploy:package --packagename core-datamodel
 ```
 
-_See code: [src/commands/eon/package/deploy.ts](https://github.com/eon-com/eon-sfdx/blob/v1.11.2/src/commands/eon/package/deploy.ts)_
+_See code: [src/commands/package/deploy.ts](https://github.com/eon-com/eon-sfdx/blob/v1.16.0/src/commands/package/deploy.ts)_
 
-## `sfdx eon:package:devkit:apply -p <string> [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
+## `eon package:devkit:apply`
 
 Applys scripts and testdata of a devkit to an scratch org
 
 ```
 USAGE
-  $ sfdx eon:package:devkit:apply -p <string> [-u <string>] [--apiversion <string>] [--json] [--loglevel 
-  trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
+  $ eon package:devkit:apply -p <value> -o <value>
 
-OPTIONS
-  -p, --package=package                                                             (required) Name of the package where
-                                                                                    the devkit should be created
+FLAGS
+  -o, --target-org=<value>  (required) Login username or alias for the target org.
+  -p, --package=<value>     (required) Name of the package where the devkit should be created
 
-  -u, --targetusername=targetusername                                               username or alias for the target
-                                                                                    org; overrides default target org
-
-  --apiversion=apiversion                                                           override the api version used for
-                                                                                    api requests made by this command
-
-  --json                                                                            format output as json
-
-  --loglevel=(trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL)  [default: warn] logging level for
-                                                                                    this command invocation
+DESCRIPTION
+  Applys scripts and testdata of a devkit to an scratch org
 
 EXAMPLES
   sfdx eon:devkit:create
+
   sfdx eon:devkit:apply
 ```
 
-_See code: [src/commands/eon/package/devkit/apply.ts](https://github.com/eon-com/eon-sfdx/blob/v1.11.2/src/commands/eon/package/devkit/apply.ts)_
+_See code: [src/commands/package/devkit/apply.ts](https://github.com/eon-com/eon-sfdx/blob/v1.16.0/src/commands/package/devkit/apply.ts)_
 
-## `sfdx eon:package:devkit:create -p <string> [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
+## `eon package:devkit:create`
 
 Initialize a devkit for a package
 
 ```
 USAGE
-  $ sfdx eon:package:devkit:create -p <string> [--json] [--loglevel 
-  trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
+  $ eon package:devkit:create -p <value> -o <value>
 
-OPTIONS
-  -p, --package=package                                                             (required) Name of the package where
-                                                                                    the devkit should be created
+FLAGS
+  -o, --target-org=<value>  (required) Login username or alias for the target org.
+  -p, --package=<value>     (required) Name of the package where the devkit should be created
 
-  --json                                                                            format output as json
-
-  --loglevel=(trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL)  [default: warn] logging level for
-                                                                                    this command invocation
+DESCRIPTION
+  Initialize a devkit for a package
 
 EXAMPLES
   sfdx eon:devkit:create
+
   sfdx eon:devkit:apply
 ```
 
-_See code: [src/commands/eon/package/devkit/create.ts](https://github.com/eon-com/eon-sfdx/blob/v1.11.2/src/commands/eon/package/devkit/create.ts)_
+_See code: [src/commands/package/devkit/create.ts](https://github.com/eon-com/eon-sfdx/blob/v1.16.0/src/commands/package/devkit/create.ts)_
 
-## `sfdx eon:package:devkit:testdata:retrieve -p <string> [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
+## `eon package:devkit:testdata:retrieve`
 
 Applys scripts and testdata of a devkit to an scratch org
 
 ```
 USAGE
-  $ sfdx eon:package:devkit:testdata:retrieve -p <string> [-u <string>] [--apiversion <string>] [--json] [--loglevel 
-  trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
+  $ eon package:devkit:testdata:retrieve -p <value> -o <value>
 
-OPTIONS
-  -p, --package=package                                                             (required) Name of the package where
-                                                                                    the devkit should be created
+FLAGS
+  -o, --target-org=<value>  (required) Login username or alias for the target org.
+  -p, --package=<value>     (required) Name of the package where the devkit should be created
 
-  -u, --targetusername=targetusername                                               username or alias for the target
-                                                                                    org; overrides default target org
-
-  --apiversion=apiversion                                                           override the api version used for
-                                                                                    api requests made by this command
-
-  --json                                                                            format output as json
-
-  --loglevel=(trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL)  [default: warn] logging level for
-                                                                                    this command invocation
+DESCRIPTION
+  Applys scripts and testdata of a devkit to an scratch org
 
 EXAMPLES
   sfdx eon:devkit:create
+
   sfdx eon:devkit:apply
 ```
 
-_See code: [src/commands/eon/package/devkit/testdata/retrieve.ts](https://github.com/eon-com/eon-sfdx/blob/v1.11.2/src/commands/eon/package/devkit/testdata/retrieve.ts)_
+_See code: [src/commands/package/devkit/testdata/retrieve.ts](https://github.com/eon-com/eon-sfdx/blob/v1.16.0/src/commands/package/devkit/testdata/retrieve.ts)_
 
-## `sfdx eon:package:validate [-t <string>] [-s <string>] [-d] [-p <string>] [-g <string>] [-a <string>] [-o] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
+## `eon package:validate`
 
 Validation Job to check package changes on scratch
 
 ```
 USAGE
-  $ sfdx eon:package:validate [-t <string>] [-s <string>] [-d] [-p <string>] [-g <string>] [-a <string>] [-o] [-u 
-  <string>] [--apiversion <string>] [--json] [--loglevel 
-  trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
+  $ eon package:validate --targetusername <value> [-t <value>] [-s <value>] [-d] [-p <value>] [-g <value>] [-a
+    <value>] [-o]
 
-OPTIONS
-  -a, --devhubalias=devhubalias                                                     Target dev hub alias
+FLAGS
+  -a, --devhubalias=<value>     Target dev hub alias
+  -d, --deploymentscripts       Flag to run pre/post deployment scripts
+  -g, --pooltag=<value>         Pool tag to fetch scratch orgs
+  -o, --onlytests               Run validation without deployment only for testclass execution
+  -p, --package=<value>         Validate one selected package
+  -s, --source=<value>          Flag for source branch
+  -t, --target=<value>          Flag for target branch
+      --targetusername=<value>  (required) Login username or alias for the target org.
 
-  -d, --deploymentscripts                                                           Flag to run pre/post deployment
-                                                                                    scripts
-
-  -g, --pooltag=pooltag                                                             Pool tag to fetch scratch orgs
-
-  -o, --onlytests                                                                   Run validation without deployment
-                                                                                    only for testclass execution
-
-  -p, --package=package                                                             Validate one selected package
-
-  -s, --source=source                                                               Flag for source branch
-
-  -t, --target=target                                                               Flag for target branch
-
-  -u, --targetusername=targetusername                                               username or alias for the target
-                                                                                    org; overrides default target org
-
-  --apiversion=apiversion                                                           override the api version used for
-                                                                                    api requests made by this command
-
-  --json                                                                            format output as json
-
-  --loglevel=(trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL)  [default: warn] logging level for
-                                                                                    this command invocation
+DESCRIPTION
+  Validation Job to check package changes on scratch
 
 EXAMPLES
   sfdx eon:validate -t origin/main
+
   sfdx  eon:validate -t origin/main -p core
+
   sfdx  eon:validate -t origin/main -p core -o
+
   sfdx  eon:validate --target origin/main --package --onlytests
 ```
 
-_See code: [src/commands/eon/package/validate.ts](https://github.com/eon-com/eon-sfdx/blob/v1.11.2/src/commands/eon/package/validate.ts)_
+_See code: [src/commands/package/validate.ts](https://github.com/eon-com/eon-sfdx/blob/v1.16.0/src/commands/package/validate.ts)_
 
-## `sfdx eon:package:validate:source [-t <string>] [-s <string>] [-d] [-p <string>] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
+## `eon package:validate:source`
 
 Validation Job to check source packages on org
 
 ```
 USAGE
-  $ sfdx eon:package:validate:source [-t <string>] [-s <string>] [-d] [-p <string>] [-u <string>] [--apiversion 
-  <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
+  $ eon package:validate:source -o <value> [-t <value>] [-s <value>] [-d] [-p <value>]
 
-OPTIONS
-  -d, --deploymentscripts                                                           Flag to run pre/post deployment
-                                                                                    scripts
+FLAGS
+  -d, --deploymentscripts   Flag to run pre/post deployment scripts
+  -o, --target-org=<value>  (required) Login username or alias for the target org.
+  -p, --package=<value>     Validate one selected package
+  -s, --source=<value>      Flag for source branch
+  -t, --target=<value>      Flag for target branch
 
-  -p, --package=package                                                             Validate one selected package
-
-  -s, --source=source                                                               Flag for source branch
-
-  -t, --target=target                                                               Flag for target branch
-
-  -u, --targetusername=targetusername                                               username or alias for the target
-                                                                                    org; overrides default target org
-
-  --apiversion=apiversion                                                           override the api version used for
-                                                                                    api requests made by this command
-
-  --json                                                                            format output as json
-
-  --loglevel=(trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL)  [default: warn] logging level for
-                                                                                    this command invocation
+DESCRIPTION
+  Validation Job to check source packages on org
 
 EXAMPLES
   sfdx eon:validate:source
+
   sfdx  eon:validate:source -p mypackage
+
   sfdx  eon:validate:source -p mypackage -o
+
   sfdx  eon:validate:source --package mypackage --onlytests
 ```
 
-_See code: [src/commands/eon/package/validate/source.ts](https://github.com/eon-com/eon-sfdx/blob/v1.11.2/src/commands/eon/package/validate/source.ts)_
+_See code: [src/commands/package/validate/source.ts](https://github.com/eon-com/eon-sfdx/blob/v1.16.0/src/commands/package/validate/source.ts)_
 
-## `sfdx eon:project:validate [-t <string>] [-s <string>] [-v] [-m] [-o] [-d] [-p <string>] [-a] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
+## `eon project:validate`
 
 This command performs static checks in the sfdx-project json file for changed packages. Optional flags are used to control which validations are to be carried out. The individual tests are described with the flags.
 
 ```
 USAGE
-  $ sfdx eon:project:validate [-t <string>] [-s <string>] [-v] [-m] [-o] [-d] [-p <string>] [-a] [-u <string>] 
-  [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
+  $ eon project:validate -v <value> [-t <value>] [-s <value>] [-v] [-m] [-o] [-d] [-p <value>] [-a] [-c]
 
-OPTIONS
-  -a, --all
-      Runs all checks
+FLAGS
+  -a, --all                           Runs all checks
+  -c, --change                        Change project json file after validations
+  -d, --depsversion                   Checks whether the dependent packages have at least the versions of the dependent
+                                      packages. Default this commands checks only the required versions.
+  -m, --missingdeps                   Checks whether all dependend packages are present in the unlocked package tree
+  -o, --order                         Checks if the dependent packages are arranged in the correct order in the package
+                                      tree. Furthermore, it is checked that the dependend packages are arranged in front
+                                      of the unlocked package in the tree.
+  -p, --package=<value>               Validate only one selected package
+  -s, --source=<value>                This flag is required for the git diff check and describes the source value. The
+                                      default value is HEAD
+  -t, --target=<value>                [default: origin/main] This flag is required for the git diff check and describes
+                                      the target value. The default value is origin/main
+  -v, --targetdevhubusername=<value>  (required) Login username or alias for the devhub org.
+  -v, --versionupdate                 Checks whether the versions of the changed packages for the merge request have
+                                      been updated. The check is against the target flag.
 
-  -d, --depsversion
-      Checks whether the dependent packages have at least the versions of the dependent packages. Default this commands
-      checks only the required versions.
-
-  -m, --missingdeps
-      Checks whether all dependend packages are present in the unlocked package tree
-
-  -o, --order
-      Checks if the dependent packages are arranged in the correct order in the package tree. Furthermore, it is checked
-      that the dependend packages are arranged in front of the unlocked package in the tree.
-
-  -p, --package=package
-      Validate only one selected package
-
-  -s, --source=source
-      This flag is required for the git diff check and describes the source value. The default value is HEAD
-
-  -t, --target=target
-      [default: origin/main] This flag is required for the git diff check and describes the target value. The default
-      value is origin/main
-
-  -u, --targetusername=targetusername
-      username or alias for the target org; overrides default target org
-
-  -v, --versionupdate
-      Checks whether the versions of the changed packages for the merge request have been updated. The check is against
-      the target flag.
-
-  --apiversion=apiversion
-      override the api version used for api requests made by this command
-
-  --json
-      format output as json
-
-  --loglevel=(trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL)
-      [default: warn] logging level for this command invocation
+DESCRIPTION
+  This command performs static checks in the sfdx-project json file for changed packages. Optional flags are used to
+  control which validations are to be carried out. The individual tests are described with the flags.
 
 EXAMPLES
   sfdx eon:project:validate -t origin/main --versionupdate
+
   sfdx eon:project:validate -t --order -p core
+
   sfdx eon:project:validate -t origin/main --versionupdate --missingdeps --order --depsversion
+
   sfdx eon:project:validate -t origin/main - -v -m -o -d
+
   sfdx eon:project:validate --all
 ```
 
-_See code: [src/commands/eon/project/validate.ts](https://github.com/eon-com/eon-sfdx/blob/v1.11.2/src/commands/eon/project/validate.ts)_
+_See code: [src/commands/project/validate.ts](https://github.com/eon-com/eon-sfdx/blob/v1.16.0/src/commands/project/validate.ts)_
 
-## `sfdx eon:unassign:packagemember [-p <string> -t <string> -c <string>] [-f <string>] [-o <string>] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
-
-Unassign package member from a selected package
-
-```
-USAGE
-  $ sfdx eon:unassign:packagemember [-p <string> -t <string> -c <string>] [-f <string>] [-o <string>] [-u <string>] 
-  [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
-
-OPTIONS
-  -c, --component=component                                                         Component name to unassign
-
-  -f, --configfile=configfile                                                       Config file to unassign several
-                                                                                    components
-
-  -o, --parentobject=parentobject                                                   Identifier for the parent object
-                                                                                    name from the component
-
-  -p, --packagename=packagename                                                     Package to unassign a component
-
-  -t, --type=type                                                                   Type from the component to unassign
-
-  -u, --targetusername=targetusername                                               username or alias for the target
-                                                                                    org; overrides default target org
-
-  --apiversion=apiversion                                                           override the api version used for
-                                                                                    api requests made by this command
-
-  --json                                                                            format output as json
-
-  --loglevel=(trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL)  [default: warn] logging level for
-                                                                                    this command invocation
-
-EXAMPLE
-  sfdx eon:packagemember:unassign --packagename --type --component --configfile
-```
-
-_See code: [src/commands/eon/unassign/packagemember.ts](https://github.com/eon-com/eon-sfdx/blob/v1.11.2/src/commands/eon/unassign/packagemember.ts)_
-
-## `sfdx eon:update:customlabel -n <string> -c <string> [-a <string>] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
+## `eon update:customlabel`
 
 Update Custom Label Settings
 
 ```
 USAGE
-  $ sfdx eon:update:customlabel -n <string> -c <string> [-a <string>] [-u <string>] [--apiversion <string>] [--json] 
-  [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
+  $ eon update:customlabel -n <value> -c <value> -o <value> [-a <value>]
 
-OPTIONS
-  -a, --alias=alias                                                                 Environment Alias matching the
-                                                                                    target Org and the settings file
+FLAGS
+  -a, --alias=<value>       Environment Alias matching the target Org and the settings file
+  -c, --value=<value>       (required) Optional Flag For Value Update
+  -n, --name=<value>        (required) Required Developer Name To Select Correct Data For Update
+  -o, --target-org=<value>  (required) Login username or alias for the target org.
 
-  -c, --value=value                                                                 (required) Optional Flag For Value
-                                                                                    Update
-
-  -n, --name=name                                                                   (required) Required Developer Name
-                                                                                    To Select Correct Data For Update
-
-  -u, --targetusername=targetusername                                               username or alias for the target
-                                                                                    org; overrides default target org
-
-  --apiversion=apiversion                                                           override the api version used for
-                                                                                    api requests made by this command
-
-  --json                                                                            format output as json
-
-  --loglevel=(trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL)  [default: warn] logging level for
-                                                                                    this command invocation
+DESCRIPTION
+  Update Custom Label Settings
 
 EXAMPLES
   sfdx eon:upsert:customlabel --name my_label --value 'settings:SomeKeyInYaml' --alias staging
+
   sfdx eon:upsert:customlabel --targetusername myOrg@example.com --name my_label --value xxx --alias staging
+
   sfdx eon:upsert:customlabel --targetusername myOrg@example.com -n my_label -v XXX
 ```
 
-_See code: [src/commands/eon/update/customlabel.ts](https://github.com/eon-com/eon-sfdx/blob/v1.11.2/src/commands/eon/update/customlabel.ts)_
+_See code: [src/commands/update/customlabel.ts](https://github.com/eon-com/eon-sfdx/blob/v1.16.0/src/commands/update/customlabel.ts)_
 
-## `sfdx eon:update:externaldatasource -n <string> [-e <string>] [-a <string>] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
+## `eon update:externaldatasource`
 
 Update dataSource
 
 ```
 USAGE
-  $ sfdx eon:update:externaldatasource -n <string> [-e <string>] [-a <string>] [-u <string>] [--apiversion <string>] 
-  [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
+  $ eon update:externaldatasource -n <value> -o <value> [-e <value>] [-a <value>]
 
-OPTIONS
-  -a, --alias=alias                                                                 Environment Alias matching the
-                                                                                    target Org and the settings file
+FLAGS
+  -a, --alias=<value>       Environment Alias matching the target Org and the settings file
+  -e, --endpoint=<value>    Optional Flag For Endpoint Update
+  -n, --name=<value>        (required) Required Developer Name To Select Correct Data For Update
+  -o, --target-org=<value>  (required) Login username or alias for the target org.
 
-  -e, --endpoint=endpoint                                                           Optional Flag For Endpoint Update
-
-  -n, --name=name                                                                   (required) Required Developer Name
-                                                                                    To Select Correct Data For Update
-
-  -u, --targetusername=targetusername                                               username or alias for the target
-                                                                                    org; overrides default target org
-
-  --apiversion=apiversion                                                           override the api version used for
-                                                                                    api requests made by this command
-
-  --json                                                                            format output as json
-
-  --loglevel=(trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL)  [default: warn] logging level for
-                                                                                    this command invocation
+DESCRIPTION
+  Update dataSource
 
 EXAMPLES
   sfdx eon:update:datasource --name my_datasource --endpoint 'settings:dataSourceURL' --alias $ALIAS
+
   sfdx eon:update:datasource --targetusername myOrg@example.com --name my_datasource --endpoint xxx --alias staging
+
   sfdx eon:update:datasource --targetusername myOrg@example.com -n my_source -e https://test.com
 ```
 
-_See code: [src/commands/eon/update/externaldatasource.ts](https://github.com/eon-com/eon-sfdx/blob/v1.11.2/src/commands/eon/update/externaldatasource.ts)_
+_See code: [src/commands/update/externaldatasource.ts](https://github.com/eon-com/eon-sfdx/blob/v1.16.0/src/commands/update/externaldatasource.ts)_
 
-## `sfdx eon:update:metadata -d <string> -p <string> -v <string> [-k <string>] [-a <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
+## `eon update:metadata`
 
 Replace placeholder in XML files
 
 ```
 USAGE
-  $ sfdx eon:update:metadata -d <string> -p <string> -v <string> [-k <string>] [-a <string>] [--json] [--loglevel 
-  trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
+  $ eon update:metadata -d <value> -p <value> -v <value> -o <value> [-k <value>] [-a <value>]
 
-OPTIONS
-  -a, --alias=alias                                                                 Environment Alias matching the
-                                                                                    target Org and the settings file
+FLAGS
+  -a, --alias=<value>              Environment Alias matching the target Org and the settings file
+  -d, --directory=<value>          (required) Directory to file or folder containing the file(s) to be changed
+  -k, --artifactdirectory=<value>  Optional directory if deployed src is unpacked from artifact
+  -o, --target-org=<value>         (required) Login username or alias for the target org.
+  -p, --placeholder=<value>        (required) Name of the placeholder inside the XML that should be replaced
+  -v, --value=<value>              (required) value used to replace the placeholder
 
-  -d, --directory=directory                                                         (required) Directory to file or
-                                                                                    folder containing the file(s) to be
-                                                                                    changed
-
-  -k, --artifactdirectory=artifactdirectory                                         Optional directory if deployed src
-                                                                                    is unpacked from artifact
-
-  -p, --placeholder=placeholder                                                     (required) Name of the placeholder
-                                                                                    inside the XML that should be
-                                                                                    replaced
-
-  -v, --value=value                                                                 (required) value used to replace the
-                                                                                    placeholder
-
-  --json                                                                            format output as json
-
-  --loglevel=(trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL)  [default: warn] logging level for
-                                                                                    this command invocation
+DESCRIPTION
+  Replace placeholder in XML files
 
 EXAMPLES
-  sfdx eon:update:metadata --directory 'src/packagepath' --placeholder 'placeholdername' --value 'settings:runningUser' 
-  --alias $ALIAS 
-  sfdx eon:update:metadata --directory 'src/packagepath' --placeholder 'defaultRunningUserReport' --value 
-  'test@test.com.staging' --alias $ALIAS
+  sfdx eon:update:metadata --directory 'src/packagepath' --placeholder 'placeholdername' --value 'settings:runningUser' --alias $ALIAS 
+
+  sfdx eon:update:metadata --directory 'src/packagepath' --placeholder 'defaultRunningUserReport' --value 'test@test.com.staging' --alias $ALIAS
 ```
 
-_See code: [src/commands/eon/update/metadata.ts](https://github.com/eon-com/eon-sfdx/blob/v1.11.2/src/commands/eon/update/metadata.ts)_
+_See code: [src/commands/update/metadata.ts](https://github.com/eon-com/eon-sfdx/blob/v1.16.0/src/commands/update/metadata.ts)_
 
-## `sfdx eon:update:namedcredential -n <string> [-e <string>] [-p <string>] [-s <string>] [-a <string>] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
+## `eon update:namedcredential`
 
 Update NamedCredential
 
 ```
 USAGE
-  $ sfdx eon:update:namedcredential -n <string> [-e <string>] [-p <string>] [-s <string>] [-a <string>] [-u <string>] 
-  [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
+  $ eon update:namedcredential -n <value> -o <value> [-e <value>] [-p <value>] [-s <value>] [-a <value>]
 
-OPTIONS
-  -a, --alias=alias                                                                 Environment Alias matching the
-                                                                                    target Org and the settings file
+FLAGS
+  -a, --alias=<value>       Environment Alias matching the target Org and the settings file
+  -e, --endpoint=<value>    Optional Flag For Update Endpoint
+  -n, --name=<value>        (required) Required Developer Name To Select Correct Data For Update
+  -o, --target-org=<value>  (required) Login username or alias for the target org.
+  -p, --password=<value>    Optional Flag For Password Update
+  -s, --username=<value>    Optional Flag For Update Username
 
-  -e, --endpoint=endpoint                                                           Optional Flag For Update Endpoint
-
-  -n, --name=name                                                                   (required) Required Developer Name
-                                                                                    To Select Correct Data For Update
-
-  -p, --password=password                                                           Optional Flag For Password Update
-
-  -s, --username=username                                                           Optional Flag For Update Username
-
-  -u, --targetusername=targetusername                                               username or alias for the target
-                                                                                    org; overrides default target org
-
-  --apiversion=apiversion                                                           override the api version used for
-                                                                                    api requests made by this command
-
-  --json                                                                            format output as json
-
-  --loglevel=(trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL)  [default: warn] logging level for
-                                                                                    this command invocation
+DESCRIPTION
+  Update NamedCredential
 
 EXAMPLES
-  sfdx eon:update:namedcredentials --name Mulesoft --username 'settings:mulesoftUser' --password 
-  'settings:mulesoftPassword --endpoint 'settings:mulesoftEndpoint' --alias=$ALIAS
+  sfdx eon:update:namedcredentials --name Mulesoft --username 'settings:mulesoftUser' --password 'settings:mulesoftPassword --endpoint 'settings:mulesoftEndpoint' --alias=$ALIAS
+
   sfdx eon:update:namedcredentials --targetusername myOrg@example.com --name xx_mule --password xxx --alias staging
+
   sfdx eon:update:namedcredentials --targetusername myOrg@example.com -n xx_base -e https://test.com
 ```
 
-_See code: [src/commands/eon/update/namedcredential.ts](https://github.com/eon-com/eon-sfdx/blob/v1.11.2/src/commands/eon/update/namedcredential.ts)_
+_See code: [src/commands/update/namedcredential.ts](https://github.com/eon-com/eon-sfdx/blob/v1.16.0/src/commands/update/namedcredential.ts)_
 
-## `sfdx eon:upsert:customsetting -n <string> -k <string> -v <string> [-a <string>] [-u <string>] [--apiversion <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
+## `eon upsert:customsetting`
 
 Update Custom Settings
 
 ```
 USAGE
-  $ sfdx eon:upsert:customsetting -n <string> -k <string> -v <string> [-a <string>] [-u <string>] [--apiversion 
-  <string>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
+  $ eon upsert:customsetting -n <value> -k <value> -v <value> -o <value> [-a <value>]
 
-OPTIONS
-  -a, --alias=alias                                                                 Environment Alias matching the
-                                                                                    target Org and the settings file
+FLAGS
+  -a, --alias=<value>       Environment Alias matching the target Org and the settings file
+  -k, --key=<value>         (required) Required Flag For Custom Setting Field Key
+  -n, --name=<value>        (required) Required Developer Name To Select Correct Data For Update
+  -o, --target-org=<value>  (required) Login username or alias for the target org.
+  -v, --value=<value>       (required) Optional Flag For Custom Setting Value Update
 
-  -k, --key=key                                                                     (required) Required Flag For Custom
-                                                                                    Setting Field Key
-
-  -n, --name=name                                                                   (required) Required Developer Name
-                                                                                    To Select Correct Data For Update
-
-  -u, --targetusername=targetusername                                               username or alias for the target
-                                                                                    org; overrides default target org
-
-  -v, --value=value                                                                 (required) Optional Flag For Custom
-                                                                                    Setting Value Update
-
-  --apiversion=apiversion                                                           override the api version used for
-                                                                                    api requests made by this command
-
-  --json                                                                            format output as json
-
-  --loglevel=(trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL)  [default: warn] logging level for
-                                                                                    this command invocation
+DESCRIPTION
+  Update Custom Settings
 
 EXAMPLES
-  sfdx eon:update:customsetting --targetusername myOrg@example.com --name my_object__c --key my_column --value my_value 
-  --alias staging
+  sfdx eon:update:customsetting --targetusername myOrg@example.com --name my_object__c --key my_column --value my_value --alias staging
+
   sfdx eon:update:customsetting --targetusername myOrg@example.com -n my_object__c -k XXX -v xxx
 ```
 
-_See code: [src/commands/eon/upsert/customsetting.ts](https://github.com/eon-com/eon-sfdx/blob/v1.11.2/src/commands/eon/upsert/customsetting.ts)_
+_See code: [src/commands/upsert/customsetting.ts](https://github.com/eon-com/eon-sfdx/blob/v1.16.0/src/commands/upsert/customsetting.ts)_
 <!-- commandsstop -->
 <!-- debugging-your-plugin -->

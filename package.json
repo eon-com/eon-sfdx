@@ -1,7 +1,7 @@
 {
   "name": "@eon-com/eon-sfdx",
-  "description": "Salesforce DX (SFDX) commands to support salesforce developments & deployments",
-  "version": "1.16.0",
+  "description": "E.ON commands to support salesforce developments & deployments",
+  "version": "2.0.0-beta.1",
   "author": {
     "email": "eon-sfdx@eon.com",
     "name": "Constantin Schlusche"
@@ -25,6 +25,7 @@
     "chromium": "^3.0.3",
     "cli-progress": "^3.11.1",
     "cli-table3": "^0.6.2",
+    "dedent-js": "^1.0.1",
     "enquirer": "^2.3.6",
     "execa": "5.1.1",
     "fast-xml-parser": "^4.0.1",
@@ -103,9 +104,9 @@
     "lint": "eslint src/**/*.ts test/**/*.ts",
     "postpack": "rm -f oclif.manifest.json",
     "posttest": "eslint src/**/*.ts test/**/*.ts",
-    "prepack": "rm -rf lib && tsc -b && oclif-dev manifest && oclif-dev readme",
+    "prepack": "rm -rf lib && tsc -b && oclif manifest && oclifreadme",
     "test": "nyc --extension .ts --require ts-node/register mocha --forbid-only \"test/**/*.test.ts\"",
-    "version": "oclif-dev readme",
+    "version": "oclif readme",
     "release": "standard-version"
   }
 }

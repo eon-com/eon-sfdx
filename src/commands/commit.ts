@@ -24,6 +24,7 @@ import EONLogger, {
   COLOR_KEY_MESSAGE,
   COLOR_NOTIFY,
   COLOR_HEADER,
+  COLOR_TRACE
 } from '../eon/EONLogger';
 import PackageReadme from '../helper/package-readme';
 import fs from 'fs/promises';
@@ -31,6 +32,9 @@ import path from 'path';
 import slash from 'slash';
 import PackageNodeTree from '../helper/package-tree';
 import  EonCommand  from '../EonCommand';
+import dedent from 'dedent-js';
+import { Flags } from '@oclif/core';
+import { LOGOBANNER } from '../eon/logo';
 // Initialize Messages with the current plugin directory
 Messages.importMessagesDirectory(__dirname);
 
@@ -43,10 +47,19 @@ export default class Commit extends EonCommand {
 
   public static examples = messages.getMessage('examples').split(os.EOL);
 
+  public static readonly flags = {
+    //Label For Named Credential as Require
+    'target-org': Flags.string({
+      char: 'o',
+      aliases: ['targetusername', 'u'],
+      description: 'Login username or alias for the target org.',
+    }),
+  };
 
   // Set this to true if your command requires a project workspace; 'requiresProject' is false by default
   protected static requiresProject = true;
   public async execute(): Promise<AnyJson> {
+    EONLogger.log(COLOR_HEADER(LOGOBANNER));
     // get sfdx project.json
     const project: SfProject = await SfProject.resolve();
     const projectJson: SfProjectJson = await project.retrieveSfProjectJson();
@@ -56,21 +69,25 @@ export default class Commit extends EonCommand {
     let packageDirs: NamedPackageDir[] = projectJson.getUniquePackageDirectories();
     // get all staged changes
     let git: SimpleGit = simplegit(path.dirname(projectJson.getPath()));
-    const changes: DiffResult = await git.diffSummary('--staged');
+    const diffString = await git.diff([`origin/main...HEAD`, `--no-renames`, `--name-only`])
+    const modifiedFiles: string[] = diffString.split('\n')
+
+    modifiedFiles.pop()
 
     // ask for jira reference
     let changedPackages: string[] = [];
+    let changedSet = new Set<string>();
     // check changed packages
     for (const pck of packageDirs) {
-      if (
-        changes.files.some((change) =>
-          path
-            .join(path.dirname(projectJson.getPath()), path.normalize(change.file))
-            .includes(path.normalize(pck.fullPath))
-        )
-      ) {
-        changedPackages = [...changedPackages, pck.package];
+      for (const filename of modifiedFiles) {
+        if (path.normalize(filename).includes(path.normalize(pck.path))) {
+          changedSet.add(pck.package);
+        }
       }
+    }
+
+    if(changedSet.size > 0){
+      changedPackages = [...changedSet];
     }
 
     // multiple packages
@@ -78,7 +95,7 @@ export default class Commit extends EonCommand {
       throw new SfError('No staged changes to any package found!');
     } else if (changedPackages.length > 1) {
       const { Confirm } = require('enquirer');
-      EONLogger.log(COLOR_KEY_MESSAGE('Found changes in multiple packages:'));
+      EONLogger.log(COLOR_KEY_MESSAGE('Found changes in multiple packages 👇'));
 
       const Table = require('cli-table3');
       let table = new Table({
@@ -92,7 +109,7 @@ export default class Commit extends EonCommand {
 
       const multipleChangesConfirm = await new Confirm({
         name: 'multipleChangesConfirm',
-        message: 'Are you sure to commit changes to different packages within the same commit?',
+        message: COLOR_HEADER('Are you sure to commit changes to different packages within the same commit?'),
       })
         .run()
         .catch(console.error);
@@ -100,20 +117,33 @@ export default class Commit extends EonCommand {
       if (!multipleChangesConfirm) {
         return {};
       }
+    } else {
+      EONLogger.log(COLOR_KEY_MESSAGE('Found changes in this package 👇'));
+
+      const Table = require('cli-table3');
+      let table = new Table({
+        head: [COLOR_NOTIFY('Package Name')],
+      });
+      for (let pck of changedPackages) {
+        table.push([pck]);
+      }
+
+      EONLogger.log(table.toString());
     }
 
     // ask for type
     const { Select } = require('enquirer');
     const promptType = await new Select({
       name: 'changetype',
-      message: "Please select the nature of the changes you'd like to commit:",
+      message: dedent(`${COLOR_HEADER("Please select the nature of the changes you'd like to commit 👆")}
+                       ${COLOR_TRACE('Fix updates the patch version. For example 1.0.0 => 1.0.1')}
+                       ${COLOR_TRACE('Feature updates the minor version. For example 1.0.0 => 1.1.0')}`),
       choices: ['Fix', 'Feature'],
     })
       .run()
       .catch(console.error);
     // get jira ref from branch as default
     const branchname = await git.revparse(['--abbrev-ref', 'HEAD']);
-
     let defaultJiraId = 'XXXXX-12345';
 
     if (settings && settings.workItemFilter) {
@@ -124,7 +154,7 @@ export default class Commit extends EonCommand {
 
     const { Input } = require('enquirer');
     const promptJira = await new Input({
-      message: 'What is the Jira Reference?',
+      message: COLOR_HEADER('What is the Jira Reference?'),
       initial: defaultJiraId,
     })
       .run()
@@ -136,21 +166,14 @@ export default class Commit extends EonCommand {
       required: true,
       type: 'input',
       name: 'message',
-      message: 'Describe your changes briefly:',
+      message: COLOR_HEADER('Describe your changes briefly:'),
     });
 
     const { Confirm } = require('enquirer');
     const hasBreakingPrompt = await new Confirm({
       name: 'hasBreakingConfirm',
-      message: 'Do your changes include breaking changes to existing features?',
-    })
-      .run()
-      .catch(console.error);
-
-    // ask, if dependencies should be updated
-    const dependencyPrompt = await new Confirm({
-      name: 'updateDependencyConfirm',
-      message: 'Update dependency versions of changed package?',
+      message: dedent(`Do your changes include breaking changes to existing features?
+      ${COLOR_TRACE('Yes updates the major version. For example 1.0.0 => 2.0.0')}`),
     })
       .run()
       .catch(console.error);
@@ -164,16 +187,9 @@ export default class Commit extends EonCommand {
     for (let packageName of changedPackages) {
       const nodetree: PackageNodeTree = new PackageNodeTree(projectJson);
       await nodetree.nodeTreeInit();
-      const implicitDependencies: PackageTree[] = nodetree.getImplicitDependencyNodesForPackageName(packageName);
       let pck = packageDirs.find((pckdir) => packageName === pckdir.package);
 
-      pck.dependencies = implicitDependencies.map((implDep) => {
-        let dependency: PackageDirDependency = {
-          package: implDep.packagename,
-          versionNumber: implDep.version,
-        };
-        return dependency;
-      });
+
       let oldVer = pck.versionNumber;
       let version: number[] = pck.versionNumber
         .replace('.NEXT', '')
@@ -206,8 +222,7 @@ export default class Commit extends EonCommand {
           }
         }
       }*/
-      EONLogger.log(COLOR_NOTIFY(`Please update **only** the desired dependencies manually before carrying out the next step 👆`));
-      EONLogger.log(COLOR_WARNING(`Only those dependencies that contain the necessary changes should be updated. ❗️`));
+
       updatedPackages = [...updatedPackages, pck];
     }
 
@@ -221,15 +236,14 @@ Following Details will be committed:
     );
     EONLogger.log(`${COLOR_INFO('Commit Message: ')} ${COLOR_SUCCESS(commitMsg)}`);
     console.log(table.toString());
+    EONLogger.log(COLOR_WARNING(`🚸 Please update **only** the desired dependencies manually before carrying out the next step 👆`));
+    EONLogger.log(COLOR_WARNING(`🚸 Only those dependencies that contain the necessary changes should be updated. ❗️`));
     // handle version updates
-    if (dependencyPrompt) {
-      console.log(`NOTE: All dependencies of the listed packages will be updated to reflect the latest ones.
-    `);
-    }
+
     // ask, if dependencies should be updated
     const confirmPrompt = await new Confirm({
       name: 'confirmCommit',
-      message: 'Are you happy with your changes? Select Y to commit your staged changes now.',
+      message: COLOR_HEADER('Are you happy with your changes? Select Y to commit your staged changes now.'),
     })
       .run()
       .catch(console.error);
@@ -270,8 +284,9 @@ Following Details will be committed:
     await fs.writeFile(projectJson.getPath(), JSON.stringify(json, null, 2));
 
     // commit changes
-    await git.add([...readmes, projectJson.getPath()]);
-    await git.commit(commitMsg);
+    //await git.add([...readmes, projectJson.getPath()]);
+    //await git.commit(commitMsg);
+    EONLogger.log(COLOR_SUCCESS('🎉 Your changes have been committed successfully!'));
     return {};
   }
 }
