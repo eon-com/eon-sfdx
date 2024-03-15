@@ -1,0 +1,8 @@
+{
+  "commandDescription": "Job to create a hotfix brnach for the selected package",
+  "packageFlag": "Package for create the hotfix branch",
+  "ticketFlag": "Jira ticket number to create the correct branch name",
+  "examples": [
+   "sfdx eon:git:branch:create -t DAOPS-xxxx -p eon-core -m 1234567890abcdef1234567890abcdef12345678"
+  ]
+}

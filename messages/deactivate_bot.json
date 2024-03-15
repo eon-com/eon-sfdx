@@ -1,0 +1,5 @@
+{
+    "commandDescription": "Search active version and deactivate the bot before deployment",
+    "examples": ["sfdx eon:deactivate:bot --developername chat"],
+    "developerNameFlagDescription": "Bot developer name to deactivate"
+}

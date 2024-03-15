@@ -1,11 +1,17 @@
 {
-  "extends": "@salesforce/dev-config/tsconfig",
+  "compileOnSave": true,
   "compilerOptions": {
-    "outDir": "lib",
-    "rootDir": "src",
-    "esModuleInterop": true,
-    "lib": ["es2017", "es5","es6", "dom", "dom.iterable"],
-    "downlevelIteration": true,
+      "composite": true,
+      "outDir": "./lib",
+      "rootDir": "./src",
+      "inlineSourceMap": true,
+      "declaration": true,
+      "noImplicitAny": false,
+      "esModuleInterop": true,
+      "module": "commonjs",
+      "target": "ES2020",
+      "lib": ["ES2020"],
+      "resolveJsonModule": true
   },
-  "include": ["./src/**/*.ts"]
+  "exclude": ["node_modules", "lib","test"]
 }

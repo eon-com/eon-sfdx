@@ -1,0 +1,6 @@
+{
+    "commandDescription": "Activate a bot after deployment is finished",
+    "examples": ["sfdx eon:activate:bot --version 15 --developername chat"],
+    "versionFlagDescription": "Bot Version to activate",
+    "developerNameFlagDescription": "Bot developer name to activate"
+}

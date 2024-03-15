@@ -1,4 +1,4 @@
-import { SfdxError, SfdxProject, SfdxProjectJson } from '@salesforce/core';
+import { SfError, SfProject, SfProjectJson } from '@salesforce/core';
 import { environmentConfigFile, PluginSettings, stringProperties } from './types';
 import * as fspromise from 'fs/promises';
 import path from 'path';
@@ -16,7 +16,7 @@ import getSecretAWS from '../connectors/aws-secrets-manager-conn';
 export default async function getSettingValue(
   settingname: string,
   alias: string,
-  project: SfdxProject
+  project: SfProject
 ): Promise<string> {
   let settingKey: string = '';
   if (!settingname.includes('settings:')) {
@@ -26,7 +26,7 @@ export default async function getSettingValue(
   }
 
   // get sfdx project.json
-  const projectJson: SfdxProjectJson = await project.retrieveSfdxProjectJson();
+  const projectJson: SfProjectJson = await project.retrieveSfProjectJson();
   const settings: PluginSettings = projectJson.getContents()?.plugins['eon-sfdx'] as PluginSettings;
   const configFilePath: string = path.join(
     path.dirname(projectJson.getPath()),
@@ -91,7 +91,7 @@ export default async function getSettingValue(
     result = null;
   }
   if (result === null) {
-    throw new SfdxError(`${settingname} could not be resolved into a value.`);
+    throw new SfError(`${settingname} could not be resolved into a value.`);
   } else {
     return result;
   }

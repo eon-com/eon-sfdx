@@ -1,7 +1,7 @@
-import { NamedPackageDir, SfdxProjectJson } from '@salesforce/core';
+import { NamedPackageDir, SfProjectJson } from '@salesforce/core';
 import { PackageTree } from '../helper/types';
 
-export function getDeployUrls(projectJson: SfdxProjectJson, packagename: string): PackageTree {
+export function getDeployUrls(projectJson: SfProjectJson, packagename: string): PackageTree {
   const packageDirs: NamedPackageDir[] = projectJson.getUniquePackageDirectories();
   let packageTree: PackageTree;
   const currentPackage: NamedPackageDir = packageDirs.find((pck) => pck.package === packagename);
