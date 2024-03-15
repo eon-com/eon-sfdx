@@ -284,8 +284,8 @@ Following Details will be committed:
     await fs.writeFile(projectJson.getPath(), JSON.stringify(json, null, 2));
 
     // commit changes
-    //await git.add([...readmes, projectJson.getPath()]);
-    //await git.commit(commitMsg);
+    await git.add([...readmes, projectJson.getPath()]);
+    await git.commit(commitMsg);
     EONLogger.log(COLOR_SUCCESS('🎉 Your changes have been committed successfully!'));
     return {};
   }
