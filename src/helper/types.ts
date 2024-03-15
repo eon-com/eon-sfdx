@@ -1,5 +1,5 @@
 import { PackageDir, NamedPackageDir } from '@salesforce/core';
-import { MetadataInfo,QueryResult } from 'jsforce';
+import { QueryResult } from 'jsforce';
 
 export declare type DateString = string & {
   __DateBrand: never;
@@ -105,7 +105,7 @@ export interface ExternalDataSourceMeta {
   type?: string;
   [x: string | number | symbol]: unknown;
 }
-export interface CustomMetadata extends MetadataInfo {
+export interface CustomMetadata  {
   Id?: string;
   DeveloperName?: string;
   MasterLabel?: string;

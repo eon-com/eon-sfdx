@@ -1,4 +1,4 @@
-import { NamedPackageDir, SfdxError } from '@salesforce/core';
+import { NamedPackageDir, SfError } from '@salesforce/core';
 import fs from 'fs';
 import fspromise from 'fs/promises';
 import path from 'path';
@@ -32,11 +32,11 @@ export const EXPORTJSON: string = `{
 export const EONDEVKITYML: string = `
 # Include other devkits from other packages by adding the name of the package (e.g. core):
 include:
-    - 
-# List the permissionsets that should be assigned to current user (e.g. Service Agent): 
+    -
+# List the permissionsets that should be assigned to current user (e.g. Service Agent):
 permissionsets:
-    - 
-# add location(s) of anonymous apex scripts relative to this file (e.g. scripts/script.apex): 
+    -
+# add location(s) of anonymous apex scripts relative to this file (e.g. scripts/script.apex):
 anonymous_apex:
     - scripts/setup-script.apex
 # add location(s) of export.json files if testdata should be imported (e.g. testdata/export.json):
@@ -65,7 +65,7 @@ export const getDevKits = async (packageDirs: NamedPackageDir[], packagename: st
     EONLogger.log(COLOR_ERROR('Only one ' + SETUPFILE + ' file is allowed per package'));
     return;
   } else if (filePaths.length === 0) {
-    throw new SfdxError(SETUPFILE + ' file not found in package ' + packagename);
+    throw new SfError(SETUPFILE + ' file not found in package ' + packagename);
   }
   const devKitFilePath = filePaths[0];
 
