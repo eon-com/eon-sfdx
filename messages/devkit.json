@@ -4,6 +4,6 @@
   "commandDescription_devkitcreate": "Creates a devkit for a package",
   "packageFlag": "Name of the package where the devkit should be created",
   "packageFlagDescription": "Name of the package where the devkit should be created",
-  "examples": ["sfdx eon:devkit:create", "sfdx eon:devkit:apply"],
-  "examples_devkit": ["sfdx eon:devkit:create", "sfdx eon:devkit:apply"]
+  "examples": ["eon devkit:create", "sfdx eon:devkit:apply"],
+  "examples_devkit": ["eon devkit:create", "sfdx eon:devkit:apply"]
 }

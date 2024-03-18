@@ -1,5 +1,5 @@
 {
   "commandDescription": "Commit changes to a package while maintaining versions",
   "updateDependenciesFlagDescription": "Set if dependencies should be updated",
-  "examples": ["sfdx eon:commit"]
+  "examples": ["eon changelog"]
 }

@@ -5,9 +5,9 @@
   "scriptFlag": "Flag to run pre/post deployment scripts",
   "packageFlag": "Validate one selected package",
   "examples": [
-    "sfdx eon:validate:source",
-    "sfdx  eon:validate:source -p mypackage",
-    "sfdx  eon:validate:source -p mypackage -o",
-    "sfdx  eon:validate:source --package mypackage --onlytests"
+    "eon validate:source",
+    "eon validate:source -p mypackage",
+    "eon validate:source -p mypackage -o",
+    "eon validate:source --package mypackage --onlytests"
     ]
 }

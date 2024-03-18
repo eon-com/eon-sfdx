@@ -1,7 +1,7 @@
 {
   "name": "@eon-com/eon-sfdx",
   "description": "E.ON commands to support salesforce developments & deployments",
-  "version": "2.0.0",
+  "version": "2.0.0-beta.1",
   "author": {
     "email": "eon-sfdx@eon.com",
     "name": "Constantin Schlusche"
@@ -15,7 +15,7 @@
     "url": "https://github.com/eon-com/eon-sfdx/issues"
   },
   "dependencies": {
-    "@aws-sdk/client-secrets-manager": "^3.67.0",
+    "@aws-sdk/client-secrets-manager": "^3.535.0",
     "@oclif/core": "^3",
     "@salesforce/core": "^6.7.0",
     "@salesforce/source-deploy-retrieve": "^10.5.2",
@@ -32,6 +32,7 @@
     "listr2": "^4.0.5",
     "markdown-it": "^12.3.2",
     "markdown-table": "^2.0.0",
+    "ora": "^3.4.0",
     "rimraf": "^5.0.5",
     "semver": "^7.3.7",
     "simple-git": "^3.4.0",
@@ -42,7 +43,9 @@
   "devDependencies": {
     "@oclif/plugin-help": "^3.2.5",
     "@oclif/test": "^1.2.8",
+    "@salesforce/ts-types": "^2.0.9",
     "@types/jsforce": "^1.9.29",
+    "@types/ora": "^3.2.0",
     "@typescript-eslint/eslint-plugin": "^5.42.1",
     "@typescript-eslint/parser": "5.42.0",
     "eslint": "^8.27.0",
@@ -104,7 +107,7 @@
     "lint": "eslint src/**/*.ts test/**/*.ts",
     "postpack": "rm -f oclif.manifest.json",
     "posttest": "eslint src/**/*.ts test/**/*.ts",
-    "prepack": "rm -rf lib && tsc -b && oclif manifest && oclifreadme",
+    "prepack": "npm run clean && npm run compile",
     "test": "nyc --extension .ts --require ts-node/register mocha --forbid-only \"test/**/*.test.ts\"",
     "version": "oclif readme",
     "release": "standard-version"

@@ -1,9 +1,16 @@
 import { PackageDirParsed, PackagePermissionset, PluginSettings } from './types';
 const markdownTable = require('markdown-table');
+import {
+  COLOR_ERROR,
+  COLOR_HEADER,
+} from '../eon/EONLogger';
+import dedent from 'dedent-js';
 
 import fs from 'fs/promises';
 import getPermissionsets from './package-permissionsets';
 import path from 'path';
+import { SfError } from '@salesforce/core';
+import ora from 'ora';
 
 /**
  * Represents the readme of a package inside the package root folder
@@ -40,7 +47,7 @@ export default class PackageReadme {
     } else {
       readmeBody = `# s${pck.package}
 
-<!-- Add your package description here --> 
+<!-- Add your package description here -->
       `;
     }
 
@@ -71,8 +78,9 @@ export default class PackageReadme {
         .replace(existingChangelogBody, newChangelogBody)
         .replace(existingPermissionBody, newPermissionBody);
     }
-
+    const spinner = ora(COLOR_HEADER(`Start updating readme.md file for package ${pck.package}`)).start();
     await fs.writeFile(readmePath, newReadmeBody);
+    spinner.succeed(COLOR_HEADER(`Readme.md file for package ${pck.package} updated`));
     return readmePath;
   }
   /**
@@ -132,6 +140,29 @@ export default class PackageReadme {
       return resultArray;
     }, []);
 
+    let lineCounter = 0;
+    const spinner = ora(COLOR_HEADER(`Start validate readme.md changelog section for package ${pck.package}`)).start();
+    for (const entry of priorEntries) {
+      lineCounter++;
+      if(Array.isArray(entry) && entry.length !== 4){
+        spinner.fail(COLOR_ERROR(`Readme validation failed`));
+        throw new SfError(dedent(COLOR_ERROR(`The changelog section in the readme.md has not the expected 4 columns.
+        Please fix it manually.`)),COLOR_ERROR('PACKAGE_README_ERROR'));
+      }
+      if (Array.isArray(entry) && !entry[0].includes('NEXT')){
+        spinner.fail(COLOR_ERROR(`Readme validation failed`));
+        throw new SfError(dedent(COLOR_ERROR(`Readme validation for package version "NEXT".
+        The package version ${entry[0]} in line ${lineCounter} has a wrong format`)),COLOR_ERROR('PACKAGE_README_ERROR'));
+      }
+      if (Array.isArray(entry) && entry[0] === pck.versionNumber){
+        spinner.fail(COLOR_ERROR(`Readme validation failed`));
+        throw new SfError(dedent(COLOR_ERROR(`Readme check for identical pck versions.
+        Package version ${pck.versionNumber} from project-json is identical with readme!`)),COLOR_ERROR('PACKAGE_README_ERROR'));
+      }
+    }
+
+    spinner.succeed(COLOR_HEADER(`Readme.md changelog validation for package ${pck.package} is successful`));
+
     const workItem = settings.workItemUrl ? `[${reference}](${settings.workItemUrl}${reference})` : reference;
 
     const newTableItems = [
@@ -141,7 +172,7 @@ export default class PackageReadme {
     ];
     const table = markdownTable(newTableItems);
 
-    return `## Changelog 
+    return `## Changelog
 
 ${table}
 
@@ -161,10 +192,10 @@ ${table}
     const newTableItems = [['Label', 'Description'], ...permissionSetTableLines];
     const table = markdownTable(newTableItems);
 
-    return `## Permission Sets 
-  
+    return `## Permission Sets
+
 ${table}
-  
+
 `;
   }
 }

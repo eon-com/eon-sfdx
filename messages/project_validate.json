@@ -10,10 +10,10 @@
     "all": "Runs all checks",
     "change": "Change project json file after validations",
     "examples": [
-     "sfdx eon:project:validate -t origin/main --versionupdate",
-     "sfdx eon:project:validate -t --order -p core",
-     "sfdx eon:project:validate -t origin/main --versionupdate --missingdeps --order --depsversion",
-     "sfdx eon:project:validate -t origin/main - -v -m -o -d",
-     "sfdx eon:project:validate --all"
+     "eon project:validate -t origin/main --versionupdate",
+     "eon project:validate -t --order -p core",
+     "eon project:validate -t origin/main --versionupdate --missingdeps --order --depsversion",
+     "eon project:validate -t origin/main - -v -m -o -d",
+     "eon project:validate --all"
     ]
   }

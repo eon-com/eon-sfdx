@@ -3,6 +3,6 @@
   "commandDescription_features_update": "Updates all custom settings for features with org specific values",
   "aliasDescription": "Environment Alias matching the target Org and the settings file",
   "settingsDescription": "Path to file that contains the feature settings",
-  "examples": ["sfdx eon:org:type"],
-  "examples_features_update": ["sfdx eon:org:features:update -f feature-settings.yml -a production"]
+  "examples": ["eon org:type"],
+  "examples_features_update": ["eon org:features:update -f feature-settings.yml -a production"]
 }

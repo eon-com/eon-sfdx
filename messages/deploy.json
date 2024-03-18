@@ -5,7 +5,7 @@
   "errorNoPckResults": "No package was found for '%s'.",
   "errorDeployFailed": "Deployment failed: '%s'",
   "examples": [
-    "eon:deploy:package --packagename api-gateway --includedependencies",
-    "eon:deploy:package --packagename core-datamodel --start force-di"
+    "eon deploy:package --packagename api-gateway --includedependencies",
+    "eon deploy:package --packagename core-datamodel --start force-di"
   ]
 }

@@ -7,7 +7,7 @@
   "keyFlagDescription_customsetting": "Required Flag For Custom Setting Field Key",
   "valueFlagDescription_customsetting": "Optional Flag For Custom Setting Value Update",
   "examples_customsetting": [
-    "sfdx eon:update:customsetting --targetusername myOrg@example.com --name my_object__c --key my_column --value my_value --alias staging",
-    "sfdx eon:update:customsetting --targetusername myOrg@example.com -n my_object__c -k XXX -v xxx"
+    "eon update:customsetting --targetusername myOrg@example.com --name my_object__c --key my_column --value my_value --alias staging",
+    "eon update:customsetting --targetusername myOrg@example.com -n my_object__c -k XXX -v xxx"
   ]
 }
