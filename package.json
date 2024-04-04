@@ -18,7 +18,7 @@
     "@aws-sdk/client-secrets-manager": "^3.535.0",
     "@oclif/core": "^3",
     "@salesforce/core": "^6.7.0",
-    "@salesforce/source-deploy-retrieve": "^10.5.2",
+    "@salesforce/source-deploy-retrieve": "^10.2.13",
     "axios": "^0.27.2",
     "bottleneck": "^2.19.5",
     "chalk": "4.1.2",

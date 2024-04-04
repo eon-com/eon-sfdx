@@ -16,7 +16,7 @@ $ npm install -g @eon-com/eon-sfdx
 $ eon COMMAND
 running command...
 $ eon (--version)
-@eon-com/eon-sfdx/1.16.0 darwin-x64 node-v20.5.1
+@eon-com/eon-sfdx/2.0.1-beta.1 darwin-x64 node-v20.5.1
 $ eon --help [COMMAND]
 USAGE
   $ eon COMMAND
@@ -26,7 +26,7 @@ USAGE
 
 <!-- commands -->
 * [`eon beta:gitlab:merge:status`](#eon-betagitlabmergestatus)
-* [`eon commit`](#eon-commit)
+* [`eon changelog`](#eon-changelog)
 * [`eon org:features:update`](#eon-orgfeaturesupdate)
 * [`eon org:gettype`](#eon-orggettype)
 * [`eon package:deploy [FILE]`](#eon-packagedeploy-file)
@@ -65,24 +65,27 @@ EXAMPLES
   sfdx eon:gitlab:merge:status -t gitlabxxxxx -u gitlab.com -a dev,ft,sit -m 1523
 ```
 
-_See code: [src/commands/beta/gitlab/merge/status.ts](https://github.com/eon-com/eon-sfdx/blob/v1.16.0/src/commands/beta/gitlab/merge/status.ts)_
+_See code: [src/commands/beta/gitlab/merge/status.ts](https://github.com/eon-com/eon-sfdx/blob/v2.0.1-beta.1/src/commands/beta/gitlab/merge/status.ts)_
 
-## `eon commit`
+## `eon changelog`
 
 Commit changes to a package while maintaining versions
 
 ```
 USAGE
-  $ eon commit
+  $ eon changelog [-o <value>]
+
+FLAGS
+  -o, --target-org=<value>  Login username or alias for the target org.
 
 DESCRIPTION
   Commit changes to a package while maintaining versions
 
 EXAMPLES
-  sfdx eon:commit
+  $ eon changelog
 ```
 
-_See code: [src/commands/commit.ts](https://github.com/eon-com/eon-sfdx/blob/v1.16.0/src/commands/commit.ts)_
+_See code: [src/commands/changelog.ts](https://github.com/eon-com/eon-sfdx/blob/v2.0.1-beta.1/src/commands/changelog.ts)_
 
 ## `eon org:features:update`
 
@@ -101,10 +104,10 @@ DESCRIPTION
   Updates all custom settings for features with org specific values
 
 EXAMPLES
-  sfdx eon:org:features:update -f feature-settings.yml -a production
+  $ eon org:features:update -f feature-settings.yml -a production
 ```
 
-_See code: [src/commands/org/features/update.ts](https://github.com/eon-com/eon-sfdx/blob/v1.16.0/src/commands/org/features/update.ts)_
+_See code: [src/commands/org/features/update.ts](https://github.com/eon-com/eon-sfdx/blob/v2.0.1-beta.1/src/commands/org/features/update.ts)_
 
 ## `eon org:gettype`
 
@@ -118,10 +121,10 @@ DESCRIPTION
   Returns the type of the target org
 
 EXAMPLES
-  sfdx eon:org:type
+  $ eon org:type
 ```
 
-_See code: [src/commands/org/gettype.ts](https://github.com/eon-com/eon-sfdx/blob/v1.16.0/src/commands/org/gettype.ts)_
+_See code: [src/commands/org/gettype.ts](https://github.com/eon-com/eon-sfdx/blob/v2.0.1-beta.1/src/commands/org/gettype.ts)_
 
 ## `eon package:deploy [FILE]`
 
@@ -141,12 +144,12 @@ DESCRIPTION
   deploy package source files by package name
 
 EXAMPLES
-  sfdx eon:deploy:package --packagename api-gateway --includedependencies
+  $ eon deploy:package --packagename api-gateway --includedependencies
 
-  sfdx eon:deploy:package --packagename core-datamodel
+  $ eon deploy:package --packagename core-datamodel --start force-di
 ```
 
-_See code: [src/commands/package/deploy.ts](https://github.com/eon-com/eon-sfdx/blob/v1.16.0/src/commands/package/deploy.ts)_
+_See code: [src/commands/package/deploy.ts](https://github.com/eon-com/eon-sfdx/blob/v2.0.1-beta.1/src/commands/package/deploy.ts)_
 
 ## `eon package:devkit:apply`
 
@@ -164,12 +167,12 @@ DESCRIPTION
   Applys scripts and testdata of a devkit to an scratch org
 
 EXAMPLES
-  sfdx eon:devkit:create
+  $ eon devkit:create
 
   sfdx eon:devkit:apply
 ```
 
-_See code: [src/commands/package/devkit/apply.ts](https://github.com/eon-com/eon-sfdx/blob/v1.16.0/src/commands/package/devkit/apply.ts)_
+_See code: [src/commands/package/devkit/apply.ts](https://github.com/eon-com/eon-sfdx/blob/v2.0.1-beta.1/src/commands/package/devkit/apply.ts)_
 
 ## `eon package:devkit:create`
 
@@ -187,12 +190,12 @@ DESCRIPTION
   Initialize a devkit for a package
 
 EXAMPLES
-  sfdx eon:devkit:create
+  $ eon devkit:create
 
   sfdx eon:devkit:apply
 ```
 
-_See code: [src/commands/package/devkit/create.ts](https://github.com/eon-com/eon-sfdx/blob/v1.16.0/src/commands/package/devkit/create.ts)_
+_See code: [src/commands/package/devkit/create.ts](https://github.com/eon-com/eon-sfdx/blob/v2.0.1-beta.1/src/commands/package/devkit/create.ts)_
 
 ## `eon package:devkit:testdata:retrieve`
 
@@ -210,12 +213,12 @@ DESCRIPTION
   Applys scripts and testdata of a devkit to an scratch org
 
 EXAMPLES
-  sfdx eon:devkit:create
+  $ eon devkit:create
 
   sfdx eon:devkit:apply
 ```
 
-_See code: [src/commands/package/devkit/testdata/retrieve.ts](https://github.com/eon-com/eon-sfdx/blob/v1.16.0/src/commands/package/devkit/testdata/retrieve.ts)_
+_See code: [src/commands/package/devkit/testdata/retrieve.ts](https://github.com/eon-com/eon-sfdx/blob/v2.0.1-beta.1/src/commands/package/devkit/testdata/retrieve.ts)_
 
 ## `eon package:validate`
 
@@ -249,7 +252,7 @@ EXAMPLES
   sfdx  eon:validate --target origin/main --package --onlytests
 ```
 
-_See code: [src/commands/package/validate.ts](https://github.com/eon-com/eon-sfdx/blob/v1.16.0/src/commands/package/validate.ts)_
+_See code: [src/commands/package/validate.ts](https://github.com/eon-com/eon-sfdx/blob/v2.0.1-beta.1/src/commands/package/validate.ts)_
 
 ## `eon package:validate:source`
 
@@ -270,16 +273,16 @@ DESCRIPTION
   Validation Job to check source packages on org
 
 EXAMPLES
-  sfdx eon:validate:source
+  $ eon validate:source
 
-  sfdx  eon:validate:source -p mypackage
+  $ eon validate:source -p mypackage
 
-  sfdx  eon:validate:source -p mypackage -o
+  $ eon validate:source -p mypackage -o
 
-  sfdx  eon:validate:source --package mypackage --onlytests
+  $ eon validate:source --package mypackage --onlytests
 ```
 
-_See code: [src/commands/package/validate/source.ts](https://github.com/eon-com/eon-sfdx/blob/v1.16.0/src/commands/package/validate/source.ts)_
+_See code: [src/commands/package/validate/source.ts](https://github.com/eon-com/eon-sfdx/blob/v2.0.1-beta.1/src/commands/package/validate/source.ts)_
 
 ## `eon project:validate`
 
@@ -312,18 +315,18 @@ DESCRIPTION
   control which validations are to be carried out. The individual tests are described with the flags.
 
 EXAMPLES
-  sfdx eon:project:validate -t origin/main --versionupdate
+  $ eon project:validate -t origin/main --versionupdate
 
-  sfdx eon:project:validate -t --order -p core
+  $ eon project:validate -t --order -p core
 
-  sfdx eon:project:validate -t origin/main --versionupdate --missingdeps --order --depsversion
+  $ eon project:validate -t origin/main --versionupdate --missingdeps --order --depsversion
 
-  sfdx eon:project:validate -t origin/main - -v -m -o -d
+  $ eon project:validate -t origin/main - -v -m -o -d
 
-  sfdx eon:project:validate --all
+  $ eon project:validate --all
 ```
 
-_See code: [src/commands/project/validate.ts](https://github.com/eon-com/eon-sfdx/blob/v1.16.0/src/commands/project/validate.ts)_
+_See code: [src/commands/project/validate.ts](https://github.com/eon-com/eon-sfdx/blob/v2.0.1-beta.1/src/commands/project/validate.ts)_
 
 ## `eon update:customlabel`
 
@@ -350,7 +353,7 @@ EXAMPLES
   sfdx eon:upsert:customlabel --targetusername myOrg@example.com -n my_label -v XXX
 ```
 
-_See code: [src/commands/update/customlabel.ts](https://github.com/eon-com/eon-sfdx/blob/v1.16.0/src/commands/update/customlabel.ts)_
+_See code: [src/commands/update/customlabel.ts](https://github.com/eon-com/eon-sfdx/blob/v2.0.1-beta.1/src/commands/update/customlabel.ts)_
 
 ## `eon update:externaldatasource`
 
@@ -377,7 +380,7 @@ EXAMPLES
   sfdx eon:update:datasource --targetusername myOrg@example.com -n my_source -e https://test.com
 ```
 
-_See code: [src/commands/update/externaldatasource.ts](https://github.com/eon-com/eon-sfdx/blob/v1.16.0/src/commands/update/externaldatasource.ts)_
+_See code: [src/commands/update/externaldatasource.ts](https://github.com/eon-com/eon-sfdx/blob/v2.0.1-beta.1/src/commands/update/externaldatasource.ts)_
 
 ## `eon update:metadata`
 
@@ -404,7 +407,7 @@ EXAMPLES
   sfdx eon:update:metadata --directory 'src/packagepath' --placeholder 'defaultRunningUserReport' --value 'test@test.com.staging' --alias $ALIAS
 ```
 
-_See code: [src/commands/update/metadata.ts](https://github.com/eon-com/eon-sfdx/blob/v1.16.0/src/commands/update/metadata.ts)_
+_See code: [src/commands/update/metadata.ts](https://github.com/eon-com/eon-sfdx/blob/v2.0.1-beta.1/src/commands/update/metadata.ts)_
 
 ## `eon update:namedcredential`
 
@@ -433,7 +436,7 @@ EXAMPLES
   sfdx eon:update:namedcredentials --targetusername myOrg@example.com -n xx_base -e https://test.com
 ```
 
-_See code: [src/commands/update/namedcredential.ts](https://github.com/eon-com/eon-sfdx/blob/v1.16.0/src/commands/update/namedcredential.ts)_
+_See code: [src/commands/update/namedcredential.ts](https://github.com/eon-com/eon-sfdx/blob/v2.0.1-beta.1/src/commands/update/namedcredential.ts)_
 
 ## `eon upsert:customsetting`
 
@@ -454,11 +457,11 @@ DESCRIPTION
   Update Custom Settings
 
 EXAMPLES
-  sfdx eon:update:customsetting --targetusername myOrg@example.com --name my_object__c --key my_column --value my_value --alias staging
+  $ eon update:customsetting --targetusername myOrg@example.com --name my_object__c --key my_column --value my_value --alias staging
 
-  sfdx eon:update:customsetting --targetusername myOrg@example.com -n my_object__c -k XXX -v xxx
+  $ eon update:customsetting --targetusername myOrg@example.com -n my_object__c -k XXX -v xxx
 ```
 
-_See code: [src/commands/upsert/customsetting.ts](https://github.com/eon-com/eon-sfdx/blob/v1.16.0/src/commands/upsert/customsetting.ts)_
+_See code: [src/commands/upsert/customsetting.ts](https://github.com/eon-com/eon-sfdx/blob/v2.0.1-beta.1/src/commands/upsert/customsetting.ts)_
 <!-- commandsstop -->
 <!-- debugging-your-plugin -->

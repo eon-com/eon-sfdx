@@ -4,6 +4,7 @@ import { NamedPackageDirLarge } from '../helper/types';
 
 export function getDeployUrls(projectJson: SfProjectJson, packagename: string): PackageTree {
   const packageDirs: NamedPackageDirLarge[] = projectJson.getUniquePackageDirectories();
+  const packageAliases = projectJson.getContents().packageAliases;
   let packageTree: PackageTree;
   const currentPackage: NamedPackageDirLarge = packageDirs.find((pck) => pck.package === packagename);
 
@@ -19,6 +20,8 @@ export function getDeployUrls(projectJson: SfProjectJson, packagename: string): 
 
     if (currentPackage.dependencies) {
       currentPackage.dependencies.forEach((dep) => {
+        // add only packages !== managed
+        if (packageAliases[dep.package] && !packageAliases[dep.package].startsWith('04t')) {
         const depPackage: NamedPackageDirLarge = packageDirs.find((pck) => pck.package === dep.package);
         const treeDep: PackageTree = {
           packagename: dep.package,
@@ -27,6 +30,7 @@ export function getDeployUrls(projectJson: SfProjectJson, packagename: string): 
           preDeploymentScript: depPackage?.preDeploymentScript ?? ''
         };
         packageTree.dependency = [...packageTree.dependency, treeDep];
+      }
       });
     }
   }

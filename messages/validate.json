@@ -7,10 +7,10 @@
   "poolFlag": "Pool tag to fetch scratch orgs",
   "devAliasFlag": "Target dev hub alias",
   "examples": [
-   "sfdx eon:validate -t origin/main",
-   "sfdx  eon:validate -t origin/main -p core",
-   "sfdx  eon:validate -t origin/main -p core -o",
-   "sfdx  eon:validate --target origin/main --package --onlytests"
+   "eon validate -t origin/main",
+   "eon validate -t origin/main -p core",
+   "eon validate -t origin/main -p core -o",
+   "eon validate --target origin/main --package --onlytests"
   ],
   "errorDeployment": "Process finsihed with Exit Code 1.",
   "errorFoundNoApex": "Query Apex from Org failed: %s",

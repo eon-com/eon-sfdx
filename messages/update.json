@@ -50,42 +50,42 @@
   "errorReadRemoteSite_remotesite": "Read Retrieved Metadata for file '%s' throws an Error. Please Check your Repo and try again",
   "errorReadData": "Read Retrieved Metadata for file '%s' throws an Error. Please Check your Repo and try again",
   "examples_namedCredential": [
-    "sfdx eon:update:namedcredentials --name Mulesoft --username 'settings:mulesoftUser' --password 'settings:mulesoftPassword --endpoint 'settings:mulesoftEndpoint' --alias=$ALIAS",
-    "sfdx eon:update:namedcredentials --targetusername myOrg@example.com --name xx_mule --password xxx --alias staging",
-    "sfdx eon:update:namedcredentials --targetusername myOrg@example.com -n xx_base -e https://test.com"
+    "eon update:namedcredentials --name Mulesoft --username 'settings:mulesoftUser' --password 'settings:mulesoftPassword --endpoint 'settings:mulesoftEndpoint' --alias=$ALIAS",
+    "eon update:namedcredentials --targetusername myOrg@example.com --name xx_mule --password xxx --alias staging",
+    "eon update:namedcredentials --targetusername myOrg@example.com -n xx_base -e https://test.com"
   ],
   "examples_authprovider": [
-    "sfdx eon:update:authprovider --targetusername myOrg@example.com --name xx_auth --token xxx --alias staging ",
-    "sfdx eon:update:authprovider --targetusername myOrg@example.com -n xx_auth -e mustermann@salesforce.com"
+    "eon update:authprovider --targetusername myOrg@example.com --name xx_auth --token xxx --alias staging ",
+    "eon update:authprovider --targetusername myOrg@example.com -n xx_auth -e mustermann@salesforce.com"
   ],
   "examples_datasource": [
-    "sfdx eon:update:datasource --name my_datasource --endpoint 'settings:dataSourceURL' --alias $ALIAS",
-    "sfdx eon:update:datasource --targetusername myOrg@example.com --name my_datasource --endpoint xxx --alias staging",
-    "sfdx eon:update:datasource --targetusername myOrg@example.com -n my_source -e https://test.com"
+    "eon update:datasource --name my_datasource --endpoint 'settings:dataSourceURL' --alias $ALIAS",
+    "eon update:datasource --targetusername myOrg@example.com --name my_datasource --endpoint xxx --alias staging",
+    "eon update:datasource --targetusername myOrg@example.com -n my_source -e https://test.com"
   ],
   "examples_remotesite": [
-    "sfdx eon:update:remotesite --targetusername myOrg@example.com --name my_page --url xxx --alias staging",
-    "sfdx eon:update:remotesite --targetusername myOrg@example.com -n my_site -l https://test.com"
+    "eon update:remotesite --targetusername myOrg@example.com --name my_page --url xxx --alias staging",
+    "eon update:remotesite --targetusername myOrg@example.com -n my_site -l https://test.com"
   ],
   "examples_connectedapp": [
-    "sfdx eon:update:connectedapp --targetusername myOrg@example.com --name my_app --callback xxx --alias staging",
-    "sfdx eon:update:connectedapp --targetusername myOrg@example.com -n my_app -c https://test.com"
+    "eon update:connectedapp --targetusername myOrg@example.com --name my_app --callback xxx --alias staging",
+    "eon update:connectedapp --targetusername myOrg@example.com -n my_app -c https://test.com"
   ],
   "examples_customlabel": [
-    "sfdx eon:upsert:customlabel --name my_label --value 'settings:SomeKeyInYaml' --alias staging",
-    "sfdx eon:upsert:customlabel --targetusername myOrg@example.com --name my_label --value xxx --alias staging",
-    "sfdx eon:upsert:customlabel --targetusername myOrg@example.com -n my_label -v XXX"
+    "eon upsert:customlabel --name my_label --value 'settings:SomeKeyInYaml' --alias staging",
+    "eon upsert:customlabel --targetusername myOrg@example.com --name my_label --value xxx --alias staging",
+    "eon upsert:customlabel --targetusername myOrg@example.com -n my_label -v XXX"
   ],
   "examples_custommetadata": [
-    "sfdx eon:update:custommetadata --targetusername myOrg@example.com --name my_label --key my_key --value my_value --alias staging",
-    "sfdx eon:update:custommetadata --targetusername myOrg@example.com -n my_label -k XXX -v xxx"
+    "eon update:custommetadata --targetusername myOrg@example.com --name my_label --key my_key --value my_value --alias staging",
+    "eon update:custommetadata --targetusername myOrg@example.com -n my_label -k XXX -v xxx"
   ],
   "examples_customsetting": [
-    "sfdx eon:update:customsetting --targetusername myOrg@example.com --name my_object__c --key my_column --value my_value --alias staging",
-    "sfdx eon:update:customsetting --targetusername myOrg@example.com -n my_object__c -k XXX -v xxx"
+    "eon update:customsetting --targetusername myOrg@example.com --name my_object__c --key my_column --value my_value --alias staging",
+    "eon update:customsetting --targetusername myOrg@example.com -n my_object__c -k XXX -v xxx"
   ],
   "examples_metadata": [
-    "sfdx eon:update:metadata --directory 'src/packagepath' --placeholder 'placeholdername' --value 'settings:runningUser' --alias $ALIAS ",
-    "sfdx eon:update:metadata --directory 'src/packagepath' --placeholder 'defaultRunningUserReport' --value 'test@test.com.staging' --alias $ALIAS "
+    "eon update:metadata --directory 'src/packagepath' --placeholder 'placeholdername' --value 'settings:runningUser' --alias $ALIAS ",
+    "eon update:metadata --directory 'src/packagepath' --placeholder 'defaultRunningUserReport' --value 'test@test.com.staging' --alias $ALIAS "
   ]
 }
