@@ -2,7 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [2.0.0](https://github.com/eon-com/eon-sfdx/compare/v1.16.0...v2.0.0) (2024-03-15)
+## [2.0.2-beta.1](https://github.com/eon-com/eon-sfdx/compare/v1.16.0...v2.1.0) (2024-04-04)
+
+
+### Features
+
+* **eon-com:** breaking change to oclif ([4aeaedc](https://github.com/eon-com/eon-sfdx/commit/4aeaedc810501383f540c2f39f2801414a0c5328))
+* **eon-com:** new command eon changelog ([fb4fd30](https://github.com/eon-com/eon-sfdx/commit/fb4fd307d2511aa10b7483e08d6ad196a46bc745))
+* **eon-com:** unit tests ([d4395d2](https://github.com/eon-com/eon-sfdx/commit/d4395d2733a99807c3a5175ba2b6db400980e21c))
+* **eon-com:** update commit command ([b2a657e](https://github.com/eon-com/eon-sfdx/commit/b2a657e81edfc93fa353914bc82964b01cd0f2f5))
+* **release:** new beta release 2.0.0. ([f1e67ba](https://github.com/eon-com/eon-sfdx/commit/f1e67ba07fc49301a34268e5a30dda35ae0d5e65))
+
+
+### Bug Fixes
+
+* **eon-oclif:** refresh all commands after local tests ([1cf2529](https://github.com/eon-com/eon-sfdx/commit/1cf2529bdbcc109610f4a23903a142a6db5e0211))
+
+## [2.0.1-beta.1](https://github.com/eon-com/eon-sfdx/compare/v1.16.0...v2.0.0) (2024-03-15)
 
 
 ### Features
