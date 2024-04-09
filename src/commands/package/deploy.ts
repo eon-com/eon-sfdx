@@ -1,5 +1,5 @@
 import * as os from 'os';
-import { Messages, SfError, SfProjectJson } from '@salesforce/core';
+import { Messages, SfError, SfProjectJson, ConfigAggregator, Org } from '@salesforce/core';
 const Table = require('cli-table3');
 import { ComponentSet, DeployDetails, MetadataApiDeploy } from '@salesforce/source-deploy-retrieve';
 import { getDeployUrls } from '../../helper/get-packages';
@@ -40,7 +40,6 @@ export default class Deploy extends EonCommand {
       char: 'o',
       aliases: ['targetusername', 'u'],
       description: 'Login username or alias for the target org.',
-      required: true,
     }),
   };
 
@@ -64,6 +63,18 @@ export default class Deploy extends EonCommand {
     const { args } = await this.parse(Deploy);
     // map flags to variables
     const packagename = (this.flags.packagename || args.file) as string;
+    let defaultUsername = '';
+
+    if(!this.flags['target-org']) {
+      defaultUsername = (await ConfigAggregator.create()).getPropertyValue('target-org');
+      if(!defaultUsername) {
+        throw new SfError(
+          `Found no default target-org in your salesforce config file. Please provide a target-org with flag --target-org or set a default target-org on your local machine`
+        );
+      }
+      EONLogger.log(COLOR_NOTIFY(`Using default target-org 👉 ${COLOR_INFO(defaultUsername)}`));
+      this.org = await Org.create({aliasOrUsername: this.flags.targetusername})
+    }
 
     const includedependencies = (this.flags.includedependencies || '') as boolean;
     // get packages
