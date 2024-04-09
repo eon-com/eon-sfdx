@@ -299,6 +299,8 @@ Following Details will be updated:
                 json.packageDirectories.find((pck) => pck.package === update.package)
             );
             if (~index) {
+                // we need this step for windows users to normalize the path
+                update.path = path.normalize(update.path);
                 json.packageDirectories[index] = update;
                 // update readme if set in settings
                 if (settings && settings.enableReadmeGeneration) {
