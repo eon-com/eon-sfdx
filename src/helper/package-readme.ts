@@ -45,7 +45,7 @@ export default class PackageReadme {
       const readme = await fs.readFile(readmePath);
       readmeBody = readme.toString();
     } else {
-      readmeBody = `# s${pck.package}
+      readmeBody = `# ${pck.package}
 
 <!-- Add your package description here -->
       `;

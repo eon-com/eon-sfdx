@@ -22,6 +22,7 @@ import { LOGOBANNER } from '../eon/logo';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import ora from 'ora';
+import slash from 'slash';
 
 // Initialize Messages with the current plugin directory
 Messages.importMessagesDirectory(__dirname);
@@ -313,9 +314,12 @@ Following Details will be updated:
                         settings
                     );
                     readmes.push(path.normalize(readme));
+                    readmes.push(path.normalize(readme.replace('readme','README')));
+                    readmes.push(path.normalize(readme.replace('readme','Readme')))
                 }
                 delete json.packageDirectories[index]['name'];
                 delete json.packageDirectories[index]['fullPath'];
+                json.packageDirectories[index].path = slash(json.packageDirectories[index].path);
             }
         }
         projectJson.setContentsFromObject(json);
@@ -325,7 +329,7 @@ Following Details will be updated:
 
         // commit changes
         spinner.start(COLOR_HEADER('start staging your new changes'));
-        await git.add([...readmes, projectJson.getPath()]);
+        await git.add([projectJson.getPath(),...readmes]);
         spinner.succeed(COLOR_HEADER('Staging your new changes succesfully'));
 
         const execAsync = promisify(exec);
