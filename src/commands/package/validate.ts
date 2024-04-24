@@ -1,5 +1,5 @@
 import * as os from 'os';
-import { Messages, SfError, SfProjectJson, Connection } from '@salesforce/core';
+import { Messages, SfError, SfProjectJson, Connection, ConfigAggregator, Org } from '@salesforce/core';
 import { ComponentSet, MetadataApiDeploy, MetadataResolver, DeployDetails } from '@salesforce/source-deploy-retrieve';
 import { getDeployUrls } from '../../utils/get-packages';
 import { DeployError, PackageTree } from '../../interfaces/package-interfaces';
@@ -89,9 +89,8 @@ export default class Validate extends EonCommand {
       description: messages.getMessage('testclassFlag'),
       required: false,
     }),
-    targetusername: Flags.string({
+    'target-org': Flags.string({
       description: 'Login username or alias for the target org.',
-      required: true,
     }),
   };
 
@@ -107,6 +106,19 @@ export default class Validate extends EonCommand {
     // get sfdx project.json
     const projectJson: SfProjectJson = await this.project.retrieveSfProjectJson();
     const packageAliases = projectJson.getContents().packageAliases;
+    let defaultUsername = '';
+
+    if(!this.flags['target-org']) {
+      defaultUsername = (await ConfigAggregator.create()).getPropertyValue('target-org');
+      if(!defaultUsername) {
+        throw new SfError(
+          `Found no default target-org in your salesforce config file. Please provide a target-org with flag --target-org or set a default target-org on your local machine`
+        );
+      }
+      EONLogger.log(COLOR_NOTIFY(`Using default target-org 👉 ${COLOR_INFO(defaultUsername)}`));
+      this.org = await Org.create({aliasOrUsername: this.flags.targetusername})
+    }
+
     if (this.flags.target && this.flags.package) {
       throw new SfError(`Either package or target flag can be used, not both`);
     }

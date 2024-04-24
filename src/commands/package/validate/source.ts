@@ -1,5 +1,5 @@
 import * as os from 'os';
-import { Messages, SfError, SfProjectJson, StateAggregator } from '@salesforce/core';
+import { Messages, SfError, SfProjectJson, StateAggregator, ConfigAggregator, Org } from '@salesforce/core';
 import { ComponentSet, MetadataApiDeploy, MetadataResolver, DeployDetails } from '@salesforce/source-deploy-retrieve';
 import { DeployError } from '../../../interfaces/package-interfaces';
 import { AnyJson } from '@salesforce/ts-types';
@@ -67,7 +67,6 @@ export default class Validate extends EonCommand {
       char: 'o',
       aliases: ['targetusername', 'u'],
       description: 'Login username or alias for the target org.',
-      required: true,
     }),
   };
 
@@ -86,6 +85,19 @@ export default class Validate extends EonCommand {
 
     // get all packages
     let packageDirs: NamedPackageDirLarge[] = projectJson.getUniquePackageDirectories();
+
+    let defaultUsername = '';
+
+    if(!this.flags['target-org']) {
+      defaultUsername = (await ConfigAggregator.create()).getPropertyValue('target-org');
+      if(!defaultUsername) {
+        throw new SfError(
+          `Found no default target-org in your salesforce config file. Please provide a target-org with flag --target-org or set a default target-org on your local machine`
+        );
+      }
+      EONLogger.log(COLOR_NOTIFY(`Using default target-org 👉 ${COLOR_INFO(defaultUsername)}`));
+      this.org = await Org.create({aliasOrUsername: this.flags.targetusername})
+    }
 
     // get all diffs from current to target branch
     let git: SimpleGit = simplegit(path.dirname(projectJson.getPath()));

@@ -423,3 +423,15 @@ export type BranchCreateResponse = {
   version: string;
 };
 
+export type Flow = {
+  Id: string
+  VersionNumber: number
+  Status: string
+  MasterLabel: string
+}
+
+export type AggregateResult = {
+  expr0: number
+  MasterLabel: string
+}
+
