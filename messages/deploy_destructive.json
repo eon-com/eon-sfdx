@@ -1,0 +1,11 @@
+{
+  "commandDescription": "Deploy destructive changes to a target org",
+  "manifestPath": "Path to the package xml file",
+  "destructivePath": "Path to the destructive xml file",
+  "checkonly": "Flag for target branch",
+  "rollback": "Rollback on errors",
+  "examples": [
+   "eon deploy destructive --manifest-path destructive/package.xml --destructive-path destructive/destructiveChanges.xml",
+   "eon deploy destructive -m destructive/package.xml -d destructive/destructiveChanges.xml -c"
+  ]
+}
