@@ -1,11 +1,5 @@
 import { Flags } from '@oclif/core';
-import {
-    Messages,
-    SfProject,
-    ConfigAggregator,
-    SfError,
-    Org,
-} from '@salesforce/core';
+import { Messages, SfProject, ConfigAggregator, SfError, Org } from '@salesforce/core';
 import * as os from 'os';
 
 import EONLogger, {
@@ -57,9 +51,15 @@ export default class DeployDestructive extends EonCommand {
             required: false,
         }),
         rollback: Flags.boolean({
-            char: 'p',
+            char: 'r',
             description: messages.getMessage('rollback'),
-            default: false,
+            default: true,
+            required: false,
+        }),
+        'ignore-warnings': Flags.boolean({
+            char: 'i',
+            description: messages.getMessage('ignoreWarnings'),
+            default: true,
             required: false,
         }),
         'target-org': Flags.string({
@@ -143,14 +143,13 @@ export default class DeployDestructive extends EonCommand {
 
         const deploy = await componetSet.deploy({
             usernameOrConnection: this.org.getConnection(),
-            apiOptions: { checkOnly: this.flags.checkonly, rollbackOnError: this.flags.rollback },
+            apiOptions: { checkOnly: this.flags.checkonly, rollbackOnError: this.flags.rollback, ignoreWarnings: this.flags['ignore-warnings'] },
         });
 
         let counter = 0;
 
         deploy.onUpdate((response) => {
             if (counter === 5) {
-                const { status, numberComponentsDeployed, numberComponentsTotal } = response;
                 const message = `⌛ Destructive deployment is in progress`;
                 console.log(message);
                 counter = 0;
@@ -170,6 +169,7 @@ export default class DeployDestructive extends EonCommand {
         });
 
         const res = await deploy.pollStatus();
+        console.log(res.response.details.componentFailures);
         //success comps
         if (
             Array.isArray(res.response.details.componentSuccesses) &&
@@ -216,8 +216,8 @@ export default class DeployDestructive extends EonCommand {
             const failure = res.response.details.componentFailures as DeployMessage;
             if (failure.problemType === 'Warning') {
                 outputTable.push([
-                  COLOR_WARNING(failure.componentType),
-                  COLOR_WARNING(failure.fullName),
+                    COLOR_WARNING(failure.componentType),
+                    COLOR_WARNING(failure.fullName),
                     'ℹ️',
                     failure.problem,
                 ]);
@@ -231,7 +231,7 @@ export default class DeployDestructive extends EonCommand {
         ) {
             for (const failure of res.response.details.componentFailures) {
                 if (failure.problemType === 'Error') {
-                  hasCompErrors = true;
+                    hasCompErrors = true;
                     outputTable.push([
                         COLOR_ERROR(failure.componentType),
                         COLOR_ERROR(failure.fullName),
@@ -256,12 +256,13 @@ export default class DeployDestructive extends EonCommand {
             }
         }
 
-
         EONLogger.log(COLOR_INFO_BOLD(`Deployment result 👇`));
         EONLogger.log(outputTable.toString());
 
         if (hasCompErrors) {
-            throw new SfError(`Deployment failed. Please check error messages from table and fix this issues from package.`);
+            throw new SfError(
+                `Deployment failed. Please check error messages from table and fix this issues from package.`
+            );
         }
 
         EONLogger.log(COLOR_SUCCESS(`Destructive deployment successfully 🎉`));

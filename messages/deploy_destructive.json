@@ -4,6 +4,7 @@
   "destructivePath": "Path to the destructive xml file",
   "checkonly": "Flag for target branch",
   "rollback": "Rollback on errors",
+  "ignoreWarnings": "Ignore warning messages in the deployment process",
   "examples": [
    "eon deploy destructive --manifest-path destructive/package.xml --destructive-path destructive/destructiveChanges.xml",
    "eon deploy destructive -m destructive/package.xml -d destructive/destructiveChanges.xml -c"
