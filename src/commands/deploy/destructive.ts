@@ -169,7 +169,6 @@ export default class DeployDestructive extends EonCommand {
         });
 
         const res = await deploy.pollStatus();
-        console.log(res.response.details.componentFailures);
         //success comps
         if (
             Array.isArray(res.response.details.componentSuccesses) &&
@@ -182,6 +181,13 @@ export default class DeployDestructive extends EonCommand {
                         COLOR_SUCCESS(successer.fullName),
                         '✅',
                         '',
+                    ]);
+                } else if(successer.problemType === 'Warning') {
+                    outputTable.push([
+                        COLOR_WARNING(successer.componentType),
+                        COLOR_WARNING(successer.fullName),
+                        'ℹ️',
+                        COLOR_WARNING(successer.problem),
                     ]);
                 }
             }
