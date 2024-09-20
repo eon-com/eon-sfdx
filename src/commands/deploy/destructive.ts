@@ -17,7 +17,8 @@ import { LOGOBANNER } from '../../eon/logo';
 import EonCommand from '../../EonCommand';
 import { AnyJson } from '@salesforce/ts-types';
 import path from 'path';
-import fs from 'fs/promises';
+import fs from 'fs'
+import fsPromise from 'fs/promises'
 import { ComponentSetBuilder, DeployMessage } from '@salesforce/source-deploy-retrieve';
 import Table from 'cli-table3';
 
@@ -56,6 +57,12 @@ export default class DeployDestructive extends EonCommand {
             default: true,
             required: false,
         }),
+        'write-output': Flags.boolean({
+          char: 'w',
+          description: messages.getMessage('output'),
+          default: false,
+          required: false,
+         }),
         'ignore-warnings': Flags.boolean({
             char: 'i',
             description: messages.getMessage('ignoreWarnings'),
@@ -63,6 +70,8 @@ export default class DeployDestructive extends EonCommand {
             required: false,
         }),
         'target-org': Flags.string({
+            char: 'o',
+            aliases: ['targetusername', 'u'],
             description: 'Login username or alias for the target org.',
         }),
     };
@@ -89,6 +98,8 @@ export default class DeployDestructive extends EonCommand {
             }
             EONLogger.log(COLOR_NOTIFY(`Using default target-org 👉 ${COLOR_INFO(defaultUsername)}`));
             this.org = await Org.create({ aliasOrUsername: this.flags.targetusername });
+        } else {
+          EONLogger.log(COLOR_NOTIFY(`Using target-org 👉 ${COLOR_INFO(this.org.getConnection().getUsername())}`));
         }
 
         const manifestPath = path.join(process.cwd(), this.flags['manifest-path']);
@@ -96,7 +107,7 @@ export default class DeployDestructive extends EonCommand {
 
         // Check if the file exists
         try {
-            await fs.access(manifestPath, fs.constants.F_OK);
+            await fsPromise.access(manifestPath, fsPromise.constants.F_OK);
         } catch (err) {
             throw new SfError(`File does not exist: ${manifestPath}`);
         }
@@ -104,7 +115,7 @@ export default class DeployDestructive extends EonCommand {
         EONLogger.log(COLOR_TRACE(`File exists: ${manifestPath}`));
 
         try {
-            fs.access(destructivePath, fs.constants.F_OK);
+          await fsPromise.access(destructivePath, fsPromise.constants.F_OK);
         } catch (err) {
             throw new SfError(`File does not exist: ${destructivePath}`);
         }
@@ -265,6 +276,18 @@ export default class DeployDestructive extends EonCommand {
         EONLogger.log(COLOR_INFO_BOLD(`Deployment result 👇`));
         EONLogger.log(outputTable.toString());
 
+        if(this.flags['write-output'] && res.response?.details){
+          try {
+          const outputDir = path.join(process.cwd(), '.eon/command');
+          this.createProjectPackagePath('.eon/command');
+          const outputFilePath = path.join(outputDir, 'destructive_deploy_output.json');
+          EONLogger.log(COLOR_INFO(`Writing output to file ${outputFilePath}`));
+          await fsPromise.writeFile(outputFilePath, JSON.stringify(res.response.details, null, 2));
+          } catch (err) {
+            throw new SfError(`Error writing output file: ${err}`);
+          }
+        }
+
         if (hasCompErrors) {
             throw new SfError(
                 `Deployment failed. Please check error messages from table and fix this issues from package.`
@@ -274,5 +297,19 @@ export default class DeployDestructive extends EonCommand {
         EONLogger.log(COLOR_SUCCESS(`Destructive deployment successfully 🎉`));
 
         return {};
+    }
+
+    createProjectPackagePath = (directoryPath: string): void => {
+      const normalizedPath = path.join(process.cwd(), directoryPath)
+      const segments = normalizedPath.split(path.sep)
+
+      // Erstelle den Pfad rekursiv
+      segments.reduce((currentPath, folder) => {
+        currentPath += folder + path.sep
+        if (!fs.existsSync(currentPath)) {
+          fs.mkdirSync(currentPath)
+        }
+        return currentPath
+      }, '')
     }
 }

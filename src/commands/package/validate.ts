@@ -1,6 +1,6 @@
 import * as os from 'os';
 import { Messages, SfError, SfProjectJson, Connection, ConfigAggregator, Org } from '@salesforce/core';
-import { ComponentSet, MetadataApiDeploy, MetadataResolver, DeployDetails } from '@salesforce/source-deploy-retrieve';
+import { ComponentSet, MetadataApiDeploy, MetadataResolver, DeployDetails, ComponentSetBuilder } from '@salesforce/source-deploy-retrieve';
 import { getDeployUrls } from '../../utils/get-packages';
 import { DeployError, PackageTree } from '../../interfaces/package-interfaces';
 import { AnyJson } from '@salesforce/ts-types';
@@ -307,6 +307,9 @@ First the dependecies packages. And then this package.`
   }
 
   private async deployPackageTreeNode(pck: string, path: string): Promise<void> {
+    ComponentSetBuilder.build({
+      sourcepath: [path],
+    });
     const deploy: MetadataApiDeploy = await ComponentSet.fromSource(path).deploy({
       usernameOrConnection: this.org.getConnection().getUsername(),
     });
