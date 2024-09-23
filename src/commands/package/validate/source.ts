@@ -96,7 +96,10 @@ export default class Validate extends EonCommand {
         );
       }
       EONLogger.log(COLOR_NOTIFY(`Using default target-org 👉 ${COLOR_INFO(defaultUsername)}`));
-      this.org = await Org.create({aliasOrUsername: this.flags.targetusername})
+      this.org = await Org.create({aliasOrUsername: defaultUsername})
+    } else {
+      EONLogger.log(COLOR_NOTIFY(`Using target-org 👉 ${COLOR_INFO(this.flags['target-org'])}`));
+      this.org = await Org.create({ aliasOrUsername: this.flags['target-org'] });
     }
 
     // get all diffs from current to target branch

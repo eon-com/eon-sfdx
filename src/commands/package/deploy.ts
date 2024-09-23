@@ -80,7 +80,10 @@ export default class Deploy extends EonCommand {
                 );
             }
             EONLogger.log(COLOR_NOTIFY(`Using default target-org 👉 ${COLOR_INFO(defaultUsername)}`));
-            this.org = await Org.create({ aliasOrUsername: this.flags.targetusername });
+            this.org = await Org.create({ aliasOrUsername: defaultUsername });
+        } else {
+          EONLogger.log(COLOR_NOTIFY(`Using target-org 👉 ${COLOR_INFO(this.flags['target-org'])}`));
+          this.org = await Org.create({ aliasOrUsername: this.flags['target-org'] });
         }
 
         const includedependencies = (this.flags.includedependencies || '') as boolean;

@@ -97,9 +97,10 @@ export default class DeployDestructive extends EonCommand {
                 );
             }
             EONLogger.log(COLOR_NOTIFY(`Using default target-org 👉 ${COLOR_INFO(defaultUsername)}`));
-            this.org = await Org.create({ aliasOrUsername: this.flags.targetusername });
+            this.org = await Org.create({ aliasOrUsername: defaultUsername });
         } else {
-          EONLogger.log(COLOR_NOTIFY(`Using target-org 👉 ${COLOR_INFO(this.org.getConnection().getUsername())}`));
+          EONLogger.log(COLOR_NOTIFY(`Using target-org 👉 ${COLOR_INFO(this.flags['target-org'])}`));
+          this.org = await Org.create({ aliasOrUsername: this.flags['target-org'] });
         }
 
         const manifestPath = path.join(process.cwd(), this.flags['manifest-path']);
