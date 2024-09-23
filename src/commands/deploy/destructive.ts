@@ -79,7 +79,7 @@ export default class DeployDestructive extends EonCommand {
     // Set this to true if your command requires a project workspace; 'requiresProject' is false by default
     protected static requiresProject = true;
     // Comment this out if your command does not require an org username
-    protected static requiresUsername = true;
+    protected static requiresUsername = false;
 
     public async execute(): Promise<AnyJson> {
         EONLogger.log(COLOR_HEADER(LOGOBANNER));
