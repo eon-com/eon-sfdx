@@ -90,14 +90,16 @@ export default class Validate extends EonCommand {
       required: false,
     }),
     'target-org': Flags.string({
-      description: 'Login username or alias for the target org.',
-    }),
+            char: 'o',
+            aliases: ['targetusername', 'u'],
+            description: 'Login username or alias for the target org.',
+        }),
   };
 
   // Set this to true if your command requires a project workspace; 'requiresProject' is false by default
   protected static requiresProject = true;
   // Comment this out if your command does not require an org username
-  protected static requiresUsername = true;
+  protected static requiresUsername = false;
 
   public async execute(): Promise<AnyJson> {
     EONLogger.log(COLOR_HEADER(LOGOBANNER));
@@ -108,15 +110,15 @@ export default class Validate extends EonCommand {
     const packageAliases = projectJson.getContents().packageAliases;
     let defaultUsername = '';
 
-    if(!this.flags['target-org']) {
-      defaultUsername = (await ConfigAggregator.create()).getPropertyValue('target-org');
-      if(!defaultUsername) {
-        throw new SfError(
-          `Found no default target-org in your salesforce config file. Please provide a target-org with flag --target-org or set a default target-org on your local machine`
-        );
-      }
-      EONLogger.log(COLOR_NOTIFY(`Using default target-org 👉 ${COLOR_INFO(defaultUsername)}`));
-      this.org = await Org.create({aliasOrUsername: defaultUsername})
+    if (!this.flags['target-org']) {
+        defaultUsername = (await ConfigAggregator.create()).getPropertyValue('target-org');
+        if (!defaultUsername) {
+            throw new SfError(
+                `Found no default target-org in your salesforce config file. Please provide a target-org with flag --target-org or set a default target-org on your local machine`
+            );
+        }
+        EONLogger.log(COLOR_NOTIFY(`Using default target-org 👉 ${COLOR_INFO(defaultUsername)}`));
+        this.org = await Org.create({ aliasOrUsername: defaultUsername });
     } else {
       EONLogger.log(COLOR_NOTIFY(`Using target-org 👉 ${COLOR_INFO(this.flags['target-org'])}`));
       this.org = await Org.create({ aliasOrUsername: this.flags['target-org'] });

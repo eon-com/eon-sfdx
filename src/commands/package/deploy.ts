@@ -51,7 +51,7 @@ export default class Deploy extends EonCommand {
     };
 
     // Comment this out if your command does not require an org username
-    protected static requiresUsername = true;
+    protected static requiresUsername = false;
 
     // Comment this out if your command does not support a hub org username
     // protected static supportsDevhubUsername = true;
