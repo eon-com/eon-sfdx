@@ -90,7 +90,7 @@ export default class ProjectValidate extends EonCommand {
       required: false,
     }),
     targetdevhubusername: Flags.string({
-      char: 'v',
+      char: 'u',
       description: 'Login username or alias for the devhub org.',
       required: true,
     }),
