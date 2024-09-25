@@ -36,7 +36,7 @@
     "markdown-it": "^12.3.2",
     "markdown-table": "^2.0.0",
     "ora": "^3.4.0",
-    "p-queue": "^8.0.1",
+    "p-queue": "6.6.2",
     "rimraf": "^5.0.5",
     "semver": "^7.3.7",
     "simple-git": "^3.4.0",
