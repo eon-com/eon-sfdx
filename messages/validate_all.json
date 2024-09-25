@@ -1,0 +1,11 @@
+{
+  "commandDescription": "Validation Job to check source and unlocked packages on org",
+  "targetOrgFlag": "Org for source package validation",
+  "scratchOrgFlag": "Scratch org for unlocked package validation",
+  "targetDevHubFlag": "DevHub for unlocked package validation",
+  "runScriptsFlag": "Flag to run pre/post deployment scripts",
+  "poolFlag": "Pooltag for unlocked package validation",
+  "examples": [
+    "eon validate:all -d myDevHub -t myTargetOrg -p b2w -r"
+  ]
+}

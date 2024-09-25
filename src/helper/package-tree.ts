@@ -1,5 +1,6 @@
-import { NamedPackageDir, SfProjectJson } from '@salesforce/core';
+import { SfProjectJson } from '@salesforce/core';
 import { PackageTree } from './types';
+import { NamedPackageDirLarge } from './types';
 
 /**
  * This Class converts a sfdxProjectJson from core/Salesforce format to a package node tree across all levels
@@ -16,12 +17,13 @@ export default class PackageNodeTree {
    * Converts the project Json PackageDirectories into a tree of packages
    */
   public async nodeTreeInit() {
-    const packagedir: NamedPackageDir[] = await this.projectJson.getUniquePackageDirectories();
+    const json = this.projectJson.getContents();
+    const packagedir: NamedPackageDirLarge[] = json.packageDirectories as NamedPackageDirLarge[];
     for (const pck of packagedir) {
       let newNode: PackageTree = {
         version: pck?.versionNumber,
         packagename: pck.package,
-        path: pck.fullPath,
+        path: pck.path,
         managed: false,
         dependency: [],
       };
@@ -59,13 +61,13 @@ export default class PackageNodeTree {
    * @returns Dependency tree list
    *
    */
-  private getDependencyNodes(pckName: string, dir: NamedPackageDir[]): PackageTree[] {
+  private getDependencyNodes(pckName: string, dir: NamedPackageDirLarge[]): PackageTree[] {
     let dependencies: PackageTree[] = [];
-    const pck: NamedPackageDir = dir.find((p) => p.package === pckName);
+    const pck: NamedPackageDirLarge = dir.find((p) => p.package === pckName);
     if (pck.dependencies) {
       pck.dependencies.forEach((dep) => {
         if (dep.versionNumber) {
-          const depPck: NamedPackageDir = dir.find((p) => p.package === dep.package);
+          const depPck: NamedPackageDirLarge = dir.find((p) => p.package === dep.package);
           const packageNode: PackageTree = {
             version: dep.versionNumber,
             packagename: depPck?.package,

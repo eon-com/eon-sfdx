@@ -9,7 +9,7 @@ import { parseSourceComponent } from './xml';
  * @returns List of Permissionsets found inside the package directory
  */
 export default async function getPermissionsets(pck: PackageDirParsed): Promise<PackagePermissionset[]> {
-  const permissionSetPaths: string[] = getAllFiles(pck.fullPath).filter((file) =>
+  const permissionSetPaths: string[] = getAllFiles(pck.path).filter((file) =>
     file.includes('permissionset-meta.xml')
   );
   let permissionSets = [];

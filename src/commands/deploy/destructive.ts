@@ -86,7 +86,7 @@ export default class DeployDestructive extends EonCommand {
         EONLogger.log(COLOR_KEY_MESSAGE('Deploy destructive change(s)...'));
         EONLogger.log(COLOR_HEADER('Search for xml files...'));
         const project = await SfProject.resolve();
-        const packageDirs = project.getUniquePackageDirectories().map((pDir) => pDir.fullPath);
+        const packageDirs = project.getUniquePackageDirectories().map((pDir) => pDir.path);
         let defaultUsername = '';
 
         if (!this.flags['target-org']) {
@@ -154,7 +154,7 @@ export default class DeployDestructive extends EonCommand {
         EONLogger.log(COLOR_NOTIFY(`Deploying destructive changes...`));
 
         const deploy = await componetSet.deploy({
-            usernameOrConnection: this.org.getConnection(),
+            usernameOrConnection: this.org.getConnection() as any,
             apiOptions: { checkOnly: this.flags.checkonly, rollbackOnError: this.flags.rollback, ignoreWarnings: this.flags['ignore-warnings'] },
         });
 

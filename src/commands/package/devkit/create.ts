@@ -1,7 +1,8 @@
 import * as os from 'os';
 import fs from 'fs';
 import path from 'path';
-import { Messages, NamedPackageDir, SfProjectJson, SfError, ConfigAggregator, Org } from '@salesforce/core';
+import { Messages, SfProjectJson, SfError, ConfigAggregator, Org } from '@salesforce/core';
+import { NamedPackageDirLarge } from '../../../helper/types';
 
 import { AnyJson } from '@salesforce/ts-types';
 import EONLogger, { COLOR_ERROR, COLOR_HEADER, COLOR_INFO, COLOR_NOTIFY } from '../../../eon/EONLogger';
@@ -65,8 +66,9 @@ export default class Create extends EonCommand {
         }
 
         const projectJson: SfProjectJson = await this.project.retrieveSfProjectJson();
+        const json = projectJson.getContents();
 
-        let packageDirs: NamedPackageDir[] = projectJson.getUniquePackageDirectories();
+        let packageDirs: NamedPackageDirLarge[] = json.packageDirectories as NamedPackageDirLarge[];
 
         // check if package exists
         if (!packageDirs.map((a) => a.package).includes(packagename)) {

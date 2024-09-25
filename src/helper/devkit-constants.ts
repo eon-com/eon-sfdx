@@ -1,9 +1,10 @@
-import { NamedPackageDir, SfError } from '@salesforce/core';
+import { SfError } from '@salesforce/core';
 import fs from 'fs';
 import fspromise from 'fs/promises';
 import path from 'path';
 import YAML from 'yaml';
 import EONLogger, { COLOR_ERROR } from '../eon/EONLogger';
+import { NamedPackageDirLarge } from './types';
 
 export const SETUPFILE = 'eon-devkit.yml';
 export const DEVKITFOLDER = 'devkit';
@@ -55,7 +56,7 @@ export interface DevKitYaml {
   test_data?: string[];
 }
 
-export const getDevKits = async (packageDirs: NamedPackageDir[], packagename: string) => {
+export const getDevKits = async (packageDirs: NamedPackageDirLarge[], packagename: string) => {
   const packagePath: string = packageDirs.find((a) => a.package === packagename).path;
 
   const filePaths: string[] = findFileInDir(packagePath, SETUPFILE);

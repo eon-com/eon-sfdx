@@ -1,5 +1,5 @@
 import * as os from 'os';
-import { Messages, NamedPackageDir, SfProjectJson, SfError, Org, ConfigAggregator } from '@salesforce/core';
+import { Messages, SfProjectJson, SfError, Org, ConfigAggregator } from '@salesforce/core';
 import { AnyJson } from '@salesforce/ts-types';
 import EONLogger, { COLOR_ERROR, COLOR_HEADER, COLOR_NOTIFY, COLOR_TRACE, COLOR_INFO } from '../../../../eon/EONLogger';
 import { LOGOBANNER } from '../../../../eon/logo';
@@ -9,6 +9,7 @@ import path from 'path';
 import { Listr } from 'listr2';
 import { Flags } from '@oclif/core';
 import EonCommand from '../../../../EonCommand';
+import { NamedPackageDirLarge } from '../../../../helper/types';
 // Initialize Messages with the current plugin directory
 Messages.importMessagesDirectory(__dirname);
 
@@ -59,7 +60,8 @@ export default class RetrieveDevkit extends EonCommand {
         }
 
         const projectJson: SfProjectJson = await this.project.retrieveSfProjectJson();
-        let packageDirs: NamedPackageDir[] = projectJson.getUniquePackageDirectories();
+        const json = projectJson.getContents();
+        let packageDirs: NamedPackageDirLarge[] = json.packageDirectories as NamedPackageDirLarge[];
         const username: string = await this.org.getUsername();
         EONLogger.log(COLOR_HEADER('Retrieve Testdata of DevKit ' + packagename + ' for ' + username));
         EONLogger.log('');

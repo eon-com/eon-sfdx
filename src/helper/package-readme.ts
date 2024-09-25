@@ -31,7 +31,7 @@ export default class PackageReadme {
     user: string,
     settings: PluginSettings
   ): Promise<string> {
-    const posixString = pck.fullPath
+    const posixString = pck.path
       .split(path.sep)
       .join(path.posix.sep)
       .replace(settings.sfdxContentSubPath + '/', '');

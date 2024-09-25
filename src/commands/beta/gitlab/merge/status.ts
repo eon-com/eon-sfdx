@@ -1,6 +1,6 @@
 const axios = require('axios');
 import { AnyJson } from '@salesforce/ts-types';
-import { Messages, SfError, Connection, PackageDir, AuthInfo, StateAggregator } from '@salesforce/core';
+import { Messages, SfError, Connection, AuthInfo, StateAggregator } from '@salesforce/core';
 import { Listr } from 'listr2';
 import {
   SingleMergeRequest,
@@ -8,6 +8,7 @@ import {
   PackageChange,
   SfpowerscriptsArtifact2,
   JobDetails,
+  NamedPackageDirLarge,
 } from '../../../../helper/types';
 import EONLogger, {
   COLOR_INFO,
@@ -257,8 +258,8 @@ export default class GitLabStatus extends EonCommand {
     return blobId;
   }
 
-  private async getCommitProjectJson(blobId: string): Promise<PackageDir[]> {
-    let projectJsonPackages: PackageDir[] = [];
+  private async getCommitProjectJson(blobId: string): Promise<NamedPackageDirLarge[]> {
+    let projectJsonPackages: NamedPackageDirLarge[] = [];
     if (blobId) {
       try {
         const mergeCommitResponse = await axios({
@@ -278,7 +279,7 @@ export default class GitLabStatus extends EonCommand {
 
   private async getSingleMergeChanges(merge: SingleMergeRequest): Promise<SingleMergeRequest> {
     let packageMap = new Map();
-    let projectJson: PackageDir[];
+    let projectJson: NamedPackageDirLarge[];
     let mergeChangesResponse;
     try {
       mergeChangesResponse = await axios({

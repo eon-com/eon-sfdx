@@ -1,5 +1,6 @@
 import * as os from 'os';
 import { Messages, SfError, SfProjectJson, Connection, ConfigAggregator, Org } from '@salesforce/core';
+import { PackagePackageDir } from '@salesforce/schemas';
 import { ComponentSet, MetadataApiDeploy, MetadataResolver, DeployDetails, ComponentSetBuilder } from '@salesforce/source-deploy-retrieve';
 import { getDeployUrls } from '../../utils/get-packages';
 import { DeployError, PackageTree } from '../../interfaces/package-interfaces';
@@ -90,7 +91,7 @@ export default class Validate extends EonCommand {
       required: false,
     }),
     'target-org': Flags.string({
-            char: 'o',
+            char: 'u',
             aliases: ['targetusername', 'u'],
             description: 'Login username or alias for the target org.',
         }),
@@ -127,8 +128,9 @@ export default class Validate extends EonCommand {
     if (this.flags.target && this.flags.package) {
       throw new SfError(`Either package or target flag can be used, not both`);
     }
+    const json = projectJson.getContents();
     // get all packages
-    let packageDirs: NamedPackageDirLarge[] = projectJson.getUniquePackageDirectories();
+    let packageDirs: NamedPackageDirLarge[] = json.packageDirectories as NamedPackageDirLarge[];
     // get all diffs from current to target branch
 
     let git: SimpleGit = simplegit(path.dirname(projectJson.getPath()));
@@ -163,7 +165,7 @@ export default class Validate extends EonCommand {
           if (
             path
               .join(path.dirname(projectJson.getPath()), path.normalize(change.file))
-              .includes(path.normalize(pck.fullPath))
+              .includes(path.normalize(pck.path))
           ) {
             return true;
           }

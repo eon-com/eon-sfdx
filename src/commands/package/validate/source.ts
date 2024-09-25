@@ -82,10 +82,11 @@ export default class Validate extends EonCommand {
     EONLogger.log(COLOR_HEADER('Search for source package changes'));
     // get sfdx project.json
     const projectJson: SfProjectJson = await this.project.retrieveSfProjectJson();
+    const json = projectJson.getContents();
     const packageAliases = projectJson.getContents().packageAliases;
 
     // get all packages
-    let packageDirs: NamedPackageDirLarge[] = projectJson.getUniquePackageDirectories();
+    let packageDirs: NamedPackageDirLarge[] = json.packageDirectories as NamedPackageDirLarge[];
 
     let defaultUsername = '';
 
@@ -131,7 +132,7 @@ export default class Validate extends EonCommand {
         if (
           path
             .join(path.dirname(projectJson.getPath()), path.normalize(change.file))
-            .includes(path.normalize(pck.fullPath))
+            .includes(path.normalize(pck.path))
         ) {
           return true;
         }

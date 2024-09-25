@@ -1,4 +1,5 @@
-import { PackageDir, NamedPackageDir } from '@salesforce/core';
+import { NamedPackageDir } from '@salesforce/core';
+import { PackagePackageDir, PackageDirDependency } from '@salesforce/schemas';
 import { QueryResult } from 'jsforce';
 
 export declare type DateString = string & {
@@ -143,7 +144,7 @@ export interface ProjectJsonParsed {
   packageDirectories: PackageDirParsed[];
   [x: string | number | symbol]: unknown;
 }
-export interface PackageDirParsed extends PackageDir {
+export type PackageDirParsed = PackagePackageDir & {
   name?: string;
   fullPath?: string;
   ignoreOnStage?: string[];
@@ -264,10 +265,12 @@ export interface ApexTestQueueResult {
   OtherList: string[];
 }
 
-export interface NamedPackageDirLarge extends NamedPackageDir {
+export type NamedPackageDirLarge = PackagePackageDir & {
   ignoreOnStage?: string[];
+  fullPath?: string;
   postDeploymentScript?: string;
   preDeploymentScript?: string;
+  type?: string;
 }
 
 export interface CustomRecordResult {
@@ -434,4 +437,29 @@ export type AggregateResult = {
   expr0: number
   MasterLabel: string
 }
+
+export type PackageCharacter = {
+  hasManagedPckDeps: boolean
+  reason: string
+  versionNumber: string
+  type: string
+  packageDeps: PackageDirDependency[]
+  path: string
+  hasError: boolean
+  errorMessage: string
+  targetTree: NamedPackageDirLarge
+}
+
+export type Package2Version = {
+  Id: string
+  SubscriberPackageVersionId: string
+}
+
+
+
+
+
+
+
+
 

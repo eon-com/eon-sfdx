@@ -1,5 +1,6 @@
 import * as os from 'os';
-import { Messages, NamedPackageDir, PackageDir, SfProject, SfError, SfProjectJson } from '@salesforce/core';
+import { Messages, SfProject, SfError, SfProjectJson } from '@salesforce/core';
+import { NamedPackageDirLarge } from '../helper/types';
 import { AnyJson } from '@salesforce/ts-types';
 import simplegit, { SimpleGit } from 'simple-git';
 import { PluginSettings } from '../helper/types';
@@ -52,6 +53,7 @@ export default class Changelog extends EonCommand {
         // get sfdx project.json
         const project: SfProject = await SfProject.resolve();
         const projectJson: SfProjectJson = await project.retrieveSfProjectJson();
+        const jsons = projectJson.getContents();
         const settings: PluginSettings = projectJson.getContents()?.plugins['eon-sfdx'] as PluginSettings;
 
         EONLogger.log(
@@ -67,7 +69,7 @@ export default class Changelog extends EonCommand {
         EONLogger.log(COLOR_EON_YELLOW(`and update them before you make the next steps ❗️`));
 
         // get all packages
-        let packageDirs: NamedPackageDir[] = projectJson.getUniquePackageDirectories();
+        let packageDirs: NamedPackageDirLarge[] = jsons.packageDirectories as NamedPackageDirLarge[];
         const { Select } = require('enquirer');
         let diffFlags: string[] = [];
 
@@ -220,7 +222,7 @@ export default class Changelog extends EonCommand {
         let table = new Table({
             head: [COLOR_KEY_MESSAGE('Package Name'), COLOR_KEY_MESSAGE('Version')],
         });
-        let updatedPackages: PackageDir[] = [];
+        let updatedPackages: NamedPackageDirLarge[] = [];
         for (let packageName of changedPackages) {
             const nodetree: PackageNodeTree = new PackageNodeTree(projectJson);
             await nodetree.nodeTreeInit();
@@ -294,10 +296,11 @@ Following Details will be updated:
         // update sfdx project json
         let json = projectJson.getContents();
         let readmes: string[] = [];
+        const jsonPd = json.packageDirectories as NamedPackageDirLarge[];
 
         for (let update of updatedPackages) {
-            const index = json.packageDirectories.indexOf(
-                json.packageDirectories.find((pck) => pck.package === update.package)
+            const index = jsonPd.indexOf(
+              jsonPd.find((pck) => pck.package === update.package)
             );
             if (~index) {
                 // we need this step for windows users to normalize the path
@@ -307,7 +310,7 @@ Following Details will be updated:
                 if (settings && settings.enableReadmeGeneration) {
                     const gitUser = await git.getConfig('user.name');
                     const readme = await PackageReadme.update(
-                        json.packageDirectories[index],
+                        jsonPd[index],
                         message.message,
                         promptJira,
                         gitUser.value,
@@ -318,7 +321,7 @@ Following Details will be updated:
                     readmes.push(path.normalize(readme.replace('readme','Readme')))
                 }
                 delete json.packageDirectories[index]['name'];
-                delete json.packageDirectories[index]['fullPath'];
+                delete json.packageDirectories[index]['path'];
                 json.packageDirectories[index].path = slash(json.packageDirectories[index].path);
             }
         }

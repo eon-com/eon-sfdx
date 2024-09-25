@@ -1,5 +1,6 @@
 import * as os from 'os';
-import { Messages, SfError, SfProjectJson, PackageDir, PackageDirDependency } from '@salesforce/core';
+import { Messages, SfError, SfProjectJson } from '@salesforce/core';
+import { PackageDir, PackageDirDependency } from '@salesforce/schemas';
 import { AnyJson, ensureArray } from '@salesforce/ts-types';
 import simplegit, { DiffResult, SimpleGit } from 'simple-git';
 import {
@@ -120,7 +121,7 @@ export default class ProjectValidate extends EonCommand {
     // get all diffs from current to target branch
 
     let git: SimpleGit = simplegit(path.dirname(projectJson.getPath()));
-    let packageDirsTarget: PackageDir[] = [];
+    let packageDirsTarget: NamedPackageDirLarge[] = [];
     let packageCheckList: ProjectValidationOutput[] = [];
     EONLogger.log(COLOR_HEADER('Search for package changes'));
     const projectJsonString: string = await git.show([`${this.flags.target}:sfdx-project.json`]);
@@ -394,7 +395,7 @@ Please put your changes in a (new) unlocked package or a (new) source package. T
 
   private checkSingleVersionUpdate(
     sourcePackageDir: NamedPackageDirLarge,
-    targetPackageDirs: PackageDir[]
+    targetPackageDirs: NamedPackageDirLarge[]
   ): ProjectValidationOutput[] {
     EONLogger.log(COLOR_TRACE(`Check version update for package ${sourcePackageDir.package}`));
     const validationResponse: ProjectValidationOutput[] = [];

@@ -1,5 +1,6 @@
 import * as os from 'os';
-import { Messages, NamedPackageDir, SfProjectJson, SfError, ConfigAggregator, Org } from '@salesforce/core';
+import { Messages, SfProjectJson, SfError, ConfigAggregator, Org } from '@salesforce/core';
+import { NamedPackageDirLarge } from '../../../helper/types';
 import { AnyJson } from '@salesforce/ts-types';
 import EONLogger, { COLOR_ERROR, COLOR_HEADER, COLOR_INFO, COLOR_NOTIFY, COLOR_TRACE } from '../../../eon/EONLogger';
 import { LOGOBANNER } from '../../../eon/logo';
@@ -59,7 +60,8 @@ export default class Apply extends EonCommand {
         }
 
         const projectJson: SfProjectJson = await this.project.retrieveSfProjectJson();
-        let packageDirs: NamedPackageDir[] = projectJson.getUniquePackageDirectories();
+        const json = projectJson.getContents();
+        let packageDirs: NamedPackageDirLarge[] = json.packageDirectories as NamedPackageDirLarge[];
         const username: string = await this.org.getUsername();
         EONLogger.log(COLOR_HEADER('Applying DevKit ' + packagename + ' for ' + username));
         EONLogger.log('');
