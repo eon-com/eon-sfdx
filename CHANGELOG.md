@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.5.0](https://github.com/eon-com/eon-sfdx/compare/v1.16.0...v2.5.0) (2024-09-25)
+
+
+### Features
+
+* **breaking-change:** update to salesforce/core > 8 ([d3b6c8b](https://github.com/eon-com/eon-sfdx/commit/d3b6c8b11a2fe475a7e4d73a347130a6fff408ae))
+* **change-package-version:** new version ([9f7502c](https://github.com/eon-com/eon-sfdx/commit/9f7502c7cc03d04983b0cfab9f884d3551c6d0fa))
+* **eon-com:** breaking change to oclif ([4aeaedc](https://github.com/eon-com/eon-sfdx/commit/4aeaedc810501383f540c2f39f2801414a0c5328))
+* **eon-com:** new command eon changelog ([fb4fd30](https://github.com/eon-com/eon-sfdx/commit/fb4fd307d2511aa10b7483e08d6ad196a46bc745))
+* **eon-com:** unit tests ([d4395d2](https://github.com/eon-com/eon-sfdx/commit/d4395d2733a99807c3a5175ba2b6db400980e21c))
+* **eon-com:** update commit command ([b2a657e](https://github.com/eon-com/eon-sfdx/commit/b2a657e81edfc93fa353914bc82964b01cd0f2f5))
+* **new-deploy-command:** add new command ([d9c34cd](https://github.com/eon-com/eon-sfdx/commit/d9c34cd83777f0d661e502100cc3cc005ca9e1ae))
+* **new-destructive-change:** new command for destructive changes ([d4d3b49](https://github.com/eon-com/eon-sfdx/commit/d4d3b495440f7f811c40f24b90e901590dfcfdbe))
+* **release:** new beta release 2.0.0. ([f1e67ba](https://github.com/eon-com/eon-sfdx/commit/f1e67ba07fc49301a34268e5a30dda35ae0d5e65))
+
+
+### Bug Fixes
+
+* **all-commands:** use default org or target org ([4abd3e2](https://github.com/eon-com/eon-sfdx/commit/4abd3e25d0f01c510a1a6850454ebe3f4e3c56b2))
+* **beta:** deploy command with user ([4654c93](https://github.com/eon-com/eon-sfdx/commit/4654c9304df651c8cae3ab27af6b12c9bb36f4e4))
+* **beta:** fix path for windows user ([0cc8c9c](https://github.com/eon-com/eon-sfdx/commit/0cc8c9c82f39700e8407d007360ae3d7199acbec))
+* **changelog:** ignore filenames with uppercase ([a5103bb](https://github.com/eon-com/eon-sfdx/commit/a5103bb0be24a4ec273e0d2bf3a82db049c48fb0))
+* **deploy-destructive:** set default username ([a8c2b7e](https://github.com/eon-com/eon-sfdx/commit/a8c2b7efa252121eb1ed2a83523fa46c7d28ab9c))
+* **destrcutive:** required username ([463b945](https://github.com/eon-com/eon-sfdx/commit/463b94505812ff48a5c057cb080f6bd5f3e76d1d))
+* **eon-oclif:** refresh all commands after local tests ([1cf2529](https://github.com/eon-com/eon-sfdx/commit/1cf2529bdbcc109610f4a23903a142a6db5e0211))
+* **flow-delete:** continue process when dependency exist ([6809eb9](https://github.com/eon-com/eon-sfdx/commit/6809eb943b904bc2bcd54483bbf90598e86ce48a))
+* **package-deploy-destructive:** fix wqarning logic ([1d9117d](https://github.com/eon-com/eon-sfdx/commit/1d9117d84f4c49a81c9c9893959530340e230207))
+* **update-destructive:** add warnings to output ([5b2facc](https://github.com/eon-com/eon-sfdx/commit/5b2faccabc8e887d718ca53263031dc5b0025bf8))
+
 ## [2.4.0](https://github.com/eon-com/eon-sfdx/compare/v1.16.0...v2.4.0) (2024-09-24)
 
 
