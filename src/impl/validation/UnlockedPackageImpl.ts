@@ -26,6 +26,7 @@ export default class UnlockedPackageImpl {
         const packageTrees: NamedPackageDirLarge[] = json.packageDirectories as NamedPackageDirLarge[];
         const packageAliases: Nullable<Dictionary<string>> = project.getPackageAliases();
         const packageMap = new Map<string, PackageCharacter>();
+        const packageMapSort = new Map<string, PackageCharacter>();
 
         const packageInfoTable = new Table({
             head: [
@@ -67,7 +68,14 @@ export default class UnlockedPackageImpl {
             return;
         }
 
-        for (const [key, value] of packageMap) {
+        // second loop for sorting
+        for (const pck of packageTrees) {
+            if (packageMap.has(pck.package)) {
+                packageMapSort.set(pck.package, packageMap.get(pck.package));
+            }
+        }
+
+        for (const [key, value] of packageMapSort) {
             packageInfoTable.push([key, value.reason, value.hasManagedPckDeps ? '✅' : '❌', value.type]);
         }
 
@@ -90,7 +98,7 @@ export default class UnlockedPackageImpl {
 
         // now install all packages
         await PackageInstall.getInstance().run(
-            packageMap,
+            packageMapSort,
             this.props.devHubAlias,
             this.props.scratchOrgAlias || fetchResult.username,
             this.props.runScripts
