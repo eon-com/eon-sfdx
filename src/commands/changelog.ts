@@ -227,6 +227,7 @@ export default class Changelog extends EonCommand {
             const nodetree: PackageNodeTree = new PackageNodeTree(projectJson);
             await nodetree.nodeTreeInit();
             let pck = packageDirs.find((pckdir) => packageName === pckdir.package);
+            console.log('pck', pck)
             let oldVer = pck.versionNumber;
             let version: number[] = pck.versionNumber
                 .replace('.NEXT', '')
@@ -305,7 +306,7 @@ Following Details will be updated:
             if (~index) {
                 // we need this step for windows users to normalize the path
                 update.path = path.normalize(update.path);
-                json.packageDirectories[index] = update;
+                jsonPd[index] = update;
                 // update readme if set in settings
                 if (settings && settings.enableReadmeGeneration) {
                     const gitUser = await git.getConfig('user.name');
@@ -320,8 +321,7 @@ Following Details will be updated:
                     readmes.push(path.normalize(readme.replace('readme','README')));
                     readmes.push(path.normalize(readme.replace('readme','Readme')))
                 }
-                delete json.packageDirectories[index]['name'];
-                delete json.packageDirectories[index]['path'];
+                delete jsonPd[index]['name'];
                 json.packageDirectories[index].path = slash(json.packageDirectories[index].path);
             }
         }
