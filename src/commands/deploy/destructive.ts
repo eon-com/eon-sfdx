@@ -163,7 +163,6 @@ export default class DeployDestructive extends EonCommand {
         deploy.onUpdate((response) => {
             if (counter === 5) {
                 const message = `⌛ Destructive deployment is in progress`;
-                console.log(message);
                 counter = 0;
             } else {
                 counter++;

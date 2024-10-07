@@ -227,7 +227,6 @@ export default class Changelog extends EonCommand {
             const nodetree: PackageNodeTree = new PackageNodeTree(projectJson);
             await nodetree.nodeTreeInit();
             let pck = packageDirs.find((pckdir) => packageName === pckdir.package);
-            console.log('pck', pck)
             let oldVer = pck.versionNumber;
             let version: number[] = pck.versionNumber
                 .replace('.NEXT', '')

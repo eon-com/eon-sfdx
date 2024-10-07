@@ -35,7 +35,6 @@ export default class Gettype extends EonCommand {
       } else {
         orgType = 'production';
       }
-      console.log(orgType);
     }
   }
 }

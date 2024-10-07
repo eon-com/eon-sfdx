@@ -34,7 +34,7 @@ export default class PackageReadme {
     const posixString = pck.path
       .split(path.sep)
       .join(path.posix.sep)
-      .replace(settings.sfdxContentSubPath + '/', '');
+      .replace(settings.sfdxContentSubPath, '');
     const readmePath = path.join(posixString, 'readme.md');
     let readmeExists = true;
     await fs.stat(readmePath).catch((error) => (readmeExists = false));
