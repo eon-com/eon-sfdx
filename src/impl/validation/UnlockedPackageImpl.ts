@@ -91,6 +91,22 @@ export default class UnlockedPackageImpl {
             if (fetchResult.failureMessage) {
                 throw new SfError(fetchResult.failureMessage);
             }
+
+            EONLogger.log(COLOR_NOTIFY(`======== Scratch org details ======== 👇`));
+
+            const scratchInfoTable = new Table({
+                head: [COLOR_NOTIFY('Key'), COLOR_NOTIFY('Value')],
+                colWidths: [20, 70],
+                wordWrap: true,
+            });
+
+            for (let [key, value] of Object.entries(fetchResult)) {
+                if (value) {
+                    scratchInfoTable.push([key, value]);
+                }
+            }
+
+            EONLogger.log(scratchInfoTable.toString());
         }
 
         EONLogger.log(COLOR_NOTIFY(`👉 Following unlocked packages with changes:`));
